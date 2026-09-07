@@ -1,0 +1,43 @@
+{
+  "title": "Choose Fieldio's homepage structure",
+  "question": "Each option keeps the same minimal Fieldio identity. Choose the composition that should lead the launch storefront.",
+  "options": [
+    {
+      "id": "catalog-index",
+      "label": "The Catalog Index",
+      "kicker": "THE ROLL",
+      "lineage": "Fieldio reference: four-column collection grid",
+      "thesis": "The launch opens as a disciplined luxury edit where products and brands are immediately shoppable.",
+      "palette": ["#f6f6f3", "#171815", "#d9d8d1", "#6f735f"],
+      "materials": ["pale studio photography", "hairline rules", "compact controls"],
+      "viewport": "A centered wordmark and narrow utility header sit above filters and a dense four-column edit; a quiet brand story breaks the grid below.",
+      "risk": "It is the clearest shopping route, but the first screen feels less cinematic than the other directions.",
+      "comp": ".impeccable/mocks/decision/catalog-index.webp"
+    },
+    {
+      "id": "product-salon",
+      "label": "The Product Salon",
+      "lineage": "Fieldio reference: editorial product canvas",
+      "thesis": "One sourced piece owns the first screen, turning discovery into an intimate personal-shopping appointment.",
+      "palette": ["#f7f7f4", "#181916", "#d4d4d0", "#6f735f"],
+      "materials": ["gallery-scale portraiture", "precise variant controls", "flat white canvas"],
+      "viewport": "An oversized product gallery fills two thirds of the frame while name, brand, size, enquiry, and WhatsApp purchase controls form a narrow right column.",
+      "risk": "It creates the strongest luxury focus, but fewer products are visible before scrolling.",
+      "comp": ".impeccable/mocks/decision/product-salon.webp"
+    },
+    {
+      "id": "editorial-lookbook",
+      "label": "The Editorial Lookbook",
+      "lineage": "Fieldio reference: split campaign and long-form gallery",
+      "thesis": "Fieldio reads like a seasonal fashion issue whose images unfold into product edits, categories, and sourcing services.",
+      "palette": ["#ffffff", "#11120f", "#e3e7df", "#8da843"],
+      "materials": ["split campaign plates", "overscale typography", "lookbook sequences"],
+      "viewport": "A slim filter rail gives way to two tall campaign panels with names and collection copy set directly over photography; products enter immediately below.",
+      "risk": "It is the most memorable direction and demands the strongest ongoing photography discipline.",
+      "comp": ".impeccable/mocks/decision/editorial-lookbook.webp"
+    }
+  ],
+  "reroll": {"registers": ["safer", "bolder"]},
+  "buildPath": {"value": "code", "toggle": true},
+  "steer": true
+}

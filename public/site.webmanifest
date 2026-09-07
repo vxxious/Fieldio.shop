@@ -1,0 +1,13 @@
+{
+  "name": "Fieldio",
+  "short_name": "Fieldio",
+  "description": "Everything fashion. Worldwide shipment.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f6f3",
+  "theme_color": "#f6f6f3",
+  "icons": [
+    { "src": "/brand/fieldio-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/brand/fieldio-icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

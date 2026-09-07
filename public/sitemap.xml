@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://fieldio.shop/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://fieldio.shop/collections</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://fieldio.shop/collections/new-arrivals</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://fieldio.shop/collections/luxury</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://fieldio.shop/collections/women</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://fieldio.shop/collections/men</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://fieldio.shop/collections/bags</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://fieldio.shop/collections/shoes</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://fieldio.shop/brands/louis-vuitton</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://fieldio.shop/personal-shopping</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://fieldio.shop/wholesale</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://fieldio.shop/about</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://fieldio.shop/contact</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+</urlset>
