@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   const pathname = new URL(request.url).searchParams.get("path") || "/";
   const origin = siteOrigin();
   let [title, description] = publicPages[pathname] || ["Fieldio", "Everything fashion. Worldwide shipment."];
-  let image = `${origin}/images/fieldio-hero-1600.webp`;
+  let image = `${origin}/og-image.jpg`;
   let status = 200;
   let structured: Record<string, unknown> = { "@context": "https://schema.org", "@type": "Organization", name: "Fieldio", url: origin, logo: `${origin}/brand/fieldio-icon-512.png`, sameAs: ["https://www.instagram.com/fieldio_wrd/"] };
   try {
@@ -36,7 +36,9 @@ export async function GET(request: Request) {
     const privateRoute = /^\/(account|admin|checkout|wishlist|search)(\/|$)/.test(pathname);
     if (!publicPages[pathname] && !match && !privateRoute) status = 404;
     const canonical = `${origin}${pathname}`;
-    const head = `<title>${escapeMarkup(title)}</title><meta name="description" content="${escapeMarkup(description)}"><link rel="canonical" href="${escapeMarkup(canonical)}"><meta property="og:title" content="${escapeMarkup(title)}"><meta property="og:description" content="${escapeMarkup(description)}"><meta property="og:url" content="${escapeMarkup(canonical)}"><meta property="og:image" content="${escapeMarkup(image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeMarkup(title)}"><meta name="twitter:description" content="${escapeMarkup(description)}"><meta name="twitter:image" content="${escapeMarkup(image)}"><meta name="robots" content="${privateRoute || status === 404 ? "noindex,nofollow" : "index,follow"}"><script type="application/ld+json">${JSON.stringify(structured).replace(/</g, "\\u003c")}</script>`;
+    const socialAlt = `${title}. ${description}`;
+    const imageDimensions = image.endsWith("/og-image.jpg") ? '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:type" content="image/jpeg">' : "";
+    const head = `<title>${escapeMarkup(title)}</title><meta name="description" content="${escapeMarkup(description)}"><link rel="canonical" href="${escapeMarkup(canonical)}"><meta property="og:title" content="${escapeMarkup(title)}"><meta property="og:description" content="${escapeMarkup(description)}"><meta property="og:type" content="website"><meta property="og:site_name" content="Fieldio"><meta property="og:url" content="${escapeMarkup(canonical)}"><meta property="og:image" content="${escapeMarkup(image)}">${imageDimensions}<meta property="og:image:alt" content="${escapeMarkup(socialAlt)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escapeMarkup(title)}"><meta name="twitter:description" content="${escapeMarkup(description)}"><meta name="twitter:image" content="${escapeMarkup(image)}"><meta name="twitter:image:alt" content="${escapeMarkup(socialAlt)}"><meta name="robots" content="${privateRoute || status === 404 ? "noindex,nofollow" : "index,follow"}"><script type="application/ld+json">${JSON.stringify(structured).replace(/</g, "\\u003c")}</script>`;
     const template = await readFile(join(process.cwd(), "dist", "index.html"), "utf8");
     const html = template.replace(/<title>[\s\S]*?<\/title>/i, "").replace(/<meta\s+(?:name|property)=["'](?:description|og:[^"']+|twitter:[^"']+)["'][^>]*>/gi, "").replace(/<link\s+rel=["']canonical["'][^>]*>/gi, "").replace("</head>", `${head}</head>`);
     return new Response(html, { status, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": privateRoute ? "no-store" : "public, s-maxage=60, stale-while-revalidate=300" } });
