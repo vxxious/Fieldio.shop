@@ -120,3 +120,31 @@ test("newsletter failures have a recovery message", async ({ page }) => {
   await page.getByRole("button", { name: "Subscribe", exact: true }).click();
   await expect(page.locator(".newsletter .form-message")).toContainText("Subscriptions are temporarily unavailable");
 });
+
+test("theme follows the system, persists a choice, and remains keyboard operable", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/");
+  await page.evaluate(() => localStorage.removeItem("fieldio-theme"));
+  await page.reload();
+
+  const toggle = page.getByRole("button", { name: "Switch to dark mode" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await toggle.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.getByRole("button", { name: "Switch to light mode" })).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("fieldio-theme"))).toBe("dark");
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.getByRole("button", { name: "Switch to light mode" })).toBeVisible();
+});
+
+test("homepage account invitation opens account creation directly", async ({ page }) => {
+  await page.goto("/");
+  const invitation = page.getByRole("region", { name: "Keep your edit close." });
+  await expect(invitation).toContainText("save your wishlist, details, and order requests");
+  await invitation.getByRole("link", { name: "Create account" }).click();
+  await expect(page).toHaveURL(/\/account\?mode=signup$/);
+  await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
+});

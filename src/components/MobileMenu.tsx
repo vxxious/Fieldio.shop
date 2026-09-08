@@ -2,7 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useRef, type RefObject } from "react";
 import { NavLink } from "react-router-dom";
 import { useFocusTrap } from "../hooks/useFocusTrap";
-import { CloseIcon, InstagramIcon } from "./Icons";
+import { CloseIcon } from "./Icons";
 import { Wordmark } from "./Wordmark";
 
 interface MobileMenuProps {
@@ -57,8 +57,6 @@ export function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
             </div>
             <div className="mobile-menu-footer">
               <div className="mobile-utility-links"><NavLink to="/account" onClick={onClose}>Account</NavLink><NavLink to="/wishlist" onClick={onClose}>Wishlist</NavLink><NavLink to="/contact" onClick={onClose}>Contact</NavLink></div>
-              <a href="https://www.instagram.com/fieldio_wrd/" target="_blank" rel="noreferrer"><InstagramIcon /> Instagram</a>
-              <p>Everything fashion.<br />Worldwide shipment.</p>
             </div>
           </motion.nav>
         </motion.div>

@@ -5,7 +5,7 @@ type IconProps = SVGProps<SVGSVGElement>;
 const base = { fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
 
 export function MenuIcon(props: IconProps) {
-  return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}><path {...base} d="M4 8h16M4 16h16" /></svg>;
+  return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}><path {...base} strokeWidth="1.85" d="M3.5 6.5h17M3.5 12h17M3.5 17.5h17" /></svg>;
 }
 
 export function CloseIcon(props: IconProps) {
@@ -55,4 +55,16 @@ export function GoogleIcon(props: IconProps) {
 
 export function EmailIcon(props: IconProps) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}><rect {...base} x="3.5" y="5.5" width="17" height="13" /><path {...base} d="m4.5 7 7.5 6 7.5-6" /></svg>;
+}
+
+export function ThemeDiscIcon(props: IconProps) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
+    <defs><clipPath id="fieldio-theme-disc"><circle cx="12" cy="12" r="8.25" /></clipPath></defs>
+    <circle cx="12" cy="12" r="8.25" fill="none" stroke="currentColor" strokeWidth="1.55" />
+    <path d="M12 3.75a8.25 8.25 0 0 1 0 16.5Z" fill="currentColor" />
+    <g clipPath="url(#fieldio-theme-disc)" fill="none" stroke="currentColor" strokeWidth="1.15">
+      <path d="m3 8 6-6M2.5 13 12 3.5M3.5 17 12 8.5M7 20 12 15" />
+    </g>
+    <path d="M12 3.75v16.5" fill="none" stroke="currentColor" strokeWidth="1.25" />
+  </svg>;
 }

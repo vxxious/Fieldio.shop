@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { AccountDetails } from "../components/AccountDetails";
 import { EmailIcon, GoogleIcon } from "../components/Icons";
@@ -12,7 +13,8 @@ type Mode = "signin" | "signup" | "reset" | "update";
 type AuthValues = { email: string | undefined; password: string | undefined };
 
 export function AccountPage() {
-  const [mode, setMode] = useState<Mode>("signin");
+  const [searchParams] = useSearchParams();
+  const [mode, setMode] = useState<Mode>(() => searchParams.get("mode") === "signup" ? "signup" : "signin");
   const [status, setStatus] = useState<string | null>(null);
   const [oauthPending, setOauthPending] = useState(false);
   const { session, loading } = useSession();

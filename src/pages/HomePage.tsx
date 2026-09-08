@@ -35,6 +35,19 @@ export function HomePage() {
       {!isLoading && !error && !catalog.length && <div className="empty-state"><h2>Your next piece, personally sourced.</h2><p>The online edit is being prepared. Tell Fieldio what you are looking for.</p><Link to="/personal-shopping" className="text-link">Speak to a personal shopper</Link></div>}
       {isLoading ? <div className="product-grid home-grid" aria-label="Loading products">{Array.from({ length: 4 }).map((_, index) => <div className="product-skeleton" key={index} />)}</div> : <section className="product-grid home-grid" aria-label="Featured products">{catalog.slice(0, 4).map((product, index) => <ProductCard key={product.id} product={product} priority={index < 4} />)}</section>}
 
+      <Reveal className="account-bulletin-reveal">
+        <section className="account-bulletin" aria-labelledby="account-bulletin-title">
+          <div>
+            <h2 id="account-bulletin-title">Keep your edit close.</h2>
+            <p>Create an account to save your wishlist, details, and order requests, ready whenever you return.</p>
+          </div>
+          <div className="account-bulletin-actions">
+            <Button asChild size="lg" className="primary-button"><Link to="/account?mode=signup">Create account</Link></Button>
+            <Link to="/account" className="text-link">Already have an account? Sign in</Link>
+          </div>
+        </section>
+      </Reveal>
+
       <Reveal>
         <section className="brand-ledger" aria-labelledby="brands-title">
           <div className="brand-ledger-copy">
