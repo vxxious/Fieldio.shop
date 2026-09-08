@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { checkRateLimit, getAdminSupabase, handleApiError, json, readValidatedJson } from "./_lib/server";
+import { checkRateLimit, getAdminSupabase, handleApiError, json, readValidatedJson } from "./_lib/server.js";
 
 const schema = z.object({
   requestKey: z.string().uuid(),

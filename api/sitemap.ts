@@ -1,4 +1,4 @@
-import { escapeMarkup, publicClient, publicPages, siteOrigin } from "./_lib/public-catalog";
+import { escapeMarkup, publicClient, publicPages, siteOrigin } from "./_lib/public-catalog.js";
 
 export async function GET() {
   try {

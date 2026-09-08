@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { escapeMarkup, publicClient, publicPages, siteOrigin } from "./_lib/public-catalog";
+import { escapeMarkup, publicClient, publicPages, siteOrigin } from "./_lib/public-catalog.js";
 
 export async function GET(request: Request) {
   const pathname = new URL(request.url).searchParams.get("path") || "/";

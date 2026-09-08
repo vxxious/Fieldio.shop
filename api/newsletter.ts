@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { checkRateLimit, getAdminSupabase, handleApiError, json, readValidatedJson } from "./_lib/server";
-import { emailRequest, preferenceToken } from "./_lib/newsletter";
+import { checkRateLimit, getAdminSupabase, handleApiError, json, readValidatedJson } from "./_lib/server.js";
+import { emailRequest, preferenceToken } from "./_lib/newsletter.js";
 const schema = z.object({ email: z.string().trim().email().max(254), consent: z.literal(true) });
 
 export async function POST(request: Request): Promise<Response> {
