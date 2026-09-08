@@ -161,7 +161,36 @@ export const products: Product[] = [
   }
 ];
 
-export const brands = ["Louis Vuitton", "Gucci", "Nike", "Prada", "Saint Laurent", "Fieldio Edit"] as const;
+export const brands = [
+  "Louis Vuitton",
+  "Gucci",
+  "Yves Saint Laurent",
+  "Prada",
+  "Dior",
+  "Chanel",
+  "Hermès",
+  "Bottega Veneta",
+  "Balenciaga",
+  "Burberry",
+  "Versace",
+  "Fendi",
+  "Lacoste",
+  "Adidas",
+  "Nike",
+  "Vans",
+  "Pull&Bear",
+  "Fieldio Edit"
+] as const;
+
+export function getBrandSlug(brand: string): string {
+  return brand
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/&/g, "-and-")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 
 export function getProductBySlug(slug: string): Product | undefined {
   return products.find((product) => product.slug === slug);

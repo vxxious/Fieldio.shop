@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { products } from "../data/catalog";
+import { getBrandSlug, products } from "../data/catalog";
 import { filterCatalog } from "./catalog-filter";
 
 describe("catalog filters", () => {
@@ -13,5 +13,13 @@ describe("catalog filters", () => {
     const fixtures = [{ ...base, id: "a", price: null }, { ...base, id: "b", price: 9000 }, { ...base, id: "c", price: 2000 }];
     expect(filterCatalog(fixtures, { sort: "price-low" }).map((p) => p.id)).toEqual(["c", "b", "a"]);
     expect(filterCatalog(fixtures, { sort: "price-high" }).map((p) => p.id)).toEqual(["b", "c", "a"]);
+  });
+});
+
+describe("brand routes", () => {
+  it("creates stable URL slugs for accented and joined brand names", () => {
+    expect(getBrandSlug("Hermès")).toBe("hermes");
+    expect(getBrandSlug("Pull&Bear")).toBe("pull-and-bear");
+    expect(getBrandSlug("Yves Saint Laurent")).toBe("yves-saint-laurent");
   });
 });

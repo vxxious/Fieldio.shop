@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { brands } from "../data/catalog";
+import { brands, getBrandSlug } from "../data/catalog";
 import { usePageMeta } from "../hooks/usePageMeta";
 import { emptyCatalog, useCatalogProducts } from "../hooks/useCatalog";
 import { createWhatsAppUrl } from "../lib/whatsapp";
@@ -56,7 +56,7 @@ export function HomePage() {
             <a href={createWhatsAppUrl("Hello Fieldio, I would like help sourcing a luxury item.")} target="_blank" rel="noreferrer" className="arrow-link">Start a sourcing request <ArrowIcon /></a>
           </div>
           <div className="brand-list" aria-label="Brands available for sourcing">
-            {brands.filter((brand) => brand !== "Fieldio Edit").map((brand) => <Link key={brand} to={`/brands/${brand.toLowerCase().replaceAll(" ", "-")}`}><span>{brand}</span><ArrowIcon /></Link>)}
+            {brands.filter((brand) => brand !== "Fieldio Edit").map((brand) => <Link key={brand} to={`/brands/${getBrandSlug(brand)}`}><span>{brand}</span><ArrowIcon /></Link>)}
           </div>
         </section>
       </Reveal>
