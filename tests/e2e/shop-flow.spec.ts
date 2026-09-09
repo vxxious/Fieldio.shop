@@ -24,10 +24,11 @@ test("customer can build a request from product to checkout", async ({ page }) =
 test("mobile navigation opens, traps focus, and closes with Escape", async ({ page, isMobile }) => {
   test.skip(!isMobile, "Mobile navigation test");
   await page.goto("/");
+  await expect(page.locator(".header-actions .mobile-account-button + .bag-button")).toHaveCount(1);
   await page.getByRole("button", { name: "Open menu" }).click();
   const dialog = page.getByRole("dialog", { name: "Mobile navigation" });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Close menu" })).toBeFocused();
+  await expect(dialog).toBeFocused();
   const controls = dialog.locator('a[href], button:not([disabled])');
   await controls.last().focus();
   await page.keyboard.press("Tab");

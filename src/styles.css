@@ -213,6 +213,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 
 .mobile-menu-layer { position: fixed; inset: 0; z-index: 90; background: rgba(17, 18, 15, 0.45); }
 .mobile-menu-panel { width: 100%; min-height: 100%; background: var(--paper); padding: 20px; display: flex; flex-direction: column; }
+.mobile-menu-panel:focus { outline: none; }
 .mobile-menu-top { display: flex; align-items: center; justify-content: space-between; padding-bottom: 24px; border-bottom: 1px solid var(--line); }
 .mobile-menu-links { display: flex; flex-direction: column; padding: 30px 0; }
 .mobile-menu-links a { display: block; font-family: var(--font-display); font-size: clamp(28px, 9vw, 42px); letter-spacing: -0.045em; line-height: 1.23; }
@@ -546,11 +547,13 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .site-header { width: 100%; padding: 0 14px; height: 66px; }
   .site-header .fieldio-wordmark { font-size: 21px; }
   .site-header .fieldio-monogram { width: 28px; height: 36px; }
-  .header-left, .header-actions { gap: 2px; }
+  .header-left, .header-actions { gap: 0; }
   .header-left .menu-button { margin-left: -6px; }
   .menu-button svg { width: 22px !important; height: 22px !important; }
   .site-header .icon-button, .site-header .bag-button { min-width: 44px; min-height: 44px; }
-  .site-header .header-left .icon-button, .site-header .header-actions .icon-button, .site-header .header-actions .bag-button { width: 42px; min-width: 42px; }
+  .site-header .header-left .icon-button { width: 42px; min-width: 42px; }
+  .site-header .header-actions .icon-button { width: 40px; min-width: 40px; }
+  .site-header .header-actions .bag-button { width: auto; min-width: 40px; padding-inline: 5px 0; }
   .catalog-intro { padding-top: 36px; }
   .catalog-copy { display: block; margin-bottom: 38px; }
   .catalog-copy h1 { font-size: clamp(52px, 16.8vw, 74px); max-width: 8ch; }

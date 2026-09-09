@@ -33,10 +33,10 @@ export function SiteHeader() {
           <Link to="/wishlist" className="desktop-only">Wishlist {wishlistCount > 0 && `(${wishlistCount})`}</Link>
           <ThemeToggle />
           <Link to="/search" className="icon-button desktop-only" aria-label="Search"><SearchIcon /></Link>
+          <Link to="/account" className="icon-button mobile-only mobile-account-button" aria-label="Account"><AccountIcon /></Link>
           <button className="bag-button" type="button" onClick={(event) => openCart(event.currentTarget)} aria-label={`Open bag, ${count} items`} aria-haspopup="dialog">
             <BagIcon /><span className="desktop-only">Bag</span>{count > 0 && <span>({count})</span>}
           </button>
-          <Link to="/account" className="icon-button mobile-only mobile-account-button" aria-label="Account"><AccountIcon /></Link>
         </nav>
       </header>
       <MobileMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} triggerRef={menuButtonRef} />
