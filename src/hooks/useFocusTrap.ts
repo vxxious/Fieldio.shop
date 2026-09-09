@@ -7,7 +7,8 @@ export function useFocusTrap(
   isActive: boolean,
   onClose: () => void,
   restoreTarget?: HTMLElement | null,
-  restoreTargetRef?: RefObject<HTMLElement | null>
+  restoreTargetRef?: RefObject<HTMLElement | null>,
+  initialFocusRef?: RefObject<HTMLElement | null>
 ): void {
   useEffect(() => {
     if (!isActive || !containerRef.current) return;
@@ -26,7 +27,7 @@ export function useFocusTrap(
       node = node.parentElement;
     }
     const getFocusable = () => Array.from(container.querySelectorAll<HTMLElement>(focusableSelector)).filter((element) => element.getClientRects().length && !element.closest("[inert]"));
-    const frame = requestAnimationFrame(() => (getFocusable()[0] ?? container).focus());
+    const frame = requestAnimationFrame(() => (initialFocusRef?.current ?? getFocusable()[0] ?? container).focus());
     const onFocus = (event: FocusEvent) => { if (!container.contains(event.target as Node)) (getFocusable()[0] ?? container).focus(); };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") { event.preventDefault(); onClose(); return; }
@@ -50,5 +51,5 @@ export function useFocusTrap(
       document.body.style.overflow = previousOverflow;
       if (savedTarget?.isConnected) savedTarget.focus({ preventScroll: true });
     };
-  }, [containerRef, isActive, onClose, restoreTarget, restoreTargetRef]);
+  }, [containerRef, initialFocusRef, isActive, onClose, restoreTarget, restoreTargetRef]);
 }

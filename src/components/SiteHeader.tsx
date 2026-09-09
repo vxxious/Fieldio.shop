@@ -20,6 +20,7 @@ export function SiteHeader() {
       <header className="site-header">
         <div className="header-left">
           <button ref={menuButtonRef} className="icon-button menu-button mobile-only" type="button" onClick={() => setMenuOpen(true)} aria-label="Open menu" aria-expanded={menuOpen}><MenuIcon /></button>
+          <Link to="/search" className="icon-button mobile-only mobile-search-button" aria-label="Search"><SearchIcon /></Link>
           <nav className="desktop-nav" aria-label="Primary">
             <NavLink to="/collections">Shop</NavLink>
             <NavLink to="/collections/luxury">Luxury</NavLink>
@@ -31,7 +32,7 @@ export function SiteHeader() {
           <Link to="/account" className="desktop-only">Account</Link>
           <Link to="/wishlist" className="desktop-only">Wishlist {wishlistCount > 0 && `(${wishlistCount})`}</Link>
           <ThemeToggle />
-          <Link to="/search" className="icon-button" aria-label="Search"><SearchIcon /></Link>
+          <Link to="/search" className="icon-button desktop-only" aria-label="Search"><SearchIcon /></Link>
           <button className="bag-button" type="button" onClick={(event) => openCart(event.currentTarget)} aria-label={`Open bag, ${count} items`} aria-haspopup="dialog">
             <BagIcon /><span className="desktop-only">Bag</span>{count > 0 && <span>({count})</span>}
           </button>

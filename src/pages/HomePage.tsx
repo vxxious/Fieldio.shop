@@ -12,6 +12,7 @@ import { EditorialText } from "../components/EditorialText";
 import { Button } from "../components/ui/button";
 
 const categories = ["All", "Women", "Men", "Bags", "Shoes"];
+const featuredBrands = brands.filter((brand) => brand !== "Fieldio Edit").slice(0, 5);
 
 export function HomePage() {
   const { data: catalog = emptyCatalog, isLoading, error } = useCatalogProducts();
@@ -56,7 +57,8 @@ export function HomePage() {
             <a href={createWhatsAppUrl("Hello Fieldio, I would like help sourcing a luxury item.")} target="_blank" rel="noreferrer" className="arrow-link">Start a sourcing request <ArrowIcon /></a>
           </div>
           <div className="brand-list" aria-label="Brands available for sourcing">
-            {brands.filter((brand) => brand !== "Fieldio Edit").map((brand) => <Link key={brand} to={`/brands/${getBrandSlug(brand)}`}><span>{brand}</span><ArrowIcon /></Link>)}
+            {featuredBrands.map((brand) => <Link key={brand} to={`/brands/${getBrandSlug(brand)}`}><span>{brand}</span><ArrowIcon /></Link>)}
+            <Link className="brand-list-more" to="/brands"><span>View all brands</span><ArrowIcon /></Link>
           </div>
         </section>
       </Reveal>

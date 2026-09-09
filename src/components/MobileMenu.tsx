@@ -24,8 +24,9 @@ const links = [
 
 export function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
   const panelRef = useRef<HTMLElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const reduceMotion = useReducedMotion();
-  useFocusTrap(panelRef, isOpen, onClose, null, triggerRef);
+  useFocusTrap(panelRef, isOpen, onClose, null, triggerRef, closeButtonRef);
 
   return (
     <AnimatePresence>
@@ -46,7 +47,7 @@ export function MobileMenu({ isOpen, onClose, triggerRef }: MobileMenuProps) {
           >
             <div className="mobile-menu-top">
               <Wordmark />
-              <button className="icon-button" type="button" onClick={onClose} aria-label="Close menu"><CloseIcon /></button>
+              <button ref={closeButtonRef} className="icon-button" type="button" onClick={onClose} aria-label="Close menu"><CloseIcon /></button>
             </div>
             <div className="mobile-menu-links">
               {links.map(([label, href], index) => (

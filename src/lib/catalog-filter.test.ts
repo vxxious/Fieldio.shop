@@ -21,5 +21,6 @@ describe("brand routes", () => {
     expect(getBrandSlug("Hermès")).toBe("hermes");
     expect(getBrandSlug("Pull&Bear")).toBe("pull-and-bear");
     expect(getBrandSlug("Yves Saint Laurent")).toBe("yves-saint-laurent");
+    expect(getBrandSlug("The North Face")).toBe("the-north-face");
   });
 });

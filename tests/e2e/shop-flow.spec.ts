@@ -27,6 +27,7 @@ test("mobile navigation opens, traps focus, and closes with Escape", async ({ pa
   await page.getByRole("button", { name: "Open menu" }).click();
   const dialog = page.getByRole("dialog", { name: "Mobile navigation" });
   await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Close menu" })).toBeFocused();
   const controls = dialog.locator('a[href], button:not([disabled])');
   await controls.last().focus();
   await page.keyboard.press("Tab");
@@ -142,6 +143,9 @@ test("theme follows the system, persists a choice, and remains keyboard operable
 
 test("homepage account invitation opens account creation directly", async ({ page }) => {
   await page.goto("/");
+  const brandLedger = page.getByRole("region", { name: "A worldwide luxury desk" });
+  await expect(brandLedger.locator(".brand-list > a")).toHaveCount(6);
+  await expect(brandLedger.getByRole("link", { name: "View all brands" })).toHaveAttribute("href", "/brands");
   const invitation = page.getByRole("region", { name: "Keep your edit close." });
   await expect(invitation).toContainText("save your wishlist, details, and order requests");
   await invitation.getByRole("link", { name: "Create account" }).click();

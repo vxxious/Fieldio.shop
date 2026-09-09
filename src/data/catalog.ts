@@ -176,6 +176,8 @@ export const brands = [
   "Fendi",
   "Lacoste",
   "Adidas",
+  "The North Face",
+  "Zara",
   "Nike",
   "Vans",
   "Pull&Bear",
