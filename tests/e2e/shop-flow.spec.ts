@@ -101,6 +101,17 @@ test("bag traps focus after quantity changes and restores its trigger", async ({
   await expect(trigger).toBeFocused();
 });
 
+test("empty bag offers account sign in", async ({ page, isMobile }) => {
+  await page.goto("/");
+  if (isMobile) {
+    await expect(page.getByRole("link", { name: "Account", exact: true })).toHaveAttribute("href", "/account");
+  }
+  await page.getByRole("button", { name: "Open bag, 0 items" }).click();
+  const dialog = page.getByRole("dialog", { name: /Your bag/ });
+  await expect(dialog).toContainText("Have an account?");
+  await expect(dialog.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/account");
+});
+
 test("collection filtering, wishlist, and search are usable", async ({ page }) => {
   await page.goto("/collections/men");
   await page.getByRole("combobox", { name: "Size", exact: true }).selectOption("M");

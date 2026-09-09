@@ -122,8 +122,9 @@ export function CartDrawer() {
           </>
         ) : (
           <div className="empty-cart">
-            <p>Your edit is empty.</p>
-            <span>Explore new arrivals or ask Fieldio to source a specific piece.</span>
+            <p className="empty-cart-title">Your edit is empty.</p>
+            <p className="empty-cart-copy">Explore new arrivals or ask Fieldio to source a specific piece.</p>
+            <p className="empty-cart-account">Have an account? <Link to="/account" onClick={handleClose}>Log in</Link> to check out faster.</p>
             <Button className="primary-button" type="button" onClick={handleClose}>Continue shopping</Button>
           </div>
         )}

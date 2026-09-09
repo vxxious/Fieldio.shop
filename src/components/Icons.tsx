@@ -20,6 +20,10 @@ export function BagIcon(props: IconProps) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}><path {...base} d="M5 8.5h14l-1 11H6l-1-11Z" /><path {...base} d="M9 9V6.5a3 3 0 0 1 6 0V9" /></svg>;
 }
 
+export function AccountIcon(props: IconProps) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}><circle {...base} cx="12" cy="7.5" r="3.5" /><path {...base} d="M5.5 20v-1.5a6.5 6.5 0 0 1 13 0V20" /></svg>;
+}
+
 export function HeartIcon({ fill = "none", ...props }: IconProps) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}><path {...base} fill={fill} d="M20.5 9.1c0 5-8.5 10-8.5 10s-8.5-5-8.5-10A4.6 4.6 0 0 1 12 6.6a4.6 4.6 0 0 1 8.5 2.5Z" /></svg>;
 }
