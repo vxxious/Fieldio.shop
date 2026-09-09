@@ -60,7 +60,7 @@ export function AccountPage() {
       <button type="button" onClick={() => void oauth()} disabled={oauthPending} aria-busy={oauthPending}><GoogleIcon />{oauthPending ? "Connecting…" : "Continue with Google"}</button>
       <button type="button" onClick={() => setFocus("email")} aria-controls="account-email"><EmailIcon />Continue with email</button>
     </div>}
-    {showAuthMethods && <div className="auth-divider" aria-hidden="true"><span>or use your email</span></div>}
+    {showAuthMethods && <div className="auth-divider" aria-hidden="true"><span>Email and password</span></div>}
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
     {mode !== "update" && <label><span>Email</span><input id="account-email" type="email" autoComplete="email" {...register("email")} aria-invalid={!!errors.email} />{errors.email && <small role="alert">{errors.email.message}</small>}</label>}
     {mode !== "reset" && <label><span>Password</span><input type="password" autoComplete={mode === "signin" ? "current-password" : "new-password"} {...register("password")} aria-invalid={!!errors.password} />{errors.password && <small role="alert">{errors.password.message}</small>}</label>}

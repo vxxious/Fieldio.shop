@@ -164,3 +164,18 @@ test("homepage account invitation opens account creation directly", async ({ pag
   await expect(page).toHaveURL(/\/account\?mode=signup$/);
   await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
 });
+
+test("account methods form a full-width mobile stack", async ({ page, isMobile }) => {
+  test.skip(!isMobile, "Mobile account layout test");
+  await page.goto("/account");
+  const google = page.getByRole("button", { name: "Continue with Google" });
+  const email = page.getByRole("button", { name: "Continue with email" });
+  await expect(google).toBeVisible();
+  await expect(email).toBeVisible();
+  const [googleBox, emailBox] = await Promise.all([google.boundingBox(), email.boundingBox()]);
+  expect(googleBox).not.toBeNull();
+  expect(emailBox).not.toBeNull();
+  expect(emailBox!.y).toBeGreaterThan(googleBox!.y + googleBox!.height);
+  expect(Math.abs(emailBox!.width - googleBox!.width)).toBeLessThan(1);
+  await expect(page.getByText("Email and password", { exact: true })).toBeVisible();
+});
