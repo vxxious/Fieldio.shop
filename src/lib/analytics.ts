@@ -1,3 +1,5 @@
+import { track } from "@vercel/analytics";
+
 type AnalyticsEvent =
   | "page_view"
   | "product_view"
@@ -18,4 +20,5 @@ export function trackEvent(name: AnalyticsEvent, properties: Record<string, stri
   }
 
   window.dispatchEvent(new CustomEvent("fieldio:analytics", { detail: { name, properties } }));
+  if (localStorage.getItem("fieldio-analytics-consent") === "accepted") track(name, properties);
 }

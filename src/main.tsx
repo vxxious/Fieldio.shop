@@ -5,6 +5,7 @@ import { MotionConfig } from "framer-motion";
 import { RouterProvider } from "react-router-dom";
 import { Toaster } from "sonner";
 import { router } from "./router";
+import { LocaleProvider } from "./context/LocaleContext";
 import "./styles.css";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000, retry: 1, refetchOnWindowFocus: false } } });
@@ -12,10 +13,12 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <MotionConfig reducedMotion="user">
-        <RouterProvider router={router} />
-        <Toaster position="bottom-center" richColors closeButton />
-      </MotionConfig>
+      <LocaleProvider>
+        <MotionConfig reducedMotion="user">
+          <RouterProvider router={router} />
+          <Toaster position="bottom-center" richColors closeButton />
+        </MotionConfig>
+      </LocaleProvider>
     </QueryClientProvider>
   </StrictMode>
 );

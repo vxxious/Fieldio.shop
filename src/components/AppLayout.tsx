@@ -3,12 +3,15 @@ import { Suspense, useEffect, useRef } from "react";
 import { useOutlet, useLocation, useNavigationType } from "react-router-dom";
 import { trackEvent } from "../lib/analytics";
 import { catalogPreview } from "../lib/config";
+import { AnalyticsConsent } from "./AnalyticsConsent";
 import { CartDrawer } from "./CartDrawer";
+import { MotionDirector } from "./MotionDirector";
+import { OfflineNotice } from "./OfflineNotice";
+import { ScrollToTop } from "./ScrollToTop";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
 import { SmoothScroll } from "./SmoothScroll";
 import { WishlistSync } from "./WishlistSync";
-import { MotionDirector } from "./MotionDirector";
 
 export function AppLayout() {
   const location = useLocation();
@@ -48,6 +51,8 @@ export function AppLayout() {
   return (
     <div className="app-shell">
       <a href="#main-content" className="skip-link">Skip to content</a>
+      <OfflineNotice />
+      <AnalyticsConsent />
       <SmoothScroll />
       <WishlistSync />
       <SiteHeader />
@@ -71,6 +76,7 @@ export function AppLayout() {
         </motion.main>
       </AnimatePresence>
       <SiteFooter />
+      <ScrollToTop />
       <CartDrawer />
       <div ref={statusRef} id="status-region" className="sr-only" role="status" aria-live="polite" />
     </div>

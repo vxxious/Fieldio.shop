@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import { lazy } from "react";
 import { AppLayout } from "./components/AppLayout";
+import { RouteErrorPage } from "./components/RouteErrorPage";
 
 const AccountPage = lazy(() => import("./pages/AccountPage").then((module) => ({ default: module.AccountPage })));
 const AdminPage = lazy(() => import("./pages/AdminPage").then((module) => ({ default: module.AdminPage })));
@@ -18,6 +19,7 @@ const WishlistPage = lazy(() => import("./pages/WishlistPage").then((module) => 
 export const router = createBrowserRouter([
   {
     element: <AppLayout />,
+    errorElement: <RouteErrorPage />,
     children: [
       { path: "/", element: <HomePage /> },
       { path: "/collections", element: <CollectionPage /> },

@@ -32,6 +32,10 @@ export function ArrowIcon(props: IconProps) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}><path {...base} d="M4 12h15M14 7l5 5-5 5" /></svg>;
 }
 
+export function ArrowUpIcon(props: IconProps) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}><path {...base} d="M12 19V5M6.5 10.5 12 5l5.5 5.5" /></svg>;
+}
+
 export function PlusIcon(props: IconProps) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}><path {...base} d="M12 5v14M5 12h14" /></svg>;
 }
@@ -59,6 +63,14 @@ export function GoogleIcon(props: IconProps) {
 
 export function EmailIcon(props: IconProps) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}><rect {...base} x="3.5" y="5.5" width="17" height="13" /><path {...base} d="m4.5 7 7.5 6 7.5-6" /></svg>;
+}
+
+export function EyeIcon({ open = false, ...props }: IconProps & { open?: boolean }) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
+    <path {...base} d="M2.8 12s3.3-6 9.2-6 9.2 6 9.2 6-3.3 6-9.2 6-9.2-6-9.2-6Z" />
+    <circle {...base} cx="12" cy="12" r="2.6" />
+    {!open && <path {...base} d="m4 4 16 16" />}
+  </svg>;
 }
 
 export function ThemeDiscIcon(props: IconProps) {

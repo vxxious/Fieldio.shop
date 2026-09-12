@@ -70,7 +70,8 @@ async function fetchCatalog(): Promise<Product[]> {
     .eq("status", "active")
     .order("published_at", { ascending: false });
   if (error) throw error;
-  return (data as unknown as CatalogRow[]).map(toProduct);
+  const products = (data as unknown as CatalogRow[]).map(toProduct);
+  return products.length || !catalogPreview ? products : previewProducts;
 }
 
 export function useCatalogProducts() {

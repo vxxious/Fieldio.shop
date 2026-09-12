@@ -9,7 +9,7 @@ export function SiteFooter() {
       <div className="site-footer">
         <div className="footer-brand">
           <Link to="/" aria-label="Fieldio home">Fieldio</Link>
-          <p>Everything fashion.<br />Worldwide shipment.</p>
+          <p>Worldwide sourcing<br />and shipment.</p>
         </div>
         <div className="footer-links">
           <div><h3>Shop</h3><Link to="/collections/new-arrivals">New arrivals</Link><Link to="/collections/luxury">Luxury sourcing</Link><Link to="/collections/men">Men</Link><Link to="/collections/women">Women</Link></div>
@@ -18,6 +18,7 @@ export function SiteFooter() {
         </div>
         <div className="footer-meta">
           <a href="https://www.instagram.com/fieldio_wrd/" target="_blank" rel="noreferrer"><InstagramIcon /> @fieldio_wrd</a>
+          <button type="button" className="footer-privacy" onClick={() => window.dispatchEvent(new Event("fieldio:privacy-choices"))}>Privacy choices</button>
           <span>© {new Date().getFullYear()} Fieldio</span>
         </div>
       </div>

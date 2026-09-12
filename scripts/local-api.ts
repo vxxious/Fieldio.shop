@@ -6,7 +6,7 @@ export function localApi(): Plugin {
     configureServer(server) {
       server.middlewares.use(async (request, response, next) => {
         const url = new URL(request.url || "/", "http://localhost");
-        if (!/^\/api\/(order-requests|newsletter|newsletter-preferences|contact|wholesale|sitemap|render)$/.test(url.pathname)) { next(); return; }
+        if (!/^\/api\/(order-requests|newsletter|newsletter-preferences|contact|wholesale|sitemap|render|locale|rates)$/.test(url.pathname)) { next(); return; }
         try {
           const module = await server.ssrLoadModule(`${url.pathname}.ts`) as Record<string, unknown>;
           const method = request.method || "GET";

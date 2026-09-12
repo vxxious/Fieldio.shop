@@ -2,8 +2,8 @@ import gsap from "gsap";
 import { useCallback, useLayoutEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useFocusTrap } from "../hooks/useFocusTrap";
+import { useLocale } from "../context/LocaleContext";
 import { trackEvent } from "../lib/analytics";
-import { formatPrice } from "../lib/format";
 import { selectCartSubtotal, useCartStore } from "../store/cart";
 import type { CartItem } from "../types/catalog";
 import { CloseIcon, MinusIcon, PlusIcon } from "./Icons";
@@ -13,6 +13,7 @@ function CartRow({ item }: { item: CartItem }) {
   const rowRef = useRef<HTMLLIElement>(null);
   const removeItem = useCartStore((state) => state.removeItem);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const { formatMoney } = useLocale();
 
   const handleRemove = () => {
     trackEvent("remove_from_cart", { product_id: item.productId, variant_id: item.variantId, source: "cart_drawer" });
@@ -54,7 +55,7 @@ function CartRow({ item }: { item: CartItem }) {
             <output aria-live="polite">{String(item.quantity).padStart(2, "0")}</output>
             <button type="button" onClick={() => changeQuantity(item.quantity + 1)} disabled={item.quantity >= 10} aria-label="Increase quantity"><PlusIcon /></button>
           </div>
-          <p className="cart-row-price">{formatPrice(item.unitPrice === null ? null : item.unitPrice * item.quantity, item.currency)}</p>
+          <p className="cart-row-price">{formatMoney(item.unitPrice === null ? null : item.unitPrice * item.quantity, item.currency)}</p>
         </div>
         <button className="text-link remove-link" type="button" onClick={handleRemove}>Remove</button>
       </div>
@@ -70,6 +71,7 @@ export function CartDrawer() {
   const trigger = useCartStore((state) => state.lastTrigger);
   const layerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
+  const { formatMoney, t } = useLocale();
 
   const handleClose = useCallback(() => {
     if (!isOpen) return;
@@ -107,25 +109,25 @@ export function CartDrawer() {
     <div ref={layerRef} className="cart-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) handleClose(); }}>
       <aside ref={panelRef} className="cart-panel" data-lenis-prevent role="dialog" aria-modal="true" aria-labelledby="cart-title" tabIndex={-1}>
         <div className="drawer-header">
-          <h2 id="cart-title">Your bag <span>{items.length}</span></h2>
-          <button className="icon-button" type="button" onClick={handleClose} aria-label="Close cart"><CloseIcon /></button>
+          <h2 id="cart-title">{t("cart.title")} <span>{items.length}</span></h2>
+          <button className="icon-button" type="button" onClick={handleClose} aria-label={t("cart.close")}><CloseIcon /></button>
         </div>
         {items.length > 0 ? (
           <>
             <ul className="cart-list">{items.map((item) => <CartRow key={item.key} item={item} />)}</ul>
             <div className="cart-summary">
-              <div><span>Subtotal</span><strong>{subtotal === null ? "To be confirmed" : formatPrice(subtotal, items[0]?.currency ?? "GBP")}</strong></div>
+              <div><span>{t("cart.subtotal")}</span><strong>{subtotal === null ? t("cart.confirm") : formatMoney(subtotal, items[0]?.currency ?? "GBP")}</strong></div>
               <p>Availability, shipping, and payment are confirmed personally on WhatsApp.</p>
-              <Button asChild size="lg" className="primary-button full-button"><Link to="/checkout" onClick={handleClose}>Checkout via WhatsApp</Link></Button>
-              <Button type="button" variant="link" className="text-link centered-link" onClick={handleClose}>Continue shopping</Button>
+              <Button asChild size="lg" className="primary-button full-button"><Link to="/checkout" onClick={handleClose}>{t("cart.checkout")}</Link></Button>
+              <Button type="button" variant="link" className="text-link centered-link" onClick={handleClose}>{t("cart.continue")}</Button>
             </div>
           </>
         ) : (
           <div className="empty-cart">
-            <p className="empty-cart-title">Your edit is empty.</p>
-            <p className="empty-cart-copy">Explore new arrivals or ask Fieldio to source a specific piece.</p>
-            <p className="empty-cart-account">Have an account? <Link to="/account" onClick={handleClose}>Log in</Link> to check out faster.</p>
-            <Button className="primary-button" type="button" onClick={handleClose}>Continue shopping</Button>
+            <p className="empty-cart-title">{t("cart.empty")}</p>
+            <p className="empty-cart-copy">{t("cart.emptyCopy")}</p>
+            <p className="empty-cart-account">{t("cart.account")} <Link to="/account" onClick={handleClose}>{t("cart.login")}</Link> {t("cart.faster")}</p>
+            <Button className="primary-button" type="button" onClick={handleClose}>{t("cart.continue")}</Button>
           </div>
         )}
       </aside>

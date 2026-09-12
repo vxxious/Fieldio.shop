@@ -113,9 +113,11 @@ test("empty bag offers account sign in", async ({ page, isMobile }) => {
   await expect(dialog.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/account");
 });
 
-test("collection filtering, wishlist, and search are usable", async ({ page }) => {
+test("collection filtering, wishlist, and search are usable", async ({ page, isMobile }) => {
   await page.goto("/collections/men");
+  if (isMobile) await page.getByRole("button", { name: "Filter & sort" }).click();
   await page.getByRole("combobox", { name: "Size", exact: true }).selectOption("M");
+  if (isMobile) await page.getByRole("button", { name: /View \d+ pieces?/ }).click();
   await expect(page.getByRole("link", { name: "View Taupe Suede Overshirt" })).toBeVisible();
   await page.getByRole("button", { name: "Add Taupe Suede Overshirt to wishlist" }).click();
   await page.goto("/wishlist");
@@ -165,6 +167,25 @@ test("homepage account invitation opens account creation directly", async ({ pag
   await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
 });
 
+test("scroll-to-top appears near the footer, rests quietly, and returns to the top", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "The Fieldio edit" })).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  const control = page.locator(".scroll-to-top");
+  await expect(control).not.toHaveAttribute("data-visible", "true");
+
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect(control).toHaveAttribute("data-visible", "true");
+  await expect(control).toHaveCSS("position", "fixed");
+
+  await expect(control).not.toHaveAttribute("data-visible", "true", { timeout: 2_500 });
+  await page.evaluate(() => window.scrollBy(0, -2));
+  await expect(control).toHaveAttribute("data-visible", "true");
+  await control.click();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(2);
+});
+
 test("account methods form a full-width mobile stack", async ({ page, isMobile }) => {
   test.skip(!isMobile, "Mobile account layout test");
   await page.goto("/account");
@@ -178,4 +199,31 @@ test("account methods form a full-width mobile stack", async ({ page, isMobile }
   expect(emailBox!.y).toBeGreaterThan(googleBox!.y + googleBox!.height);
   expect(Math.abs(emailBox!.width - googleBox!.width)).toBeLessThan(1);
   await expect(page.getByText("Email and password", { exact: true })).toBeVisible();
+});
+
+
+test("region choice localizes the storefront and persists", async ({ page }, testInfo) => {
+  await page.route("**/api/locale", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ country: "GB", language: "en-GB" }) }));
+  await page.route("**/api/rates?*", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ base: "GBP", rates: { GBP: 1, EUR: 1.16, USD: 1.34 } }) }));
+  await page.goto("/");
+  await page.evaluate(() => localStorage.removeItem("fieldio-locale-v1"));
+  await page.reload();
+
+  if (testInfo.project.name === "mobile") {
+    await page.getByRole("button", { name: "Open menu" }).click();
+    await expect(page.getByRole("link", { name: "Fieldio on Instagram" })).toHaveAttribute("href", "https://www.instagram.com/fieldio_wrd/");
+  }
+  await page.getByRole("button", { name: /Change region and language/ }).click();
+  const panel = page.getByRole("dialog", { name: "Region and language" });
+  await panel.getByRole("searchbox").fill("France");
+  await panel.getByRole("button", { name: /France.*EUR/ }).click();
+
+  await expect(page.locator("html")).toHaveAttribute("lang", "fr-FR");
+  await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+  await expect(page.getByText("Sourcing et expédition dans le monde entier")).toBeVisible();
+  await page.getByRole("button", { name: "Fermer la région et la langue" }).click();
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("lang", "fr-FR");
+  await expect(page.getByText("La sélection Fieldio")).toBeVisible();
 });

@@ -10,11 +10,13 @@ import { responsiveImage } from "../lib/images";
 import { useEditorial } from "../hooks/useEditorial";
 import { EditorialText } from "../components/EditorialText";
 import { Button } from "../components/ui/button";
+import { useLocale } from "../context/LocaleContext";
 
-const categories = ["All", "Women", "Men", "Bags", "Shoes"];
+const categories = [["All", "nav.all"], ["Women", "nav.women"], ["Men", "nav.men"], ["Bags", "nav.bags"], ["Shoes", "nav.shoes"]] as const;
 const featuredBrands = brands.filter((brand) => brand !== "Fieldio Edit").slice(0, 5);
 
 export function HomePage() {
+  const { t } = useLocale();
   const { data: catalog = emptyCatalog, isLoading, error } = useCatalogProducts();
   const { data: editorial = {} } = useEditorial("home");
   usePageMeta({ title: "Fieldio — Everything fashion", description: "Luxury sourcing, personal shopping, selected fashion, and worldwide shipment through Fieldio.", canonical: "https://fieldio.shop/" });
@@ -23,12 +25,12 @@ export function HomePage() {
     <>
       <section className="catalog-intro" aria-labelledby="catalog-title">
         <div className="catalog-copy">
-          <h1 id="catalog-title"><EditorialText text={editorial.intro?.heading || "The Fieldio edit"} /></h1>
-          <p>{editorial.intro?.body || "New arrivals, exceptional pieces, and personal sourcing across the brands you want."}</p>
+          <h1 id="catalog-title"><EditorialText text={editorial.intro?.heading || t("home.title")} /></h1>
+          <p>{editorial.intro?.body || t("home.intro")}</p>
         </div>
         <div className="catalog-controls">
-          <nav aria-label="Product categories">{categories.map((category, index) => <Link key={category} className={index === 0 ? "active" : ""} to={category === "All" ? "/collections" : `/collections/${category.toLowerCase()}`}>{category}</Link>)}</nav>
-          <div><Link to="/collections?sort=name">Sort by</Link><Link to="/collections?filters=open">Filter</Link></div>
+          <nav aria-label="Product categories">{categories.map(([category, label], index) => <Link key={category} className={index === 0 ? "active" : ""} to={category === "All" ? "/collections" : `/collections/${category.toLowerCase()}`}>{t(label)}</Link>)}</nav>
+          <div><Link to="/collections?sort=name">{t("collection.sort")}</Link><Link to="/collections?filters=open">{t("collection.filter")}</Link></div>
         </div>
       </section>
 
@@ -39,12 +41,12 @@ export function HomePage() {
       <Reveal className="account-bulletin-reveal">
         <section className="account-bulletin" aria-labelledby="account-bulletin-title">
           <div>
-            <h2 id="account-bulletin-title">Keep your edit close.</h2>
-            <p>Create an account to save your wishlist, details, and order requests, ready whenever you return.</p>
+            <h2 id="account-bulletin-title">{t("home.accountTitle")}</h2>
+            <p>{t("home.accountCopy")}</p>
           </div>
           <div className="account-bulletin-actions">
-            <Button asChild size="lg" className="primary-button"><Link to="/account?mode=signup">Create account</Link></Button>
-            <Link to="/account" className="text-link">Already have an account? Sign in</Link>
+            <Button asChild size="lg" className="primary-button"><Link to="/account?mode=signup">{t("home.createAccount")}</Link></Button>
+            <Link to="/account" className="text-link">{t("home.signIn")}</Link>
           </div>
         </section>
       </Reveal>
@@ -52,9 +54,9 @@ export function HomePage() {
       <Reveal>
         <section className="brand-ledger" aria-labelledby="brands-title">
           <div className="brand-ledger-copy">
-            <h2 id="brands-title"><EditorialText text="A worldwide luxury desk" /></h2>
+            <h2 id="brands-title"><EditorialText text={t("home.luxuryTitle")} /></h2>
             <p>From a specific Louis Vuitton piece to a hard-to-find runway size, Fieldio makes the search personal. Send the reference; we return with availability, condition, final price, and shipping options.</p>
-            <a href={createWhatsAppUrl("Hello Fieldio, I would like help sourcing a luxury item.")} target="_blank" rel="noreferrer" className="arrow-link">Start a sourcing request <ArrowIcon /></a>
+            <a href={createWhatsAppUrl("Hello Fieldio, I would like help sourcing a luxury item.")} target="_blank" rel="noreferrer" className="arrow-link">{t("home.sourceRequest")} <ArrowIcon /></a>
           </div>
           <div className="brand-list" aria-label="Brands available for sourcing">
             {featuredBrands.map((brand) => <Link key={brand} to={`/brands/${getBrandSlug(brand)}`}><span>{brand}</span><ArrowIcon /></Link>)}
@@ -67,9 +69,9 @@ export function HomePage() {
         <section className="campaign-panel">
           <img {...responsiveImage(editorial.campaign?.image || "/images/outerwear-collection.png")} sizes="100vw" alt={editorial.campaign?.imageAlt || "Three women walking through a concrete gallery in modern neutral outerwear"} loading="lazy" />
           <div className="campaign-copy">
-            <h2><EditorialText text={editorial.campaign?.heading || "Modern essentials. Chosen with purpose."} /></h2>
+            <h2><EditorialText text={editorial.campaign?.heading || t("home.campaignTitle")} /></h2>
             <p>Women, men, accessories, and luxury sourcing—one considered edit, delivered worldwide.</p>
-            <Button asChild size="lg" className="light-button"><Link to="/collections/new-arrivals">View new arrivals</Link></Button>
+            <Button asChild size="lg" className="light-button"><Link to="/collections/new-arrivals">{t("home.viewNew")}</Link></Button>
           </div>
         </section>
       </Reveal>
@@ -82,9 +84,9 @@ export function HomePage() {
         <section className="personal-shopping-home">
           <div className="service-image"><img {...responsiveImage("/images/luxury-travel.png")} sizes="(max-width: 700px) 100vw, 60vw" alt="Leather travel goods arranged in warm studio light" loading="lazy" /></div>
           <div className="service-copy">
-            <h2><EditorialText text="Your personal shopper, wherever you are." /></h2>
+            <h2><EditorialText text={t("home.personalTitle")} /></h2>
             <p>Share a product link, screenshot, name, or brief. Fieldio sources across luxury, sportswear, accessories, and everyday fashion, then coordinates worldwide delivery.</p>
-            <div><Button asChild size="lg" className="primary-button"><Link to="/personal-shopping">How it works</Link></Button><a href={createWhatsAppUrl("Hello Fieldio, I would like to speak with a personal shopper.")} target="_blank" rel="noreferrer" className="text-link">Chat on WhatsApp</a></div>
+            <div><Button asChild size="lg" className="primary-button"><Link to="/personal-shopping">{t("home.howItWorks")}</Link></Button><a href={createWhatsAppUrl("Hello Fieldio, I would like to speak with a personal shopper.")} target="_blank" rel="noreferrer" className="text-link">{t("home.chat")}</a></div>
           </div>
         </section>
       </Reveal>

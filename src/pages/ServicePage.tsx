@@ -27,7 +27,7 @@ export function ServicePage() {
   const page = copy[pathname as keyof typeof copy] ?? copy["/contact"];
   const isWholesale = pathname === "/wholesale";
   const [status, setStatus] = useState<string | null>(null);
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<EnquiryValues>({ resolver: zodResolver(enquirySchema) });
+  const { register, handleSubmit, reset, setFocus, formState: { errors, isSubmitting } } = useForm<EnquiryValues>({ resolver: zodResolver(enquirySchema) });
   usePageMeta({ title: `${page.title.replace(".", "")} | Fieldio`, description: page.intro, canonical: `https://fieldio.shop${pathname}` });
   const onSubmit = async (values: EnquiryValues) => {
     setStatus(null);
@@ -38,5 +38,10 @@ export function ServicePage() {
     setStatus(result.message ?? "Your enquiry has been received.");
     reset();
   };
-  return <div className="service-page"><div className="service-lead"><h1>{page.title}</h1><p>{page.intro}</p><ul>{page.points.map((point) => <li key={point}>{point}</li>)}</ul><a className="primary-button" href={createWhatsAppUrl(`Hello Fieldio, I would like help with ${isWholesale ? "a wholesale enquiry" : pathname === "/contact" ? "an enquiry" : "personal shopping"}.`)} target="_blank" rel="noreferrer">Continue on WhatsApp</a></div><form className="service-form" onSubmit={handleSubmit(onSubmit)} noValidate><h2>{isWholesale ? "Wholesale enquiry" : "Send an enquiry"}</h2><label><span>Name</span><input {...register("name")} />{errors.name && <small>{errors.name.message}</small>}</label><label><span>Email</span><input type="email" {...register("email")} />{errors.email && <small>{errors.email.message}</small>}</label><label><span>Phone</span><input type="tel" {...register("phone")} />{errors.phone && <small>{errors.phone.message}</small>}</label>{isWholesale && <label><span>Company <em>Optional</em></span><input {...register("company")} /></label>}<label><span>Subject</span><input {...register("subject")} />{errors.subject && <small>{errors.subject.message}</small>}</label><label><span>Message</span><textarea rows={6} {...register("message")} />{errors.message && <small>{errors.message.message}</small>}</label>{status && <p className="form-message" role="status">{status}</p>}<button type="submit" className="primary-button" disabled={isSubmitting}>{isSubmitting ? "Sending…" : "Send enquiry"}</button></form></div>;
+  const inputField = (name: keyof EnquiryValues, label: string, type = "text") => {
+    const error = errors[name];
+    const errorId = `enquiry-${name}-error`;
+    return <label><span>{label}</span><input type={type} {...register(name)} aria-invalid={Boolean(error)} aria-describedby={error ? errorId : undefined} />{error && <small id={errorId} role="alert">{error.message}</small>}</label>;
+  };
+  return <div className="service-page"><div className="service-lead"><h1>{page.title}</h1><p>{page.intro}</p><ul>{page.points.map((point) => <li key={point}>{point}</li>)}</ul><a className="primary-button" href={createWhatsAppUrl(`Hello Fieldio, I would like help with ${isWholesale ? "a wholesale enquiry" : pathname === "/contact" ? "an enquiry" : "personal shopping"}.`)} target="_blank" rel="noreferrer">Continue on WhatsApp</a></div><form className="service-form" onSubmit={handleSubmit(onSubmit, (formErrors) => setFocus(Object.keys(formErrors)[0] as keyof EnquiryValues))} noValidate><h2>{isWholesale ? "Wholesale enquiry" : "Send an enquiry"}</h2>{inputField("name", "Name")}{inputField("email", "Email", "email")}{inputField("phone", "Phone", "tel")}{isWholesale && inputField("company", "Company (optional)")}{inputField("subject", "Subject")}<label><span>Message</span><textarea rows={6} {...register("message")} aria-invalid={Boolean(errors.message)} aria-describedby={errors.message ? "enquiry-message-error" : undefined} />{errors.message && <small id="enquiry-message-error" role="alert">{errors.message.message}</small>}</label>{status && <p className="form-message" role="status">{status}</p>}<button type="submit" className="primary-button" disabled={isSubmitting}>{isSubmitting ? "Sending…" : "Send enquiry"}</button></form></div>;
 }
