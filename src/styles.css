@@ -326,7 +326,12 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .light-button:hover, .primary-button:hover { text-decoration: none; background: transparent; color: var(--ink); }
 .secondary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .secondary-grid .product-card-media { aspect-ratio: 4 / 3; }
+.home-catalog-more { width: var(--page); margin: 28px auto 0; justify-content: flex-end; }
 .personal-shopping-home { width: var(--page); margin: clamp(90px, 12vw, 180px) auto; display: grid; grid-template-columns: 1.18fr 0.82fr; background: var(--surface); }
+.vendor-callout { width: var(--page); margin: 0 auto clamp(90px, 12vw, 180px); padding: clamp(30px, 4vw, 52px) 0; border-block: 1px solid var(--line-dark); display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: clamp(34px, 8vw, 120px); }
+.vendor-callout h2 { margin: 0 0 14px; font-size: clamp(42px, 5.5vw, 78px); line-height: .94; }
+.vendor-callout p { max-width: 64ch; margin: 0; color: var(--muted); font-size: 15px; }
+.vendor-callout .primary-button { white-space: nowrap; }
 .service-image { min-height: 600px; overflow: hidden; }
 .service-image img { width: 100%; height: 100%; object-fit: cover; }
 .service-copy { display: flex; flex-direction: column; justify-content: center; padding: clamp(34px, 5vw, 76px); }
@@ -756,7 +761,12 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .campaign-copy .light-button { background: white; color: #151612; border-color: white; }
   .secondary-grid { grid-template-columns: 1fr; }
   .secondary-grid .product-card-media { aspect-ratio: 4 / 4.5; }
+  .home-catalog-more { margin-top: 22px; justify-content: flex-start; }
   .personal-shopping-home { display: flex; flex-direction: column; margin: 90px auto; }
+  .vendor-callout { display: block; margin-bottom: 90px; padding: 34px 0 38px; }
+  .vendor-callout h2 { font-size: 48px; }
+  .vendor-callout p { font-size: 14px; }
+  .vendor-callout .primary-button { margin-top: 28px; }
   .service-image { min-height: 360px; }
   .service-copy { padding: 30px 22px; }
   .service-copy h2 { font-size: 46px; }

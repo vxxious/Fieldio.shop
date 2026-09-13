@@ -46,7 +46,7 @@ function toProduct(row: CatalogRow): Product {
     shortDescription: row.short_description,
     price: row.price,
     currency: row.currency as Currency,
-    images: [...row.images].sort((a, b) => a.position - b.position).map((image) => ({ id: image.id, url: image.public_url ?? supabase!.storage.from("product-images").getPublicUrl(image.storage_path).data.publicUrl, alt: image.alt_text, position: image.position })),
+    images: [...row.images].sort((a, b) => a.position - b.position).map((image) => ({ id: image.id, url: image.public_url?.replace(/^https:\/\/fieldio\.shop(?=\/)/, "") ?? supabase!.storage.from("product-images").getPublicUrl(image.storage_path).data.publicUrl, alt: image.alt_text, position: image.position })),
     variants: row.variants.filter((variant) => variant.is_active).map((variant) => ({ id: variant.id, sku: variant.sku, name: variant.name, ...(variant.size ? { size: variant.size } : {}), ...(variant.color ? { color: variant.color } : {}), priceOverride: variant.price_override, inventory: row.inquiry_only || variant.inventory?.allow_backorder ? null : variant.inventory ? Math.max(0, variant.inventory.quantity - variant.inventory.reserved_quantity) : 0 })),
     materials: row.materials ?? "Confirmed on request.",
     care: row.care_information ?? "Confirmed on request.",
