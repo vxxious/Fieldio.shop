@@ -20,7 +20,7 @@ export function HomePage() {
   const { data: catalog = emptyCatalog, isLoading, error } = useCatalogProducts();
   const { data: editorial = {} } = useEditorial("home");
   const homeCatalog = [...catalog.filter((product) => product.featured), ...catalog.filter((product) => !product.featured)].slice(0, 6);
-  usePageMeta({ title: "Fieldio — Everything fashion", description: "Luxury sourcing, personal shopping, selected fashion, and worldwide shipment through Fieldio.", canonical: "https://fieldio.shop/" });
+  usePageMeta({ title: "Fieldio | Luxury Fashion Sourcing & Personal Shopping", description: "Discover designer fashion through Fieldio: personal shopping, luxury sourcing, and worldwide delivery support for women and men.", canonical: "https://fieldio.shop/" });
 
   return (
     <>
