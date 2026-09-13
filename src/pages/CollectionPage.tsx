@@ -12,6 +12,12 @@ import { filterCatalog } from "../lib/catalog-filter";
 import { responsiveImage } from "../lib/images";
 import { supabase } from "../lib/supabase";
 
+const genderCategories = {
+  men: ["sale", "new-in", "tops", "bottoms", "outerwear", "tailoring", "accessories", "footwear", "all"],
+  women: ["sale", "new-in", "dresses", "tops", "bottoms", "outerwear", "accessories", "footwear", "all"]
+} as const;
+const categoryLabels: Record<string, string> = { sale: "Sale", "new-in": "New in", tops: "Tops", bottoms: "Bottoms", outerwear: "Outerwear", tailoring: "Tailoring", dresses: "Dresses", accessories: "Accessories", footwear: "Footwear", all: "All pieces" };
+
 export function CollectionPage() {
   const { t } = useLocale();
   const { slug } = useParams();
@@ -28,7 +34,9 @@ export function CollectionPage() {
   const brand = params.get("brand") || "";
   const size = params.get("size") || "";
   const sort = params.get("sort") || "featured";
-  const visibleProducts = filterCatalog(products, { ...(slug ? { collection: slug } : {}), brand, size, sort });
+  const subcategory = params.get("category") || "";
+  const gender = slug === "men" || slug === "women" ? slug : null;
+  const visibleProducts = filterCatalog(products, { ...(slug ? { collection: slug } : {}), subcategory, brand, size, sort });
   const brands = [...new Set(products.map((product) => product.brand))].sort();
   const sizes = [...new Set(products.flatMap((product) => product.variants.flatMap((variant) => variant.size ? [variant.size] : [])))];
   const update = (key: string, value: string) => setParams((current) => { const next = new URLSearchParams(current); if (value) next.set(key, value); else next.delete(key); return next; });
@@ -48,9 +56,18 @@ export function CollectionPage() {
     return () => context.revert();
   }, [slug, heroImage]);
 
+  if (gender && !subcategory) return <div className="gender-directory">
+    <header><h1>{gender === "men" ? "Men" : "Women"}</h1><p>Choose a category to browse a more focused Fieldio edit.</p></header>
+    <nav className="gender-switch" aria-label="Shop by gender"><Link className={gender === "men" ? "active" : ""} to="/collections/men">Men</Link><Link className={gender === "women" ? "active" : ""} to="/collections/women">Women</Link></nav>
+    <nav className="gender-category-list" aria-label={`${gender === "men" ? "Men's" : "Women's"} categories`}>
+      {genderCategories[gender].map((category) => <Link key={category} className={category === "sale" ? "sale" : ""} to={`/collections/${gender}?category=${category}`}><span>{categoryLabels[category]}</span><span aria-hidden="true">→</span></Link>)}
+      <Link className="all-brands" to="/brands"><span>All brands</span><span aria-hidden="true">→</span></Link>
+    </nav>
+  </div>;
+
   return <div className="collection-page">
     <header ref={heroRef} className={`collection-editorial collection-editorial--${editorial.layout}`}>
-      <div className="collection-editorial-copy"><h1><EditorialText text={title} /></h1><p>{collection.data?.intro || editorial.statement || intro}</p></div>
+      <div className="collection-editorial-copy"><h1><EditorialText text={subcategory ? `${title} / ${categoryLabels[subcategory] ?? subcategory}` : title} /></h1><p>{collection.data?.intro || editorial.statement || intro}</p>{gender && <Link className="text-link" to={`/collections/${gender}`}>Browse {gender} categories</Link>}</div>
       <div className="collection-editorial-media"><img {...responsiveImage(heroImage)} sizes="(max-width: 760px) 100vw, 62vw" alt={heroImageAlt} /></div>
     </header>
     <div className="mobile-filter-bar"><p aria-live="polite">{visibleProducts.length} {visibleProducts.length === 1 ? t("collection.piece") : t("collection.pieces")}{brand || size ? ` · ${[brand, size].filter(Boolean).join(" · ")}` : ""}</p><button type="button" className="secondary-button" onClick={() => filterDialogRef.current?.showModal()}>{t("collection.filter")}</button></div>

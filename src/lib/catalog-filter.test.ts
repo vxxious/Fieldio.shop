@@ -14,6 +14,11 @@ describe("catalog filters", () => {
     expect(filterCatalog(fixtures, { sort: "price-low" }).map((p) => p.id)).toEqual(["c", "b", "a"]);
     expect(filterCatalog(fixtures, { sort: "price-high" }).map((p) => p.id)).toEqual(["b", "c", "a"]);
   });
+  it("separates gender edits into useful subcategories", () => {
+    expect(filterCatalog(products, { collection: "men", subcategory: "outerwear" }).map((product) => product.slug)).toContain("taupe-suede-overshirt");
+    expect(filterCatalog(products, { collection: "women", subcategory: "footwear" }).map((product) => product.slug)).toContain("ivory-sculptural-slingbacks");
+    expect(filterCatalog(products, { collection: "women", subcategory: "dresses" }).map((product) => product.slug)).toContain("architectural-column-dress");
+  });
 });
 
 describe("brand routes", () => {

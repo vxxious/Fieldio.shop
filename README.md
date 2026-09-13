@@ -27,8 +27,8 @@ The interface falls back to an explicitly local preview catalog when Supabase is
 ## Supabase
 
 1. Create a Supabase project and apply `supabase/migrations/202609050001_initial_fieldio_schema.sql`.
-2. Set the public URL and anonymous key in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-3. Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` only in the server deployment environment.
+2. Set the public URL and publishable key in `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
+3. Set `SUPABASE_URL` and `SUPABASE_SECRET_KEY` only in the server deployment environment.
 4. Create the first account through the application, then add that user's UUID to `public.admin_users` with the `owner` role from a trusted SQL session.
 5. Configure the desired email/password and OAuth providers in Supabase Auth, including the production callback URL.
 

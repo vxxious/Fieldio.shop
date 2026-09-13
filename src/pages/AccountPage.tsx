@@ -64,7 +64,7 @@ export function AccountPage() {
     setOauthPending(false);
   };
   if (loading) return <div className="route-loading" role="status">{t("common.loading")}…</div>;
-  if (session && mode !== "update") return <AccountDetails userId={session.user.id} email={session.user.email || ""} />;
+  if (session && mode !== "update") return <AccountDetails userId={session.user.id} email={session.user.email || ""} avatarUrl={String(session.user.user_metadata.avatar_url || session.user.user_metadata.picture || "")} />;
   const titles = { signin: t("account.signInTitle"), signup: t("account.signUpTitle"), reset: t("account.resetTitle"), update: t("account.updateTitle") };
   const showAuthMethods = mode === "signin" || mode === "signup";
   return <div className="account-page"><section><h1>{titles[mode]}</h1><p>{t("account.intro")}</p>

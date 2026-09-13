@@ -18,8 +18,6 @@ const links = [
   ["nav.luxury", "/collections/luxury"],
   ["nav.women", "/collections/women"],
   ["nav.men", "/collections/men"],
-  ["nav.bags", "/collections/bags"],
-  ["nav.shoes", "/collections/shoes"],
   ["nav.personal", "/personal-shopping"],
   ["nav.wholesale", "/wholesale"]
 ] as const;

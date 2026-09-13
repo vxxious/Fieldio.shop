@@ -1,10 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { z } from "zod";
+import { AccountIcon, ArrowIcon, BagIcon, EmailIcon, HeartIcon, PlusIcon } from "./Icons";
+import { useLocale } from "../context/LocaleContext";
 import { supabase } from "../lib/supabase";
+import type { TranslationKey } from "../lib/translations";
 import { createWhatsAppUrl } from "../lib/whatsapp";
 
 const detailsSchema = z.object({
@@ -16,21 +19,38 @@ const detailsSchema = z.object({
   country_code: z.string().trim().length(2, "Use a two-letter country code.").transform((value) => value.toUpperCase())
 });
 type Details = z.infer<typeof detailsSchema>;
-interface Order { id: string; public_reference: string; status: string; created_at: string; order_items: Array<{ id: string; product_name: string; quantity: number; size: string | null }> }
+type AccountIntent = "buy" | "sell";
+type AccountView = "overview" | "orders" | "details";
+interface Order { id: string; public_reference: string; status: string; created_at: string; subtotal: number | null; currency: string; order_items: Array<{ id: string; product_name: string; quantity: number; size: string | null }> }
 
-export function AccountDetails({ userId, email }: { userId: string; email: string }) {
+const orderStatusKeys: Record<string, TranslationKey> = {
+  order_request: "account.status.request",
+  awaiting_confirmation: "account.status.awaiting",
+  confirmed: "account.status.confirmed",
+  processing: "account.status.processing",
+  shipped: "account.status.shipped",
+  delivered: "account.status.delivered",
+  cancelled: "account.status.cancelled"
+};
+const orderSteps = ["order_request", "confirmed", "processing", "shipped", "delivered"] as const;
+
+export function AccountDetails({ userId, email, avatarUrl = "" }: { userId: string; email: string; avatarUrl?: string }) {
+  const { formatMoney, language, t } = useLocale();
   const cache = useQueryClient();
+  const [view, setView] = useState<AccountView>("overview");
   const [status, setStatus] = useState("");
+  const [savingIntent, setSavingIntent] = useState(false);
+  const viewHeading = useRef<HTMLHeadingElement>(null);
   const details = useQuery({ queryKey: ["account-details", userId], queryFn: async () => {
     const [profile, address] = await Promise.all([
-      supabase!.from("profiles").select("full_name,phone").eq("id", userId).maybeSingle(),
+      supabase!.from("profiles").select("full_name,phone,avatar_url,account_intent").eq("id", userId).maybeSingle(),
       supabase!.from("addresses").select("*").eq("user_id", userId).eq("is_default", true).maybeSingle()
     ]);
     if (profile.error || address.error) throw profile.error || address.error;
     return { profile: profile.data, address: address.data };
   } });
-  const orders = useQuery({ queryKey: ["account-orders", userId], queryFn: async () => {
-    const { data, error } = await supabase!.from("order_requests").select("id,public_reference,status,created_at,order_items(id,product_name,quantity,size)").eq("user_id", userId).order("created_at", { ascending: false });
+  const orders = useQuery({ queryKey: ["account-orders", userId], enabled: view === "orders", queryFn: async () => {
+    const { data, error } = await supabase!.from("order_requests").select("id,public_reference,status,created_at,subtotal,currency,order_items(id,product_name,quantity,size)").eq("user_id", userId).order("created_at", { ascending: false });
     if (error) throw error;
     return data as Order[];
   } });
@@ -43,6 +63,17 @@ export function AccountDetails({ userId, email }: { userId: string; email: strin
     country_code: details.data?.address?.country_code || ""
   } });
 
+  useEffect(() => { if (view !== "overview") viewHeading.current?.focus(); }, [view]);
+
+  async function selectIntent(accountIntent: AccountIntent) {
+    setSavingIntent(true);
+    setStatus("");
+    const { error } = await supabase!.from("profiles").update({ account_intent: accountIntent }).eq("id", userId);
+    setSavingIntent(false);
+    if (error) { setStatus("Your choice could not be saved. Please try again."); return; }
+    await cache.invalidateQueries({ queryKey: ["account-details", userId] });
+  }
+
   async function save(values: Details) {
     setStatus("");
     const profile = await supabase!.from("profiles").update({ full_name: values.full_name, phone: values.phone }).eq("id", userId);
@@ -53,9 +84,61 @@ export function AccountDetails({ userId, email }: { userId: string; email: strin
     setStatus("Your details have been saved.");
   }
 
+  if (details.isPending) return <div className="route-loading" role="status">{t("common.loading")}…</div>;
+  if (details.error) return <div className="account-load-error" role="alert"><p>{t("account.detailsError")}</p><button className="primary-button" onClick={() => void details.refetch()}>{t("account.retry")}</button></div>;
+  if (!details.data.profile?.account_intent) return <section className="account-intent" aria-labelledby="account-intent-title">
+    <div><p className="account-intent-brand">Fieldio</p><h1 id="account-intent-title">How would you like to use Fieldio?</h1><p>Choose your starting point. You can change this later in your details.</p></div>
+    <div className="account-intent-options">
+      <button type="button" onClick={() => void selectIntent("buy")} disabled={savingIntent}><BagIcon /><strong>I want to buy</strong><span>Shop the edit and request personal sourcing.</span></button>
+      <button type="button" onClick={() => void selectIntent("sell")} disabled={savingIntent}><PlusIcon /><strong>I want to sell</strong><span>Start a seller or wholesale enquiry with Fieldio.</span></button>
+    </div>
+    {status && <p className="form-message" role="status">{status}</p>}
+  </section>;
+
+  const profileName = details.data.profile.full_name || email.split("@")[0] || "Fieldio customer";
+  const profileAvatar = details.data.profile.avatar_url || avatarUrl;
+  const intent = details.data.profile.account_intent as AccountIntent;
+
+  const showOverview = () => setView("overview");
   return <div className="customer-account">
-    <header><h1>Your account</h1><p>{email}</p><nav className="account-nav" aria-label="Account"><a href="#details">Profile</a><a href="#orders">Orders</a><Link to="/wishlist">Wishlist</Link></nav><button className="text-link" onClick={async () => { const { error } = await supabase!.auth.signOut(); if (error) setStatus("Sign out failed. Please try again."); else cache.clear(); }}>Sign out</button></header>
-    <section id="orders"><h2>Order requests</h2>{orders.isPending ? <p role="status">Loading requests…</p> : orders.error ? <p role="alert">Requests could not load. <button onClick={() => void orders.refetch()}>Try again</button></p> : orders.data?.length ? orders.data.map((order) => <article className="account-order" key={order.id}><div><h3>{order.public_reference}</h3><p>{order.status.replaceAll("_", " ")} · {new Date(order.created_at).toLocaleDateString("en-GB")}</p></div><ul>{order.order_items.map((item) => <li key={item.id}>{item.product_name} · {item.size || "Variant confirmed directly"} · Quantity {item.quantity}</li>)}</ul><a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, I would like an update on order request ${order.public_reference}.`)} target="_blank" rel="noreferrer">Continue conversation on WhatsApp</a></article>) : <div className="account-empty"><p>No order requests yet. Requests made while signed in will appear here.</p><Link className="text-link" to="/collections">Explore the edit</Link></div>}</section>
-    <section id="details"><h2>Saved information</h2>{details.error ? <p role="alert">Details could not load. <button onClick={() => void details.refetch()}>Try again</button></p> : <form className="admin-form" onSubmit={handleSubmit(save, (formErrors) => setFocus(Object.keys(formErrors)[0] as keyof Details))} noValidate>{([['full_name','Full name'],['phone','Phone number'],['line1','Street address'],['city','City'],['postal_code','Postal code'],['country_code','Country code (GB, US, etc.)']] as const).map(([key, label]) => { const errorId = `details-${key}-error`; return <label key={key}><span>{label}</span><input {...register(key)} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? errorId : undefined} />{errors[key] && <small id={errorId} role="alert">{errors[key]?.message}</small>}</label>; })}<button className="primary-button" disabled={isSubmitting || details.isPending}>Save details</button></form>}{status && <p role="status">{status}</p>}<div className="account-security"><h3>Account access</h3><button className="text-link" type="button" onClick={async () => { const { error } = await supabase!.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/account` }); setStatus(error ? error.message : "Check your email to change your password."); }}>Change password</button><a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, I would like to request deletion of the account registered to ${email}.`)} target="_blank" rel="noreferrer">Request account deletion</a></div></section>
+    {view === "overview" ? <>
+      <header className="account-identity">
+        <div className="account-avatar">{profileAvatar ? <img src={profileAvatar} alt="" referrerPolicy="no-referrer" /> : <AccountIcon />}</div>
+        <h1>{profileName}</h1><p>{email}</p>
+      </header>
+      <section className="account-seller-card">
+        <div><h2>{intent === "sell" ? "Ready to sell with Fieldio?" : "Interested in selling?"}</h2><p>{intent === "sell" ? "Tell us what you supply and we’ll review the opportunity personally." : "Start a seller or wholesale enquiry when you are ready."}</p></div>
+        <Link className="text-link" to="/wholesale">Get started</Link>
+      </section>
+      <nav className="account-menu" aria-label="Your account">
+        <button type="button" onClick={() => setView("orders")}><BagIcon /><span>My order requests</span><ArrowIcon /></button>
+        <Link to="/wishlist"><HeartIcon /><span>{t("nav.wishlist")}</span><ArrowIcon /></Link>
+        <button type="button" onClick={() => setView("details")}><AccountIcon /><span>My details & address</span><ArrowIcon /></button>
+        <Link to="/contact"><EmailIcon /><span>Contact Fieldio</span><ArrowIcon /></Link>
+      </nav>
+      <button className="account-signout" onClick={async () => { const { error } = await supabase!.auth.signOut(); if (error) setStatus("Sign out failed. Please try again."); else cache.clear(); }}>{t("account.signOut")}</button>
+      {status && <p className="form-message" role="status">{status}</p>}
+    </> : <>
+      <header className="account-view-header"><button className="text-link" type="button" onClick={showOverview}>← Your account</button><h1 ref={viewHeading} tabIndex={-1}>{view === "orders" ? t("account.orderRequests") : t("account.savedInfo")}</h1></header>
+      {view === "orders" ? <section className="account-view-content">
+        {orders.isPending ? <p role="status">{t("account.loadingRequests")}</p> : orders.error ? <p role="alert">{t("account.requestsError")} <button className="text-link" onClick={() => void orders.refetch()}>{t("account.retry")}</button></p> : orders.data?.length ? orders.data.map((order) => {
+          const statusKey = orderStatusKeys[order.status];
+          const stepIndex = order.status === "awaiting_confirmation" ? 0 : orderSteps.indexOf(order.status as typeof orderSteps[number]);
+          return <article className="account-order" key={order.id}>
+            <div className="account-order-heading"><div><h2>{order.public_reference}</h2><p>{statusKey ? t(statusKey) : order.status.replaceAll("_", " ")} · {new Intl.DateTimeFormat(language.locale, { dateStyle: "medium" }).format(new Date(order.created_at))}</p></div>{order.subtotal !== null && <strong>{formatMoney(order.subtotal, order.currency)}</strong>}</div>
+            {order.status === "cancelled" ? <p className="account-order-cancelled">{t("account.status.cancelled")}</p> : stepIndex >= 0 && <ol className="account-order-progress" aria-label={t("account.progress")}>{orderSteps.map((step, index) => <li key={step} className={index <= stepIndex ? "complete" : ""} aria-current={index === stepIndex ? "step" : undefined}><span>{t(orderStatusKeys[step]!)}</span></li>)}</ol>}
+            <ul>{order.order_items.map((item) => <li key={item.id}>{item.product_name} · {item.size || t("account.variantConfirmed")} · {t("account.quantity")} {item.quantity}</li>)}</ul>
+            <a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, I would like an update on order request ${order.public_reference}.`)} target="_blank" rel="noreferrer">{t("account.continueWhatsApp")}</a>
+          </article>;
+        }) : <div className="account-empty"><p><strong>{t("account.noRequests")}</strong><br />{t("account.noRequestsCopy")}</p><Link className="text-link" to="/collections">{t("account.explore")}</Link></div>}
+      </section> : <section className="account-view-content">
+        <form className="admin-form" onSubmit={handleSubmit(save, (formErrors) => setFocus(Object.keys(formErrors)[0] as keyof Details))} noValidate>{([
+          ["full_name", t("account.fullName")], ["phone", t("account.phone")], ["line1", t("account.street")], ["city", t("account.city")], ["postal_code", t("account.postal")], ["country_code", t("account.countryCode")]
+        ] as const).map(([key, label]) => { const errorId = `details-${key}-error`; return <label key={key}><span>{label}</span><input {...register(key)} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? errorId : undefined} />{errors[key] && <small id={errorId} role="alert">{errors[key]?.message}</small>}</label>; })}<button className="primary-button" disabled={isSubmitting}>{t("account.saveDetails")}</button></form>
+        <div className="account-preference"><h2>Account preference</h2><p>Choose the experience you want to see first.</p><div><button type="button" className={intent === "buy" ? "active" : ""} onClick={() => void selectIntent("buy")} disabled={savingIntent}>Buy</button><button type="button" className={intent === "sell" ? "active" : ""} onClick={() => void selectIntent("sell")} disabled={savingIntent}>Sell</button></div></div>
+        {status && <p role="status">{status}</p>}
+        <div className="account-security"><h2>{t("account.security")}</h2><button className="text-link" type="button" onClick={async () => { const { error } = await supabase!.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/account` }); setStatus(error ? error.message : "Check your email to change your password."); }}>{t("account.changePassword")}</button><a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, I would like to request deletion of the account registered to ${email}.`)} target="_blank" rel="noreferrer">{t("account.delete")}</a></div>
+      </section>}
+    </>}
   </div>;
 }

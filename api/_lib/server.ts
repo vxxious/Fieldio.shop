@@ -14,10 +14,12 @@ export function getClientIp(request: Request): string {
 
 export async function checkRateLimit(request: Request, limit = 8, windowMs = 60_000): Promise<boolean> {
   const key = `${new URL(request.url).pathname}:${getClientIp(request)}`;
+  const secret = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
   const database = getAdminSupabase();
-  if (database) {
-    const digest = createHmac("sha256", process.env.SUPABASE_SERVICE_ROLE_KEY!).update(key).digest("hex");
+  if (database && secret) {
+    const digest = createHmac("sha256", secret).update(key).digest("hex");
     const { data, error } = await database.rpc("consume_rate_limit", { p_key: digest, p_limit: limit, p_window_seconds: Math.ceil(windowMs / 1000) });
+    if (error) console.error("Fieldio rate-limit RPC failed", { code: error.code, secretFormatValid: secret.startsWith("sb_secret_") });
     return !error && data === true;
   }
   const now = Date.now();
@@ -44,7 +46,7 @@ export async function readValidatedJson<T extends z.ZodType>(request: Request, s
 
 export function getAdminSupabase(): SupabaseClient | null {
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return null;
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }

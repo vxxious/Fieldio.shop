@@ -12,7 +12,7 @@ import { EditorialText } from "../components/EditorialText";
 import { Button } from "../components/ui/button";
 import { useLocale } from "../context/LocaleContext";
 
-const categories = [["All", "nav.all"], ["Women", "nav.women"], ["Men", "nav.men"], ["Bags", "nav.bags"], ["Shoes", "nav.shoes"]] as const;
+const categories = [["All", "nav.all"], ["Women", "nav.women"], ["Men", "nav.men"]] as const;
 const featuredBrands = brands.filter((brand) => brand !== "Fieldio Edit").slice(0, 5);
 
 export function HomePage() {

@@ -23,7 +23,7 @@ export const publicPages: Record<string, [string, string]> = {
 
 export function publicClient() {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   return url && key ? createClient(url, key, { auth: { persistSession: false } }) : null;
 }
 export function siteOrigin() { return new URL(process.env.APP_URL || "https://fieldio.shop").origin; }

@@ -10,6 +10,9 @@ test("customer can build a request from product to checkout", async ({ page }) =
   await page.getByRole("link", { name: "Checkout via WhatsApp" }).click();
   await expect(page.getByRole("heading", { name: "Complete your request" })).toBeVisible();
   await expect(page.getByText("No payment is taken here.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Delivery destination" })).toBeVisible();
+  await expect(page.locator(".checkout-assurance section").first().locator("strong")).toContainText(/ · [A-Z]{3}$/);
+  await expect(page.getByText(/cryptocurrency may be available by arrangement/i)).toBeVisible();
   await page.getByLabel("Full name").fill("Ada Example");
   await page.getByLabel("Phone number").fill("+447000000000");
   await page.locator(".checkout-form").getByLabel("Email address").fill("ada@example.com");
@@ -29,6 +32,8 @@ test("mobile navigation opens, traps focus, and closes with Escape", async ({ pa
   const dialog = page.getByRole("dialog", { name: "Mobile navigation" });
   await expect(dialog).toBeVisible();
   await expect(dialog).toBeFocused();
+  await expect(dialog.getByRole("link", { name: "Bags", exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole("link", { name: "Shoes", exact: true })).toHaveCount(0);
   const controls = dialog.locator('a[href], button:not([disabled])');
   await controls.last().focus();
   await page.keyboard.press("Tab");
@@ -36,6 +41,12 @@ test("mobile navigation opens, traps focus, and closes with Escape", async ({ pa
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
   await expect(page.getByRole("button", { name: "Open menu" })).toBeFocused();
+});
+
+test("homepage keeps top-level shopping grouped by gender", async ({ page }) => {
+  await page.goto("/");
+  const categories = page.getByRole("navigation", { name: "Product categories" });
+  await expect(categories.getByRole("link")).toHaveText(["All", "Women", "Men"]);
 });
 
 test("mobile purchase bar appears only after the in-flow controls are passed", async ({ page, isMobile }) => {
@@ -115,6 +126,11 @@ test("empty bag offers account sign in", async ({ page, isMobile }) => {
 
 test("collection filtering, wishlist, and search are usable", async ({ page, isMobile }) => {
   await page.goto("/collections/men");
+  await expect(page.getByRole("navigation", { name: "Men's categories" })).toBeVisible();
+  await page.getByRole("navigation", { name: "Shop by gender" }).getByRole("link", { name: "Women", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Women's categories" })).toContainText("Dresses");
+  await page.getByRole("navigation", { name: "Shop by gender" }).getByRole("link", { name: "Men", exact: true }).click();
+  await page.getByRole("link", { name: "Outerwear" }).click();
   if (isMobile) await page.getByRole("button", { name: "Filter & sort" }).click();
   await page.getByRole("combobox", { name: "Size", exact: true }).selectOption("M");
   if (isMobile) await page.getByRole("button", { name: /View \d+ pieces?/ }).click();

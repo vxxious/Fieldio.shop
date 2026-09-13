@@ -6,7 +6,7 @@ import { localApi } from "./scripts/local-api.ts";
 
 export default defineConfig(({ mode }) => {
   const environment = loadEnv(mode, process.cwd(), "");
-  for (const key of ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "RESEND_API_KEY", "RESEND_FROM", "NEWSLETTER_TOKEN_SECRET", "APP_URL"]) if (environment[key] && !process.env[key]) process.env[key] = environment[key];
+  for (const key of ["SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SECRET_KEY", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "RESEND_API_KEY", "RESEND_FROM", "NEWSLETTER_TOKEN_SECRET", "APP_URL"]) if (environment[key] && !process.env[key]) process.env[key] = environment[key];
   return {
   plugins: [react(), tailwindcss(), localApi()],
   resolve: {

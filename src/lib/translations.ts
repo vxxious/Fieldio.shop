@@ -60,6 +60,7 @@ const en = {
   "cart.account": "Have an account?",
   "cart.login": "Log in",
   "cart.faster": "to check out faster.",
+  "cart.confirmationNote": "Availability, shipping, and payment are confirmed personally on WhatsApp.",
   "collection.filter": "Filter & sort",
   "collection.filterTitle": "Filter the edit",
   "collection.brand": "Brand",
@@ -87,8 +88,23 @@ const en = {
   "checkout.continue": "Continue on WhatsApp",
   "checkout.preparing": "Preparing request…",
   "checkout.request": "Your request",
-  "checkout.shipping": "Shipping and any sourcing fees are confirmed before payment."
-  ,"home.title": "The Fieldio edit",
+  "checkout.shipping": "Shipping and any sourcing fees are confirmed before payment.",
+  "checkout.loadingDetails": "Loading your saved details…",
+  "checkout.detailsError": "Saved details could not be loaded. You can still enter them below.",
+  "checkout.ready": "Your order request is ready. Continue on WhatsApp to confirm availability, shipping, and payment.",
+  "checkout.failed": "The order request was not completed. Review your bag and try again, or contact Fieldio.",
+  "checkout.openWhatsApp": "Open prepared WhatsApp message",
+  "checkout.emptyTitle": "Your bag is empty.",
+  "checkout.emptyCopy": "Add a piece before preparing a WhatsApp request.",
+  "checkout.explore": "Explore the edit",
+  "checkout.accountPrompt": "Have an account? Sign in to check out faster",
+  "checkout.destination": "Delivery destination",
+  "checkout.ukShipping": "UK delivery timing and cost are confirmed on WhatsApp before payment.",
+  "checkout.internationalShipping": "Worldwide delivery is arranged where available. Timing, carrier, customs duties, and import taxes are confirmed on WhatsApp.",
+  "checkout.paymentTitle": "Payment after confirmation",
+  "checkout.paymentMethods": "Bank transfer, card arrangement, or cryptocurrency may be available by arrangement. No payment is taken on this website.",
+  "checkout.quantity": "Qty",
+  "home.title": "The Fieldio edit",
   "home.intro": "New arrivals, exceptional pieces, and personal sourcing across the brands you want.",
   "home.accountTitle": "Keep your edit close.",
   "home.accountCopy": "Create an account to save your wishlist, details, and order requests, ready whenever you return.",
@@ -117,7 +133,41 @@ const en = {
   "account.reset": "Send reset link",
   "account.update": "Update password",
   "account.showPassword": "Show password",
-  "account.hidePassword": "Hide password"
+  "account.hidePassword": "Hide password",
+  "account.yourAccount": "Your account",
+  "account.profile": "Profile",
+  "account.orders": "Orders",
+  "account.signOut": "Sign out",
+  "account.orderRequests": "Order requests",
+  "account.loadingRequests": "Loading requests…",
+  "account.requestsError": "Requests could not load.",
+  "account.retry": "Try again",
+  "account.noRequests": "No order requests yet.",
+  "account.noRequestsCopy": "Requests made while signed in will appear here.",
+  "account.explore": "Explore the edit",
+  "account.savedInfo": "Saved information",
+  "account.detailsError": "Details could not load.",
+  "account.fullName": "Full name",
+  "account.phone": "Phone number",
+  "account.street": "Street address",
+  "account.city": "City",
+  "account.postal": "Postal code",
+  "account.countryCode": "Country code (GB, US, etc.)",
+  "account.saveDetails": "Save details",
+  "account.security": "Account access",
+  "account.changePassword": "Change password",
+  "account.delete": "Request account deletion",
+  "account.continueWhatsApp": "Continue conversation on WhatsApp",
+  "account.quantity": "Quantity",
+  "account.variantConfirmed": "Variant confirmed directly",
+  "account.progress": "Order progress",
+  "account.status.request": "Requested",
+  "account.status.awaiting": "Awaiting confirmation",
+  "account.status.confirmed": "Confirmed",
+  "account.status.processing": "Processing",
+  "account.status.shipped": "Shipped",
+  "account.status.delivered": "Delivered",
+  "account.status.cancelled": "Cancelled"
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -156,14 +206,47 @@ const utilityTranslations: Partial<Record<LanguageCode, Dictionary>> = {
   ar: { "nav.openBag": "فتح الحقيبة", "nav.items": "عناصر" }
 };
 
+const experienceTranslations: Partial<Record<LanguageCode, Dictionary>> = {
+  fr: {
+    "cart.confirmationNote": "La disponibilité, la livraison et le paiement sont confirmés personnellement sur WhatsApp.",
+    "checkout.loadingDetails": "Chargement de vos informations enregistrées…", "checkout.detailsError": "Vos informations n’ont pas pu être chargées. Vous pouvez les saisir ci-dessous.", "checkout.ready": "Votre demande est prête. Continuez sur WhatsApp pour confirmer la disponibilité, la livraison et le paiement.", "checkout.failed": "La demande n’a pas été finalisée. Vérifiez votre sac et réessayez, ou contactez Fieldio.", "checkout.openWhatsApp": "Ouvrir le message WhatsApp préparé", "checkout.emptyTitle": "Votre sac est vide.", "checkout.emptyCopy": "Ajoutez une pièce avant de préparer une demande WhatsApp.", "checkout.explore": "Découvrir la sélection", "checkout.accountPrompt": "Vous avez un compte ? Connectez-vous pour commander plus vite", "checkout.destination": "Destination de livraison", "checkout.ukShipping": "Le délai et le coût de livraison au Royaume-Uni sont confirmés sur WhatsApp avant le paiement.", "checkout.internationalShipping": "La livraison internationale est organisée lorsqu’elle est disponible. Le délai, le transporteur, les droits de douane et les taxes sont confirmés sur WhatsApp.", "checkout.paymentTitle": "Paiement après confirmation", "checkout.paymentMethods": "Un virement bancaire, un paiement par carte organisé ou un paiement en cryptomonnaie peuvent être proposés. Aucun paiement n’est effectué sur ce site.", "checkout.quantity": "Qté",
+    "account.yourAccount": "Votre compte", "account.profile": "Profil", "account.orders": "Commandes", "account.signOut": "Se déconnecter", "account.orderRequests": "Demandes de commande", "account.loadingRequests": "Chargement des demandes…", "account.requestsError": "Les demandes n’ont pas pu être chargées.", "account.retry": "Réessayer", "account.noRequests": "Aucune demande pour le moment.", "account.noRequestsCopy": "Les demandes effectuées après connexion apparaîtront ici.", "account.explore": "Découvrir la sélection", "account.savedInfo": "Informations enregistrées", "account.detailsError": "Les informations n’ont pas pu être chargées.", "account.fullName": "Nom complet", "account.phone": "Téléphone", "account.street": "Adresse", "account.city": "Ville", "account.postal": "Code postal", "account.countryCode": "Code pays (GB, US, etc.)", "account.saveDetails": "Enregistrer", "account.security": "Accès au compte", "account.changePassword": "Modifier le mot de passe", "account.delete": "Demander la suppression du compte", "account.continueWhatsApp": "Continuer sur WhatsApp", "account.quantity": "Quantité", "account.variantConfirmed": "Variante confirmée directement", "account.progress": "Suivi de commande", "account.status.request": "Demandée", "account.status.awaiting": "En attente de confirmation", "account.status.confirmed": "Confirmée", "account.status.processing": "En préparation", "account.status.shipped": "Expédiée", "account.status.delivered": "Livrée", "account.status.cancelled": "Annulée"
+  },
+  de: {
+    "cart.confirmationNote": "Verfügbarkeit, Versand und Zahlung werden persönlich über WhatsApp bestätigt.",
+    "checkout.loadingDetails": "Gespeicherte Daten werden geladen…", "checkout.detailsError": "Gespeicherte Daten konnten nicht geladen werden. Sie können sie unten eingeben.", "checkout.ready": "Ihre Anfrage ist bereit. Bestätigen Sie Verfügbarkeit, Versand und Zahlung über WhatsApp.", "checkout.failed": "Die Anfrage wurde nicht abgeschlossen. Prüfen Sie Ihre Tasche und versuchen Sie es erneut oder kontaktieren Sie Fieldio.", "checkout.openWhatsApp": "Vorbereitete WhatsApp-Nachricht öffnen", "checkout.emptyTitle": "Ihre Tasche ist leer.", "checkout.emptyCopy": "Fügen Sie ein Stück hinzu, bevor Sie eine WhatsApp-Anfrage vorbereiten.", "checkout.explore": "Auswahl entdecken", "checkout.accountPrompt": "Sie haben ein Konto? Für einen schnelleren Checkout anmelden", "checkout.destination": "Lieferziel", "checkout.ukShipping": "Lieferzeit und Kosten im Vereinigten Königreich werden vor der Zahlung über WhatsApp bestätigt.", "checkout.internationalShipping": "Weltweiter Versand wird organisiert, sofern verfügbar. Lieferzeit, Transporteur, Zoll und Einfuhrabgaben werden über WhatsApp bestätigt.", "checkout.paymentTitle": "Zahlung nach Bestätigung", "checkout.paymentMethods": "Banküberweisung, eine vereinbarte Kartenzahlung oder Kryptowährung können angeboten werden. Auf dieser Website wird keine Zahlung entgegengenommen.", "checkout.quantity": "Menge",
+    "account.yourAccount": "Ihr Konto", "account.profile": "Profil", "account.orders": "Bestellungen", "account.signOut": "Abmelden", "account.orderRequests": "Bestellanfragen", "account.loadingRequests": "Anfragen werden geladen…", "account.requestsError": "Anfragen konnten nicht geladen werden.", "account.retry": "Erneut versuchen", "account.noRequests": "Noch keine Bestellanfragen.", "account.noRequestsCopy": "Anfragen, die Sie angemeldet stellen, erscheinen hier.", "account.explore": "Auswahl entdecken", "account.savedInfo": "Gespeicherte Daten", "account.detailsError": "Daten konnten nicht geladen werden.", "account.fullName": "Vollständiger Name", "account.phone": "Telefonnummer", "account.street": "Straße und Hausnummer", "account.city": "Ort", "account.postal": "Postleitzahl", "account.countryCode": "Ländercode (GB, US usw.)", "account.saveDetails": "Daten speichern", "account.security": "Kontozugang", "account.changePassword": "Passwort ändern", "account.delete": "Kontolöschung anfragen", "account.continueWhatsApp": "Gespräch auf WhatsApp fortsetzen", "account.quantity": "Menge", "account.variantConfirmed": "Variante wird direkt bestätigt", "account.progress": "Bestellverlauf", "account.status.request": "Angefragt", "account.status.awaiting": "Wartet auf Bestätigung", "account.status.confirmed": "Bestätigt", "account.status.processing": "In Bearbeitung", "account.status.shipped": "Versandt", "account.status.delivered": "Zugestellt", "account.status.cancelled": "Storniert"
+  },
+  es: {
+    "cart.confirmationNote": "La disponibilidad, el envío y el pago se confirman personalmente por WhatsApp.",
+    "checkout.loadingDetails": "Cargando tus datos guardados…", "checkout.detailsError": "No se pudieron cargar tus datos. Puedes introducirlos abajo.", "checkout.ready": "Tu solicitud está lista. Continúa por WhatsApp para confirmar disponibilidad, envío y pago.", "checkout.failed": "La solicitud no se completó. Revisa tu bolsa e inténtalo de nuevo o contacta con Fieldio.", "checkout.openWhatsApp": "Abrir el mensaje de WhatsApp preparado", "checkout.emptyTitle": "Tu bolsa está vacía.", "checkout.emptyCopy": "Añade una pieza antes de preparar una solicitud por WhatsApp.", "checkout.explore": "Explorar la selección", "checkout.accountPrompt": "¿Tienes una cuenta? Inicia sesión para comprar más rápido", "checkout.destination": "Destino de entrega", "checkout.ukShipping": "El plazo y el coste de entrega en Reino Unido se confirman por WhatsApp antes del pago.", "checkout.internationalShipping": "El envío internacional se organiza cuando está disponible. El plazo, transportista, aranceles e impuestos se confirman por WhatsApp.", "checkout.paymentTitle": "Pago después de la confirmación", "checkout.paymentMethods": "Puede ofrecerse transferencia bancaria, pago con tarjeta acordado o criptomoneda. No se realiza ningún pago en este sitio web.", "checkout.quantity": "Cant.",
+    "account.yourAccount": "Tu cuenta", "account.profile": "Perfil", "account.orders": "Pedidos", "account.signOut": "Cerrar sesión", "account.orderRequests": "Solicitudes de pedido", "account.loadingRequests": "Cargando solicitudes…", "account.requestsError": "No se pudieron cargar las solicitudes.", "account.retry": "Intentar de nuevo", "account.noRequests": "Todavía no hay solicitudes.", "account.noRequestsCopy": "Las solicitudes realizadas con la sesión iniciada aparecerán aquí.", "account.explore": "Explorar la selección", "account.savedInfo": "Información guardada", "account.detailsError": "No se pudieron cargar los datos.", "account.fullName": "Nombre completo", "account.phone": "Teléfono", "account.street": "Dirección", "account.city": "Ciudad", "account.postal": "Código postal", "account.countryCode": "Código de país (GB, US, etc.)", "account.saveDetails": "Guardar datos", "account.security": "Acceso a la cuenta", "account.changePassword": "Cambiar contraseña", "account.delete": "Solicitar eliminación de la cuenta", "account.continueWhatsApp": "Continuar por WhatsApp", "account.quantity": "Cantidad", "account.variantConfirmed": "Variante confirmada directamente", "account.progress": "Progreso del pedido", "account.status.request": "Solicitado", "account.status.awaiting": "Pendiente de confirmación", "account.status.confirmed": "Confirmado", "account.status.processing": "En preparación", "account.status.shipped": "Enviado", "account.status.delivered": "Entregado", "account.status.cancelled": "Cancelado"
+  },
+  it: {
+    "cart.confirmationNote": "Disponibilità, spedizione e pagamento vengono confermati personalmente su WhatsApp.",
+    "checkout.loadingDetails": "Caricamento dei dati salvati…", "checkout.detailsError": "Impossibile caricare i dati salvati. Puoi inserirli qui sotto.", "checkout.ready": "La richiesta è pronta. Continua su WhatsApp per confermare disponibilità, spedizione e pagamento.", "checkout.failed": "La richiesta non è stata completata. Controlla la borsa e riprova oppure contatta Fieldio.", "checkout.openWhatsApp": "Apri il messaggio WhatsApp preparato", "checkout.emptyTitle": "La tua borsa è vuota.", "checkout.emptyCopy": "Aggiungi un articolo prima di preparare una richiesta WhatsApp.", "checkout.explore": "Esplora la selezione", "checkout.accountPrompt": "Hai un account? Accedi per completare più velocemente", "checkout.destination": "Destinazione di consegna", "checkout.ukShipping": "Tempi e costi di consegna nel Regno Unito vengono confermati su WhatsApp prima del pagamento.", "checkout.internationalShipping": "La consegna internazionale viene organizzata ove disponibile. Tempi, corriere, dazi e imposte vengono confermati su WhatsApp.", "checkout.paymentTitle": "Pagamento dopo la conferma", "checkout.paymentMethods": "Possono essere disponibili bonifico bancario, pagamento con carta concordato o criptovaluta. Nessun pagamento viene effettuato su questo sito.", "checkout.quantity": "Qtà",
+    "account.yourAccount": "Il tuo account", "account.profile": "Profilo", "account.orders": "Ordini", "account.signOut": "Esci", "account.orderRequests": "Richieste d’ordine", "account.loadingRequests": "Caricamento richieste…", "account.requestsError": "Impossibile caricare le richieste.", "account.retry": "Riprova", "account.noRequests": "Nessuna richiesta per ora.", "account.noRequestsCopy": "Le richieste effettuate dopo l’accesso appariranno qui.", "account.explore": "Esplora la selezione", "account.savedInfo": "Informazioni salvate", "account.detailsError": "Impossibile caricare i dati.", "account.fullName": "Nome completo", "account.phone": "Telefono", "account.street": "Indirizzo", "account.city": "Città", "account.postal": "Codice postale", "account.countryCode": "Codice paese (GB, US, ecc.)", "account.saveDetails": "Salva dati", "account.security": "Accesso all’account", "account.changePassword": "Cambia password", "account.delete": "Richiedi eliminazione account", "account.continueWhatsApp": "Continua su WhatsApp", "account.quantity": "Quantità", "account.variantConfirmed": "Variante confermata direttamente", "account.progress": "Stato dell’ordine", "account.status.request": "Richiesto", "account.status.awaiting": "In attesa di conferma", "account.status.confirmed": "Confermato", "account.status.processing": "In lavorazione", "account.status.shipped": "Spedito", "account.status.delivered": "Consegnato", "account.status.cancelled": "Annullato"
+  },
+  pt: {
+    "cart.confirmationNote": "A disponibilidade, o envio e o pagamento são confirmados pessoalmente pelo WhatsApp.",
+    "checkout.loadingDetails": "A carregar os dados guardados…", "checkout.detailsError": "Não foi possível carregar os dados. Pode introduzi-los abaixo.", "checkout.ready": "O seu pedido está pronto. Continue no WhatsApp para confirmar disponibilidade, envio e pagamento.", "checkout.failed": "O pedido não foi concluído. Reveja a sacola e tente novamente ou contacte a Fieldio.", "checkout.openWhatsApp": "Abrir mensagem preparada no WhatsApp", "checkout.emptyTitle": "A sua sacola está vazia.", "checkout.emptyCopy": "Adicione uma peça antes de preparar um pedido pelo WhatsApp.", "checkout.explore": "Explorar a seleção", "checkout.accountPrompt": "Já tem conta? Inicie sessão para finalizar mais depressa", "checkout.destination": "Destino da entrega", "checkout.ukShipping": "O prazo e o custo da entrega no Reino Unido são confirmados pelo WhatsApp antes do pagamento.", "checkout.internationalShipping": "A entrega internacional é organizada quando disponível. Prazo, transportadora, direitos aduaneiros e impostos são confirmados pelo WhatsApp.", "checkout.paymentTitle": "Pagamento após confirmação", "checkout.paymentMethods": "Podem estar disponíveis transferência bancária, pagamento por cartão combinado ou criptomoeda. Nenhum pagamento é efetuado neste site.", "checkout.quantity": "Qtd.",
+    "account.yourAccount": "A sua conta", "account.profile": "Perfil", "account.orders": "Pedidos", "account.signOut": "Terminar sessão", "account.orderRequests": "Pedidos de encomenda", "account.loadingRequests": "A carregar pedidos…", "account.requestsError": "Não foi possível carregar os pedidos.", "account.retry": "Tentar novamente", "account.noRequests": "Ainda não existem pedidos.", "account.noRequestsCopy": "Os pedidos feitos com sessão iniciada aparecerão aqui.", "account.explore": "Explorar a seleção", "account.savedInfo": "Informações guardadas", "account.detailsError": "Não foi possível carregar os dados.", "account.fullName": "Nome completo", "account.phone": "Telefone", "account.street": "Morada", "account.city": "Cidade", "account.postal": "Código postal", "account.countryCode": "Código do país (GB, US, etc.)", "account.saveDetails": "Guardar dados", "account.security": "Acesso à conta", "account.changePassword": "Alterar palavra-passe", "account.delete": "Pedir eliminação da conta", "account.continueWhatsApp": "Continuar no WhatsApp", "account.quantity": "Quantidade", "account.variantConfirmed": "Variante confirmada diretamente", "account.progress": "Progresso da encomenda", "account.status.request": "Pedido", "account.status.awaiting": "A aguardar confirmação", "account.status.confirmed": "Confirmado", "account.status.processing": "Em processamento", "account.status.shipped": "Enviado", "account.status.delivered": "Entregue", "account.status.cancelled": "Cancelado"
+  },
+  ar: {
+    "cart.confirmationNote": "يتم تأكيد التوفر والشحن والدفع معك شخصيًا عبر واتساب.",
+    "checkout.loadingDetails": "جارٍ تحميل بياناتك المحفوظة…", "checkout.detailsError": "تعذر تحميل بياناتك المحفوظة. يمكنك إدخالها أدناه.", "checkout.ready": "طلبك جاهز. تابع عبر واتساب لتأكيد التوفر والشحن والدفع.", "checkout.failed": "لم يكتمل الطلب. راجع حقيبتك وحاول مرة أخرى أو تواصل مع فيلديو.", "checkout.openWhatsApp": "فتح رسالة واتساب الجاهزة", "checkout.emptyTitle": "حقيبتك فارغة.", "checkout.emptyCopy": "أضف قطعة قبل تجهيز طلب واتساب.", "checkout.explore": "استكشف المختارات", "checkout.accountPrompt": "لديك حساب؟ سجل الدخول لإتمام الطلب بسرعة", "checkout.destination": "وجهة التوصيل", "checkout.ukShipping": "يتم تأكيد مدة وتكلفة التوصيل داخل المملكة المتحدة عبر واتساب قبل الدفع.", "checkout.internationalShipping": "يتم ترتيب التوصيل الدولي حيثما كان متاحًا. وتُؤكد المدة وشركة الشحن والرسوم الجمركية والضرائب عبر واتساب.", "checkout.paymentTitle": "الدفع بعد التأكيد", "checkout.paymentMethods": "قد يتوفر التحويل البنكي أو الدفع بالبطاقة بالاتفاق أو العملات الرقمية. لا يتم تحصيل أي دفعة على هذا الموقع.", "checkout.quantity": "الكمية",
+    "account.yourAccount": "حسابك", "account.profile": "الملف الشخصي", "account.orders": "الطلبات", "account.signOut": "تسجيل الخروج", "account.orderRequests": "طلبات الشراء", "account.loadingRequests": "جارٍ تحميل الطلبات…", "account.requestsError": "تعذر تحميل الطلبات.", "account.retry": "حاول مجددًا", "account.noRequests": "لا توجد طلبات بعد.", "account.noRequestsCopy": "ستظهر هنا الطلبات التي تجريها بعد تسجيل الدخول.", "account.explore": "استكشف المختارات", "account.savedInfo": "البيانات المحفوظة", "account.detailsError": "تعذر تحميل البيانات.", "account.fullName": "الاسم الكامل", "account.phone": "رقم الهاتف", "account.street": "عنوان الشارع", "account.city": "المدينة", "account.postal": "الرمز البريدي", "account.countryCode": "رمز الدولة (GB أو US مثلًا)", "account.saveDetails": "حفظ البيانات", "account.security": "الدخول إلى الحساب", "account.changePassword": "تغيير كلمة المرور", "account.delete": "طلب حذف الحساب", "account.continueWhatsApp": "متابعة المحادثة عبر واتساب", "account.quantity": "الكمية", "account.variantConfirmed": "يتم تأكيد الخيار مباشرة", "account.progress": "تقدم الطلب", "account.status.request": "تم الطلب", "account.status.awaiting": "بانتظار التأكيد", "account.status.confirmed": "مؤكد", "account.status.processing": "قيد التجهيز", "account.status.shipped": "تم الشحن", "account.status.delivered": "تم التوصيل", "account.status.cancelled": "ملغى"
+  }
+};
+
 const dictionaries: Record<LanguageCode, Dictionary> = {
   en,
-  fr: { ...fr, ...utilityTranslations.fr, "nav.all": "Tout" },
-  de: { ...de, ...pageTranslations.de, ...utilityTranslations.de, "nav.all": "Alle" },
-  es: { ...es, ...pageTranslations.es, ...utilityTranslations.es, "nav.all": "Todo" },
-  it: { ...it, ...pageTranslations.it, ...utilityTranslations.it, "nav.all": "Tutto" },
-  pt: { ...pt, ...pageTranslations.pt, ...utilityTranslations.pt, "nav.all": "Tudo" },
-  ar: { ...ar, ...pageTranslations.ar, ...utilityTranslations.ar, "nav.all": "الكل" }
+  fr: { ...fr, ...utilityTranslations.fr, ...experienceTranslations.fr, "nav.all": "Tout" },
+  de: { ...de, ...pageTranslations.de, ...utilityTranslations.de, ...experienceTranslations.de, "nav.all": "Alle" },
+  es: { ...es, ...pageTranslations.es, ...utilityTranslations.es, ...experienceTranslations.es, "nav.all": "Todo" },
+  it: { ...it, ...pageTranslations.it, ...utilityTranslations.it, ...experienceTranslations.it, "nav.all": "Tutto" },
+  pt: { ...pt, ...pageTranslations.pt, ...utilityTranslations.pt, ...experienceTranslations.pt, "nav.all": "Tudo" },
+  ar: { ...ar, ...pageTranslations.ar, ...utilityTranslations.ar, ...experienceTranslations.ar, "nav.all": "الكل" }
 };
 
 export function translate(language: LanguageCode, key: TranslationKey): string {

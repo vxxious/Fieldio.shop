@@ -28,6 +28,14 @@ const checkoutSchema = z.object({
 type CheckoutValues = z.infer<typeof checkoutSchema>;
 const checkoutDraftKey = "fieldio-checkout-draft";
 
+function getRegionName(code: string, locale: string): string {
+  try {
+    return new Intl.DisplayNames([locale], { type: "region" }).of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
+
 function readCheckoutDraft(): Partial<CheckoutValues> {
   try {
     return JSON.parse(sessionStorage.getItem(checkoutDraftKey) || "{}") as Partial<CheckoutValues>;
@@ -37,7 +45,7 @@ function readCheckoutDraft(): Partial<CheckoutValues> {
 }
 
 export function CheckoutPage() {
-  const { formatMoney, t } = useLocale();
+  const { formatMoney, language, region, t } = useLocale();
   const items = useCartStore((state) => state.items);
   const subtotal = useCartStore(selectCartSubtotal);
   const [readyMessage, setReadyMessage] = useState<string | null>(null);
@@ -105,17 +113,17 @@ export function CheckoutPage() {
       const message = buildWhatsAppOrderMessage(customer, verifiedItems) + reference;
       const url = createWhatsAppUrl(message);
       setReadyUrl(url);
-      setReadyMessage("Your order request is ready. Continue on WhatsApp to confirm availability, shipping, and payment.");
+      setReadyMessage(t("checkout.ready"));
       sessionStorage.removeItem(checkoutDraftKey);
       trackEvent("whatsapp_checkout_started", { items: items.length });
       if (!catalogPreview) window.location.assign(url);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Your request could not be prepared. Please try again.");
-      setReadyMessage("The order request was not completed. Review your bag and try again, or contact Fieldio for assistance.");
+      setReadyMessage(t("checkout.failed"));
     }
   };
 
-  if (!items.length) return <div className="empty-checkout"><h1>Your bag is empty.</h1><p>Add a piece before preparing a WhatsApp request.</p><div className="empty-actions"><Link to="/collections" className="primary-button">Explore the edit</Link>{!session && <Link to="/account?returnTo=/checkout" className="text-link">Have an account? Sign in to check out faster</Link>}</div></div>;
+  if (!items.length) return <div className="empty-checkout"><h1>{t("checkout.emptyTitle")}</h1><p>{t("checkout.emptyCopy")}</p><div className="empty-actions"><Link to="/collections" className="primary-button">{t("checkout.explore")}</Link>{!session && <Link to="/account?returnTo=/checkout" className="text-link">{t("checkout.accountPrompt")}</Link>}</div></div>;
 
   return (
     <div className="checkout-page">
@@ -123,8 +131,8 @@ export function CheckoutPage() {
       <div className="checkout-layout">
         <form className="checkout-form" onSubmit={(event) => void handleSubmit(onSubmit, (formErrors) => setFocus(Object.keys(formErrors)[0] as keyof CheckoutValues))(event)} noValidate>
           <h2>{t("checkout.customer")}</h2>
-          {session && savedDetails.isPending && <p className="form-helper" role="status">Loading your saved details…</p>}
-          {savedDetails.error && <p className="form-helper" role="status">Saved details could not be loaded. You can still continue by entering them below.</p>}
+          {session && savedDetails.isPending && <p className="form-helper" role="status">{t("checkout.loadingDetails")}</p>}
+          {savedDetails.error && <p className="form-helper" role="status">{t("checkout.detailsError")}</p>}
           <div className="form-grid">
             <label><span>{t("checkout.name")}</span><input autoComplete="name" {...register("name")} aria-invalid={Boolean(errors.name)} aria-describedby={errors.name ? "checkout-name-error" : undefined} />{errors.name && <small id="checkout-name-error" role="alert">{errors.name.message}</small>}</label>
             <label><span>{t("checkout.phone")}</span><input type="tel" autoComplete="tel" {...register("phone")} aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? "checkout-phone-error" : undefined} />{errors.phone && <small id="checkout-phone-error" role="alert">{errors.phone.message}</small>}</label>
@@ -135,14 +143,25 @@ export function CheckoutPage() {
           <label className="request-consent"><input type="checkbox" {...register("consent")} aria-invalid={Boolean(errors.consent)} aria-describedby={errors.consent ? "checkout-consent-error" : undefined} /><span>{t("checkout.consent")}</span></label>
           {errors.consent && <p id="checkout-consent-error" className="field-error" role="alert">{errors.consent.message}</p>}
           {readyMessage && <p className="ready-message" role="status">{readyMessage}</p>}
-          {readyUrl && <a className="text-link" href={readyUrl}>Open prepared WhatsApp message</a>}
+          {readyUrl && <a className="text-link" href={readyUrl}>{t("checkout.openWhatsApp")}</a>}
           <button className="primary-button checkout-submit" type="submit" disabled={isSubmitting}>{isSubmitting ? t("checkout.preparing") : t("checkout.continue")}</button>
         </form>
         <aside className="order-review" aria-labelledby="review-title">
           <h2 id="review-title">{t("checkout.request")}</h2>
-          <ul>{items.map((item) => <li key={item.key}><img src={item.image} alt="" /><div><p>{item.brand}</p><h3>{item.productName}</h3><span>{item.selectedVariant} · Qty {item.quantity}</span></div><strong>{formatMoney(item.unitPrice, item.currency)}</strong></li>)}</ul>
+          <ul>{items.map((item) => <li key={item.key}><img src={item.image} alt="" /><div><p>{item.brand}</p><h3>{item.productName}</h3><span>{item.selectedVariant} · {t("checkout.quantity")} {item.quantity}</span></div><strong>{formatMoney(item.unitPrice, item.currency)}</strong></li>)}</ul>
           <div className="review-total"><span>{t("cart.subtotal")}</span><strong>{subtotal === null ? t("cart.confirm") : formatMoney(subtotal, items[0]?.currency ?? "GBP")}</strong></div>
           <p>{t("checkout.shipping")}</p>
+          <div className="checkout-assurance">
+            <section>
+              <h3>{t("checkout.destination")}</h3>
+              <strong>{getRegionName(region.code, language.locale)} · {region.currency}</strong>
+              <p>{t(region.code === "GB" ? "checkout.ukShipping" : "checkout.internationalShipping")}</p>
+            </section>
+            <section>
+              <h3>{t("checkout.paymentTitle")}</h3>
+              <p>{t("checkout.paymentMethods")}</p>
+            </section>
+          </div>
         </aside>
       </div>
     </div>

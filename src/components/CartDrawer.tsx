@@ -117,7 +117,7 @@ export function CartDrawer() {
             <ul className="cart-list">{items.map((item) => <CartRow key={item.key} item={item} />)}</ul>
             <div className="cart-summary">
               <div><span>{t("cart.subtotal")}</span><strong>{subtotal === null ? t("cart.confirm") : formatMoney(subtotal, items[0]?.currency ?? "GBP")}</strong></div>
-              <p>Availability, shipping, and payment are confirmed personally on WhatsApp.</p>
+              <p>{t("cart.confirmationNote")}</p>
               <Button asChild size="lg" className="primary-button full-button"><Link to="/checkout" onClick={handleClose}>{t("cart.checkout")}</Link></Button>
               <Button type="button" variant="link" className="text-link centered-link" onClick={handleClose}>{t("cart.continue")}</Button>
             </div>
