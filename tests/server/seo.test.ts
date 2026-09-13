@@ -1,4 +1,5 @@
 import { expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 
 vi.mock("@supabase/supabase-js", () => ({ createClient: () => null }));
 vi.mock("node:fs/promises", async () => ({
@@ -10,6 +11,7 @@ import { GET as renderPage } from "../../api/render";
 import { GET as renderSitemap } from "../../api/sitemap";
 
 it("serves a distinct Fieldio search identity and crawlable public sitemap", async () => {
+  expect(readFileSync("index.html", "utf8")).toContain('<script id="fieldio-identity" type="application/ld+json">');
   const home = await (await renderPage(new Request("https://fieldio.shop/api/render?path=/"))).text();
   expect(home).toContain("Fieldio | Luxury Fashion Sourcing &amp; Personal Shopping");
   expect(home).toContain('"@type":"WebSite"');
