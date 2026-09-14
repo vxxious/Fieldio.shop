@@ -139,13 +139,14 @@ export function ProductPage() {
   return (
     <article className="product-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
-      <div className="product-gallery" ref={galleryRef}>
-        {product.images.map((image, index) => <img key={image.id} {...responsiveImage(image.url)} sizes="(max-width: 700px) 100vw, 50vw" alt={image.alt || product.name} loading={index ? "lazy" : "eager"} onLoad={() => { if (index === 0) setActiveImage(0); }} />)}
-        {product.images.length === 1 && <div className="gallery-detail" aria-hidden="true"><img {...responsiveImage(product.images[0]?.url)} sizes="40vw" alt="" /></div>}
-        {!product.images.length && <div className="image-placeholder">Photography coming soon</div>}
-        {product.images.length > 1 && <p className="gallery-position" aria-live="polite">{activeImage + 1} / {product.images.length}<span>Swipe to view</span></p>}
-      </div>
-      <section className="product-purchase" aria-labelledby="product-name">
+      <div className="product-main">
+        <div className="product-gallery" ref={galleryRef}>
+          {product.images.map((image, index) => <img key={image.id} {...responsiveImage(image.url)} sizes="(max-width: 700px) 100vw, 50vw" alt={image.alt || product.name} loading={index ? "lazy" : "eager"} onLoad={() => { if (index === 0) setActiveImage(0); }} />)}
+          {product.images.length === 1 && <div className="gallery-detail" aria-hidden="true"><img {...responsiveImage(product.images[0]?.url)} sizes="40vw" alt="" /></div>}
+          {!product.images.length && <div className="image-placeholder">Photography coming soon</div>}
+          {product.images.length > 1 && <p className="gallery-position" aria-live="polite">{activeImage + 1} / {product.images.length}<span>Swipe to view</span></p>}
+        </div>
+        <section className="product-purchase" aria-labelledby="product-name">
         <div className="product-status"><span>{product.isNewArrival ? t("nav.new") : product.collection}</span>{product.inquiryOnly && <span>{t("product.requestOnly")}</span>}</div>
         <p className="product-brand">{product.brand}</p>
         <h1 id="product-name"><EditorialText text={product.name} /></h1>
@@ -171,7 +172,8 @@ export function ProductPage() {
           })}
         </Accordion>
         <div className="product-assurance" aria-label="Sourcing and product assurance"><p><strong>Condition</strong><span>Confirmed with you before payment.</span></p><p><strong>Authenticity</strong><span>Fieldio confirms sourcing details for luxury requests.</span></p><p><strong>Delivery</strong><span>Timing is quoted after availability is verified.</span></p></div>
-      </section>
+        </section>
+      </div>
       <section className="product-editorial-details" aria-labelledby="details-fit-title">
         <header><h2 id="details-fit-title"><EditorialText text="Details / Fit" /></h2><p>{product.shortDescription}</p></header>
         <Separator />

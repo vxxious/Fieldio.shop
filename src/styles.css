@@ -426,7 +426,8 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .empty-state h2 { font-size: 36px; }
 .empty-state p { color: var(--muted); font-size: 15px; }
 
-.product-page { width: var(--page); margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.42fr) minmax(340px, 0.58fr); gap: clamp(24px, 3.5vw, 66px); padding: 28px 0 130px; }
+.product-page { width: var(--page); margin: 0 auto; padding: 28px 0 130px; }
+.product-main { display: grid; grid-template-columns: minmax(0, 1.42fr) minmax(340px, 0.58fr); gap: clamp(24px, 3.5vw, 66px); }
 .product-gallery { position: relative; display: grid; grid-template-columns: 1.15fr 0.85fr; grid-template-rows: 1fr 1fr; gap: 14px; min-height: 720px; }
 .product-gallery > img { grid-row: 1 / -1; width: 100%; height: 100%; object-fit: cover; background: var(--image-field); }
 .gallery-detail { grid-row: 1 / -1; overflow: hidden; background: var(--image-field); }
@@ -456,7 +457,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .product-accordions button svg { width: 17px; transition: transform 0.2s ease; }
 .product-accordions button svg.rotated { transform: rotate(180deg); }
 .product-accordions p { color: var(--muted); font-size: 14px; margin: 0; padding: 0 0 17px; overflow: hidden; }
-.product-editorial-details { grid-column: 1 / -1; margin-top: clamp(90px, 11vw, 160px); border-top: 1px solid var(--ink); }
+.product-editorial-details { margin-top: clamp(90px, 11vw, 160px); border-top: 1px solid var(--ink); }
 .product-editorial-details > header { display: grid; grid-template-columns: 1fr minmax(260px, 0.52fr); align-items: end; gap: 50px; padding: 30px 0 clamp(55px, 7vw, 96px); }
 .product-editorial-details h2 { max-width: 8ch; margin: 0; font-size: clamp(52px, 7.3vw, 100px); line-height: 0.88; }
 .product-editorial-details header p { max-width: 48ch; margin: 0; color: var(--muted); font-size: 16px; }
@@ -466,7 +467,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .product-detail-ledger > div:last-child { border-right: 0; }
 .product-detail-ledger h3 { margin: 0 0 46px; font-family: var(--font-body); font-size: 14px; font-weight: 500; letter-spacing: 0; }
 .product-detail-ledger p { max-width: 48ch; margin: 0; color: var(--muted); font-size: 15px; }
-.related-products { grid-column: 1 / -1; margin-top: 90px; }
+.related-products { margin-top: 90px; }
 .section-heading { display: flex; justify-content: space-between; align-items: end; border-bottom: 1px solid var(--line-dark); padding-bottom: 18px; margin-bottom: 18px; }
 .section-heading h2 { font-size: 36px; margin: 0; }
 .section-heading a { font-size: 13px; }
@@ -694,7 +695,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .product-grid { grid-template-columns: repeat(3, 1fr); }
   .home-grid .product-card:nth-child(4) { display: none; }
   .secondary-grid { grid-template-columns: repeat(2, 1fr); }
-  .product-page { grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr); gap: 25px; }
+  .product-main { grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr); gap: 25px; }
   .product-gallery { grid-template-columns: 1fr; min-height: 690px; }
   .gallery-detail { display: none; }
   .campaign-copy { width: 50%; }
@@ -808,7 +809,8 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .mobile-filter-bar { width: var(--page); margin: 0 auto 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
   .mobile-filter-bar p { min-width: 0; color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
   .mobile-filter-bar .secondary-button { flex: 0 0 auto; min-height: 44px; }
-  .product-page { width: 100%; display: block; padding: 0 0 110px; }
+  .product-page { width: 100%; padding: 0 0 110px; }
+  .product-main { display: block; }
   .product-gallery { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; min-height: 0; gap: 0; }
   .product-gallery > img { flex: 0 0 100%; height: min(125vw, 640px); scroll-snap-align: start; }
   .gallery-position { position: sticky; right: 14px; bottom: 14px; align-self: flex-end; flex: 0 0 auto; display: grid; gap: 2px; min-width: 76px; padding: 8px 10px; margin-left: -90px; margin-right: 14px; color: #151612; background: rgba(255, 255, 255, .9); border: 1px solid rgba(21, 22, 18, .18); font-size: 13px; text-align: right; }

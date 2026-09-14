@@ -100,6 +100,20 @@ test("route transitions restore keyboard context and announce the destination", 
   await expect(page.locator("#status-region")).toContainText(`Navigated to ${productName}`);
 });
 
+test("product purchase content stops before the details section", async ({ page }) => {
+  await page.goto("/");
+  await page.locator(".product-card-media a").first().click();
+  const details = page.locator(".product-editorial-details");
+  await expect(details).toBeVisible();
+  const detailsTop = await details.evaluate((element) => element.getBoundingClientRect().top + window.scrollY);
+  await page.evaluate((top) => window.scrollTo(0, top - 24), detailsTop);
+  await expect.poll(() => page.evaluate(() => {
+    const purchase = document.querySelector(".product-purchase")!.getBoundingClientRect();
+    const editorial = document.querySelector(".product-editorial-details")!.getBoundingClientRect();
+    return purchase.bottom <= editorial.top;
+  })).toBe(true);
+});
+
 test("bag traps focus after quantity changes and restores its trigger", async ({ page }) => {
   await page.goto("/products/taupe-suede-overshirt");
   await page.getByRole("radio", { name: "M", exact: true }).check();
