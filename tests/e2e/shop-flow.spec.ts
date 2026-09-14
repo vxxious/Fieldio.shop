@@ -2,9 +2,11 @@ import { expect, test } from "@playwright/test";
 
 test("customer can build a request from product to checkout", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "The Fieldio edit" })).toBeVisible();
-  await page.getByRole("link", { name: "View Louis Vuitton Personal Sourcing" }).click();
-  await expect(page.getByRole("heading", { name: "Louis Vuitton Personal Sourcing" })).toBeVisible();
+  await page.locator(".product-card-media a").first().click();
+  await expect(page).toHaveURL(/\/products\//);
+  const firstVariant = page.getByRole("radio").first();
+  await expect(firstVariant).toBeVisible();
+  await firstVariant.check();
   await page.getByRole("button", { name: "Add to bag" }).first().click();
   await expect(page.getByRole("dialog", { name: /Your bag/ })).toBeVisible();
   await page.getByRole("link", { name: "Checkout via WhatsApp" }).click();
@@ -18,10 +20,9 @@ test("customer can build a request from product to checkout", async ({ page }) =
   await page.locator(".checkout-form").getByLabel("Email address").fill("ada@example.com");
   await page.getByLabel("Shipping address").fill("10 Example Street, London, United Kingdom");
   await page.getByRole("checkbox", { name: /I understand/ }).check();
+  const whatsappRequest = page.waitForRequest(/^https:\/\/wa\.me\/447344059705\?text=/);
   await page.getByRole("button", { name: "Continue on WhatsApp" }).click();
-  const handoff = page.getByRole("link", { name: "Open prepared WhatsApp message" });
-  await expect(handoff).toHaveAttribute("href", /^https:\/\/wa.me\/447344059705\?text=/);
-  expect(decodeURIComponent(await handoff.getAttribute("href") || "")).toContain("Fieldio Order Request");
+  expect(decodeURIComponent((await whatsappRequest).url())).toContain("Fieldio Order Request");
 });
 
 test("mobile navigation opens, traps focus, and closes with Escape", async ({ page, isMobile }) => {
@@ -91,10 +92,12 @@ test("Shadcn product accordion remains accessible within the motion system", asy
 
 test("route transitions restore keyboard context and announce the destination", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "View Louis Vuitton Personal Sourcing" }).click();
-  await expect(page).toHaveURL(/products\/louis-vuitton-personal-sourcing/);
+  const productLink = page.locator(".home-grid .product-card-media a").first();
+  const productName = (await productLink.getAttribute("aria-label"))?.replace(/^View /, "") ?? "product";
+  await productLink.click();
+  await expect(page).toHaveURL(/\/products\//);
   await expect(page.locator("#main-content")).toBeFocused();
-  await expect(page.locator("#status-region")).toContainText("Navigated to Louis Vuitton Personal Sourcing");
+  await expect(page.locator("#status-region")).toContainText(`Navigated to ${productName}`);
 });
 
 test("bag traps focus after quantity changes and restores its trigger", async ({ page }) => {

@@ -50,7 +50,6 @@ export function CheckoutPage() {
   const subtotal = useCartStore(selectCartSubtotal);
   const [readyMessage, setReadyMessage] = useState<string | null>(null);
   const requestAttempt = useRef({ fingerprint: "", key: "" });
-  const [readyUrl, setReadyUrl] = useState("");
   const { session } = useSession();
   const [draft] = useState(readCheckoutDraft);
   const { control, register, handleSubmit, reset, setFocus, formState: { errors, isSubmitting, isDirty } } = useForm<CheckoutValues>({
@@ -112,11 +111,10 @@ export function CheckoutPage() {
       }
       const message = buildWhatsAppOrderMessage(customer, verifiedItems) + reference;
       const url = createWhatsAppUrl(message);
-      setReadyUrl(url);
       setReadyMessage(t("checkout.ready"));
       sessionStorage.removeItem(checkoutDraftKey);
       trackEvent("whatsapp_checkout_started", { items: items.length });
-      if (!catalogPreview) window.location.assign(url);
+      window.location.assign(url);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Your request could not be prepared. Please try again.");
       setReadyMessage(t("checkout.failed"));
@@ -143,7 +141,6 @@ export function CheckoutPage() {
           <label className="request-consent"><input type="checkbox" {...register("consent")} aria-invalid={Boolean(errors.consent)} aria-describedby={errors.consent ? "checkout-consent-error" : undefined} /><span>{t("checkout.consent")}</span></label>
           {errors.consent && <p id="checkout-consent-error" className="field-error" role="alert">{errors.consent.message}</p>}
           {readyMessage && <p className="ready-message" role="status">{readyMessage}</p>}
-          {readyUrl && <a className="text-link" href={readyUrl}>{t("checkout.openWhatsApp")}</a>}
           <button className="primary-button checkout-submit" type="submit" disabled={isSubmitting}>{isSubmitting ? t("checkout.preparing") : t("checkout.continue")}</button>
         </form>
         <aside className="order-review" aria-labelledby="review-title">
