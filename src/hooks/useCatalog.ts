@@ -63,7 +63,8 @@ function toProduct(row: CatalogRow): Product {
 }
 
 async function fetchCatalog(): Promise<Product[]> {
-  if (!supabase) return catalogPreview ? previewProducts : [];
+  if (catalogPreview) return previewProducts;
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from("products")
     .select("id,sku,slug,name,description,short_description,price,currency,materials,care_information,featured,is_new_arrival,is_sale,inquiry_only,tags,seo_title,seo_description,created_at,updated_at,brand:brands(name),category:categories(name),images:product_images(id,public_url,storage_path,alt_text,position),variants:product_variants(id,sku,name,size,color,price_override,is_active,inventory(quantity,reserved_quantity,allow_backorder)),collection_products(collection:collections(name,slug))")
@@ -71,7 +72,7 @@ async function fetchCatalog(): Promise<Product[]> {
     .order("published_at", { ascending: false });
   if (error) throw error;
   const products = (data as unknown as CatalogRow[]).map(toProduct);
-  return products.length || !catalogPreview ? products : previewProducts;
+  return products;
 }
 
 export function useCatalogProducts() {

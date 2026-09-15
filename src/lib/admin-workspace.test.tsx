@@ -44,3 +44,19 @@ it("updates order status through the guarded RPC", async () => {
     p_status: "awaiting_confirmation"
   }));
 });
+
+it("keeps unsaved admin edits when record replacement is cancelled", async () => {
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const products = adminResources.find((resource) => resource.table === "products")!;
+  const view = render(<QueryClientProvider client={client}><AdminWorkspace resource={products} /></QueryClientProvider>);
+  const workspace = within(view.container);
+  await workspace.findByText("No records yet.");
+  fireEvent.click(workspace.getByRole("button", { name: "Add record" }));
+  fireEvent.change(workspace.getByLabelText("Name"), { target: { value: "Unsaved coat" } });
+  fireEvent.click(workspace.getByRole("button", { name: "Add record" }));
+  expect(confirm).toHaveBeenCalledWith("Discard unsaved changes?");
+  expect(workspace.getByLabelText("Name")).toHaveValue("Unsaved coat");
+  view.unmount();
+  confirm.mockRestore();
+});

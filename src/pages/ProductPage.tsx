@@ -17,13 +17,19 @@ import { useWishlistStore } from "../store/wishlist";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion";
 import { Button } from "../components/ui/button";
 import { Separator } from "../components/ui/separator";
+import type { TranslationKey } from "../lib/translations";
 
-const accordionItems = ["Description", "Size & fit", "Materials & care", "Shipping & returns"] as const;
+const accordionItems: Array<{ value: string; label: TranslationKey }> = [
+  { value: "Description", label: "product.description" },
+  { value: "Size & fit", label: "product.sizeFit" },
+  { value: "Materials & care", label: "product.materialsCare" },
+  { value: "Shipping & returns", label: "product.shippingReturns" }
+];
 
 export function ProductPage() {
   const { formatMoney, t } = useLocale();
   const { slug = "" } = useParams();
-  const { product, data: catalog = emptyCatalog, isLoading, error } = useCatalogProduct(slug);
+  const { product, data: catalog = emptyCatalog, isLoading, error, refetch } = useCatalogProduct(slug);
   const [variantId, setVariantId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
@@ -97,9 +103,9 @@ export function ProductPage() {
     return () => { window.cancelAnimationFrame(frame); gallery.removeEventListener("scroll", update); };
   }, [product?.id, product?.images.length]);
 
-  if (isLoading) return <div className="route-loading" role="status"><span>Loading the piece</span></div>;
-  if (error) return <div className="not-found"><h1>The piece could not load.</h1><p>Refresh the page or ask Fieldio directly.</p><Link to="/contact" className="primary-button">Contact Fieldio</Link></div>;
-  if (!product) return <div className="not-found"><h1>Piece not found.</h1><p>This item may have moved or left the edit.</p><Link to="/collections" className="primary-button">Return to the shop</Link></div>;
+  if (isLoading) return <div className="route-loading" role="status"><span>{t("product.loading")}</span></div>;
+  if (error) return <div className="not-found" role="alert"><h1>{t("product.loadErrorTitle")}</h1><p>{t("product.loadErrorCopy")}</p><div className="empty-actions"><button type="button" className="primary-button" onClick={() => void refetch()}>{t("common.tryAgain")}</button><Link to="/contact" className="text-link">{t("account.contactFieldio")}</Link></div></div>;
+  if (!product) return <div className="not-found"><h1>{t("product.notFoundTitle")}</h1><p>{t("product.notFoundCopy")}</p><Link to="/collections" className="primary-button">{t("product.returnShop")}</Link></div>;
 
   const changeVariant = (nextVariantId: string) => {
     setVariantId(nextVariantId);
@@ -143,15 +149,15 @@ export function ProductPage() {
         <div className="product-gallery" ref={galleryRef}>
           {product.images.map((image, index) => <img key={image.id} {...responsiveImage(image.url)} sizes="(max-width: 700px) 100vw, 50vw" alt={image.alt || product.name} loading={index ? "lazy" : "eager"} onLoad={() => { if (index === 0) setActiveImage(0); }} />)}
           {product.images.length === 1 && <div className="gallery-detail" aria-hidden="true"><img {...responsiveImage(product.images[0]?.url)} sizes="40vw" alt="" /></div>}
-          {!product.images.length && <div className="image-placeholder">Photography coming soon</div>}
-          {product.images.length > 1 && <p className="gallery-position" aria-live="polite">{activeImage + 1} / {product.images.length}<span>Swipe to view</span></p>}
+          {!product.images.length && <div className="image-placeholder">{t("product.photographySoon")}</div>}
+          {product.images.length > 1 && <p className="gallery-position" aria-live="polite">{activeImage + 1} / {product.images.length}<span>{t("product.swipe")}</span></p>}
         </div>
         <section className="product-purchase" aria-labelledby="product-name">
         <div className="product-status"><span>{product.isNewArrival ? t("nav.new") : product.collection}</span>{product.inquiryOnly && <span>{t("product.requestOnly")}</span>}</div>
         <p className="product-brand">{product.brand}</p>
         <h1 id="product-name"><EditorialText text={product.name} /></h1>
         <p className="product-price product-price-large">{formatMoney(selectedVariant?.priceOverride ?? product.price, product.currency)}</p>
-        {unavailable && <p role="status">This size or quantity is currently unavailable.</p>}
+        {unavailable && <p role="status">{t("product.selectionUnavailable")}</p>}
         <p className="product-short">{product.shortDescription}</p>
         <fieldset className="variant-fieldset">
           <legend>{product.variants.some((variant) => variant.size) ? t("product.selectSize") : t("product.requestType")}</legend>
@@ -162,25 +168,25 @@ export function ProductPage() {
         <div className="purchase-controls" ref={purchaseControlsRef}>
           <div className="quantity-stepper"><button type="button" disabled={quantity <= 1} onClick={() => changeQuantity(quantity - 1)} aria-label={`Decrease quantity for ${product.name}`}><MinusIcon /></button><output aria-label={`Quantity ${quantity}`}>{String(quantity).padStart(2, "0")}</output><button type="button" disabled={quantity >= 10} onClick={() => changeQuantity(quantity + 1)} aria-label={`Increase quantity for ${product.name}`}><PlusIcon /></button></div>
           <Button className="primary-button add-button" type="button" disabled={unavailable || !product.variants.length} onClick={(event) => addToCart(event.currentTarget)}>{t("product.addBag")}</Button>
-          <button className="icon-button wishlist-product" type="button" aria-label={wished ? "Remove from wishlist" : "Add to wishlist"} aria-pressed={wished} onClick={() => toggleWishlist(product.id)}><HeartIcon fill={wished ? "currentColor" : "none"} /></button>
+          <button className="icon-button wishlist-product" type="button" aria-label={t(wished ? "product.removeWishlist" : "product.addWishlist")} aria-pressed={wished} onClick={() => toggleWishlist(product.id)}><HeartIcon fill={wished ? "currentColor" : "none"} /></button>
         </div>
-        <a className="whatsapp-enquiry" target="_blank" rel="noreferrer" href={createProductEnquiryUrl(product.name, product.sku, window.location.href)}>Ask about this piece on WhatsApp</a>
+        <a className="whatsapp-enquiry" target="_blank" rel="noreferrer" href={createProductEnquiryUrl(product.name, product.sku, window.location.href)}>{t("product.askWhatsApp")}</a>
         <Accordion type="single" defaultValue="Description" collapsible className="product-accordions">
           {accordionItems.map((item) => {
-            const content = item === "Description" ? product.description : item === "Size & fit" ? availableSizes.length ? `Available request sizes: ${availableSizes.join(", ")}. Ask Fieldio for exact measurements before confirming your order.` : "Fit and dimensions are confirmed personally for sourced pieces." : item === "Materials & care" ? `${product.materials} ${product.care}` : "A delivery estimate and return eligibility are confirmed before payment. Sourced and limited pieces may have different return conditions.";
-            return <AccordionItem value={item} key={item}><AccordionTrigger>{item}</AccordionTrigger><AccordionContent>{content}</AccordionContent></AccordionItem>;
+            const content = item.value === "Description" ? product.description : item.value === "Size & fit" ? availableSizes.length ? `${t("product.availableSizes")} ${availableSizes.join(", ")}. ${t("product.exactFit")}` : t("product.fitUnknown") : item.value === "Materials & care" ? `${product.materials} ${product.care}` : t("product.shippingCopy");
+            return <AccordionItem value={item.value} key={item.value}><AccordionTrigger>{t(item.label)}</AccordionTrigger><AccordionContent>{content}</AccordionContent></AccordionItem>;
           })}
         </Accordion>
-        <div className="product-assurance" aria-label="Sourcing and product assurance"><p><strong>Condition</strong><span>Confirmed with you before payment.</span></p><p><strong>Authenticity</strong><span>Fieldio confirms sourcing details for luxury requests.</span></p><p><strong>Delivery</strong><span>Timing is quoted after availability is verified.</span></p></div>
+        <div className="product-assurance" aria-label={t("product.assurance")}><p><strong>{t("product.condition")}</strong><span>{t("product.confirmedBeforePayment")}</span></p><p><strong>{t("product.authenticity")}</strong><span>{t("product.authenticityCopy")}</span></p><p><strong>{t("product.delivery")}</strong><span>{t("product.deliveryCopy")}</span></p></div>
         </section>
       </div>
       <section className="product-editorial-details" aria-labelledby="details-fit-title">
-        <header><h2 id="details-fit-title"><EditorialText text="Details / Fit" /></h2><p>{product.shortDescription}</p></header>
+        <header><h2 id="details-fit-title"><EditorialText text={t("product.detailsFit")} /></h2><p>{product.shortDescription}</p></header>
         <Separator />
         <div className="product-detail-ledger">
-          <div><h3>Fit & sizing</h3><p>{availableSizes.length ? `Available request sizes: ${availableSizes.join(", ")}. Exact fit and measurements are confirmed before the order is finalised.` : "Dimensions and fit are confirmed personally for the sourced piece."}</p></div>
-          <div><h3>Composition</h3><p>{product.materials}</p></div>
-          <div><h3>Care & delivery</h3><p>{product.care} Worldwide delivery timing is confirmed with availability.</p></div>
+          <div><h3>{t("product.fitSizing")}</h3><p>{availableSizes.length ? `${t("product.availableSizes")} ${availableSizes.join(", ")}. ${t("product.exactFitFinal")}` : t("product.fitUnknown")}</p></div>
+          <div><h3>{t("product.composition")}</h3><p>{product.materials}</p></div>
+          <div><h3>{t("product.careDelivery")}</h3><p>{product.care} {t("product.worldwideDelivery")}</p></div>
         </div>
       </section>
       <RelatedProductsRail products={related} />

@@ -70,27 +70,27 @@ export function AccountDetails({ userId, email, avatarUrl = "" }: { userId: stri
     setStatus("");
     const { error } = await supabase!.from("profiles").update({ account_intent: accountIntent }).eq("id", userId);
     setSavingIntent(false);
-    if (error) { setStatus("Your choice could not be saved. Please try again."); return; }
+    if (error) { setStatus(t("account.choiceError")); return; }
     await cache.invalidateQueries({ queryKey: ["account-details", userId] });
   }
 
   async function save(values: Details) {
     setStatus("");
     const profile = await supabase!.from("profiles").update({ full_name: values.full_name, phone: values.phone }).eq("id", userId);
-    if (profile.error) { setStatus("Your details could not be saved. Please try again."); return; }
+    if (profile.error) { setStatus(t("account.saveError")); return; }
     const address = await supabase!.from("addresses").upsert({ ...(details.data?.address?.id ? { id: details.data.address.id } : {}), user_id: userId, recipient_name: values.full_name, phone: values.phone, line1: values.line1, city: values.city, postal_code: values.postal_code, country_code: values.country_code, is_default: true });
-    if (address.error) { setStatus("Your profile was saved, but the address could not be saved. Try again."); return; }
+    if (address.error) { setStatus(t("account.addressError")); return; }
     await cache.invalidateQueries({ queryKey: ["account-details", userId] });
-    setStatus("Your details have been saved.");
+    setStatus(t("account.saved"));
   }
 
   if (details.isPending) return <div className="route-loading" role="status">{t("common.loading")}…</div>;
   if (details.error) return <div className="account-load-error" role="alert"><p>{t("account.detailsError")}</p><button className="primary-button" onClick={() => void details.refetch()}>{t("account.retry")}</button></div>;
   if (!details.data.profile?.account_intent) return <section className="account-intent" aria-labelledby="account-intent-title">
-    <div><p className="account-intent-brand">Fieldio</p><h1 id="account-intent-title">How would you like to use Fieldio?</h1><p>Choose your starting point. You can change this later in your details.</p></div>
+    <div><p className="account-intent-brand">Fieldio</p><h1 id="account-intent-title">{t("account.intentTitle")}</h1><p>{t("account.intentCopy")}</p></div>
     <div className="account-intent-options">
-      <button type="button" onClick={() => void selectIntent("buy")} disabled={savingIntent}><BagIcon /><strong>I want to buy</strong><span>Shop the edit and request personal sourcing.</span></button>
-      <button type="button" onClick={() => void selectIntent("sell")} disabled={savingIntent}><PlusIcon /><strong>I want to sell</strong><span>Start a seller or wholesale enquiry with Fieldio.</span></button>
+      <button type="button" onClick={() => void selectIntent("buy")} disabled={savingIntent}><BagIcon /><strong>{t("account.wantBuy")}</strong><span>{t("account.buyCopy")}</span></button>
+      <button type="button" onClick={() => void selectIntent("sell")} disabled={savingIntent}><PlusIcon /><strong>{t("account.wantSell")}</strong><span>{t("account.sellCopy")}</span></button>
     </div>
     {status && <p className="form-message" role="status">{status}</p>}
   </section>;
@@ -107,19 +107,19 @@ export function AccountDetails({ userId, email, avatarUrl = "" }: { userId: stri
         <h1>{profileName}</h1><p>{email}</p>
       </header>
       <section className="account-seller-card">
-        <div><h2>{intent === "sell" ? "Ready to sell with Fieldio?" : "Interested in selling?"}</h2><p>{intent === "sell" ? "Tell us what you supply and we’ll review the opportunity personally." : "Start a seller or wholesale enquiry when you are ready."}</p></div>
-        <Link className="text-link" to="/wholesale">Get started</Link>
+        <div><h2>{t(intent === "sell" ? "account.readySell" : "account.interestedSell")}</h2><p>{t(intent === "sell" ? "account.readySellCopy" : "account.interestedSellCopy")}</p></div>
+        <Link className="text-link" to="/wholesale">{t("account.getStarted")}</Link>
       </section>
-      <nav className="account-menu" aria-label="Your account">
-        <button type="button" onClick={() => setView("orders")}><BagIcon /><span>My order requests</span><ArrowIcon /></button>
+      <nav className="account-menu" aria-label={t("account.yourAccount")}>
+        <button type="button" onClick={() => setView("orders")}><BagIcon /><span>{t("account.myRequests")}</span><ArrowIcon /></button>
         <Link to="/wishlist"><HeartIcon /><span>{t("nav.wishlist")}</span><ArrowIcon /></Link>
-        <button type="button" onClick={() => setView("details")}><AccountIcon /><span>My details & address</span><ArrowIcon /></button>
-        <Link to="/contact"><EmailIcon /><span>Contact Fieldio</span><ArrowIcon /></Link>
+        <button type="button" onClick={() => setView("details")}><AccountIcon /><span>{t("account.myDetails")}</span><ArrowIcon /></button>
+        <Link to="/contact"><EmailIcon /><span>{t("account.contactFieldio")}</span><ArrowIcon /></Link>
       </nav>
-      <button className="account-signout" onClick={async () => { const { error } = await supabase!.auth.signOut(); if (error) setStatus("Sign out failed. Please try again."); else cache.clear(); }}>{t("account.signOut")}</button>
+      <button className="account-signout" onClick={async () => { const { error } = await supabase!.auth.signOut(); if (error) setStatus(t("account.signOutError")); else cache.clear(); }}>{t("account.signOut")}</button>
       {status && <p className="form-message" role="status">{status}</p>}
     </> : <>
-      <header className="account-view-header"><button className="text-link" type="button" onClick={showOverview}>← Your account</button><h1 ref={viewHeading} tabIndex={-1}>{view === "orders" ? t("account.orderRequests") : t("account.savedInfo")}</h1></header>
+      <header className="account-view-header"><button className="text-link" type="button" onClick={showOverview}>← {t("account.yourAccount")}</button><h1 ref={viewHeading} tabIndex={-1}>{view === "orders" ? t("account.orderRequests") : t("account.savedInfo")}</h1></header>
       {view === "orders" ? <section className="account-view-content">
         {orders.isPending ? <p role="status">{t("account.loadingRequests")}</p> : orders.error ? <p role="alert">{t("account.requestsError")} <button className="text-link" onClick={() => void orders.refetch()}>{t("account.retry")}</button></p> : orders.data?.length ? orders.data.map((order) => {
           const statusKey = orderStatusKeys[order.status];
@@ -135,9 +135,9 @@ export function AccountDetails({ userId, email, avatarUrl = "" }: { userId: stri
         <form className="admin-form" onSubmit={handleSubmit(save, (formErrors) => setFocus(Object.keys(formErrors)[0] as keyof Details))} noValidate>{([
           ["full_name", t("account.fullName")], ["phone", t("account.phone")], ["line1", t("account.street")], ["city", t("account.city")], ["postal_code", t("account.postal")], ["country_code", t("account.countryCode")]
         ] as const).map(([key, label]) => { const errorId = `details-${key}-error`; return <label key={key}><span>{label}</span><input {...register(key)} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? errorId : undefined} />{errors[key] && <small id={errorId} role="alert">{errors[key]?.message}</small>}</label>; })}<button className="primary-button" disabled={isSubmitting}>{t("account.saveDetails")}</button></form>
-        <div className="account-preference"><h2>Account preference</h2><p>Choose the experience you want to see first.</p><div><button type="button" className={intent === "buy" ? "active" : ""} onClick={() => void selectIntent("buy")} disabled={savingIntent}>Buy</button><button type="button" className={intent === "sell" ? "active" : ""} onClick={() => void selectIntent("sell")} disabled={savingIntent}>Sell</button></div></div>
+        <div className="account-preference"><h2>{t("account.preference")}</h2><p>{t("account.preferenceCopy")}</p><div><button type="button" className={intent === "buy" ? "active" : ""} onClick={() => void selectIntent("buy")} disabled={savingIntent}>{t("account.buy")}</button><button type="button" className={intent === "sell" ? "active" : ""} onClick={() => void selectIntent("sell")} disabled={savingIntent}>{t("account.sell")}</button></div></div>
         {status && <p role="status">{status}</p>}
-        <div className="account-security"><h2>{t("account.security")}</h2><button className="text-link" type="button" onClick={async () => { const { error } = await supabase!.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/account` }); setStatus(error ? error.message : "Check your email to change your password."); }}>{t("account.changePassword")}</button><a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, I would like to request deletion of the account registered to ${email}.`)} target="_blank" rel="noreferrer">{t("account.delete")}</a></div>
+        <div className="account-security"><h2>{t("account.security")}</h2><button className="text-link" type="button" onClick={async () => { const { error } = await supabase!.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/account` }); setStatus(error ? error.message : t("account.passwordEmail")); }}>{t("account.changePassword")}</button><a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, I would like to request deletion of the account registered to ${email}.`)} target="_blank" rel="noreferrer">{t("account.delete")}</a></div>
       </section>}
     </>}
   </div>;

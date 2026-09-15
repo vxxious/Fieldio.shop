@@ -7,7 +7,7 @@ import { AccountDetails } from "../components/AccountDetails";
 const account = vi.hoisted(() => ({ intent: null as "buy" | "sell" | null, update: vi.fn() }));
 
 vi.mock("../context/LocaleContext", () => ({
-  useLocale: () => ({ formatMoney: () => "£0", language: { locale: "en-GB" }, t: (key: string) => key })
+  useLocale: () => ({ formatMoney: () => "£0", language: { locale: "en-GB" }, t: (key: string) => ({ "account.wantBuy": "I want to buy", "account.yourAccount": "Your account" })[key] ?? key })
 }));
 
 vi.mock("./supabase", () => ({
