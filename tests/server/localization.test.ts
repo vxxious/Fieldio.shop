@@ -7,7 +7,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("localization APIs", () => {
   it("reads only country and language from deployment headers", async () => {
-    const response = getLocale(new Request("https://fieldio.shop/api/locale", { headers: { "x-vercel-ip-country": "fr", "accept-language": "fr-FR,fr;q=0.9" } }));
+    const response = await getLocale(new Request("https://fieldio.shop/api/locale", { headers: { "x-vercel-ip-country": "fr", "accept-language": "fr-FR,fr;q=0.9" } }));
     await expect(response.json()).resolves.toEqual({ country: "FR", language: "fr-FR" });
     expect(response.headers.get("Cache-Control")).toBe("no-store");
   });

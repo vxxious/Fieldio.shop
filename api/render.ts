@@ -1,8 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { escapeMarkup, publicClient, publicPages, siteOrigin } from "./_lib/public-catalog.js";
+import { checkRateLimit } from "./_lib/server.js";
 
 export async function GET(request: Request) {
+  if (!await checkRateLimit(request, 120)) return new Response("Requests are temporarily limited.", { status: 429 });
   const pathname = new URL(request.url).searchParams.get("path") || "/";
   const origin = siteOrigin();
   let [title, description] = publicPages[pathname] || ["Fieldio", "Everything fashion. Worldwide shipment."];

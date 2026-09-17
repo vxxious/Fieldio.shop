@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { parseAdminValues, type AdminResource } from "../../lib/admin-resources";
 import { supabase } from "../../lib/supabase";
+import { IMAGE_UPLOAD_TYPES, uploadExtension, validateUpload } from "../../lib/uploads";
 
 type Row = Record<string, unknown>;
 function display(value: unknown): string { return value == null ? "—" : typeof value === "object" ? JSON.stringify(value) : String(value); }
@@ -126,7 +127,7 @@ export function AdminWorkspace({ resource, onDirtyChange }: { resource: AdminRes
 
   async function upload(file: File | undefined) {
     if (!file) return;
-    if (!["image/jpeg", "image/png", "image/webp", "image/avif"].includes(file.type) || file.size > 10 * 1024 * 1024) { setStatus("Choose a JPG, PNG, WebP, or AVIF image under 10 MB."); return; }
+    if (validateUpload(file, IMAGE_UPLOAD_TYPES)) { setStatus("Choose a JPG, PNG, WebP, or AVIF image under 10 MB."); return; }
     let content: Row = {};
     if (resource.table === "editorial_content") {
       try { content = z.record(z.string(), z.unknown()).parse(JSON.parse(String(getValues("content") || "{}"))); }
@@ -134,7 +135,7 @@ export function AdminWorkspace({ resource, onDirtyChange }: { resource: AdminRes
     }
     setUploading(true); setStatus("Uploading image…");
     try {
-      const path = `${crypto.randomUUID()}.${file.type.split("/")[1]}`;
+      const path = `${crypto.randomUUID()}.${uploadExtension(file)}`;
       const { error } = await supabase!.storage.from("product-images").upload(path, file, { contentType: file.type, upsert: false });
       if (error) throw error;
       const publicUrl = supabase!.storage.from("product-images").getPublicUrl(path).data.publicUrl;

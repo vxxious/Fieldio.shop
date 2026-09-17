@@ -3,6 +3,14 @@ import { z } from "zod";
 import { createHmac } from "node:crypto";
 
 const requests = new Map<string, { count: number; resetAt: number }>();
+const controlCharacters = /\p{Cc}/gu;
+
+function sanitizeJsonInput(value: unknown): unknown {
+  if (typeof value === "string") return value.replace(controlCharacters, (character) => "\t\n\r".includes(character) ? character : "");
+  if (Array.isArray(value)) return value.map(sanitizeJsonInput);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, sanitizeJsonInput(item)]));
+  return value;
+}
 
 export function json(body: unknown, status = 200): Response {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
@@ -41,7 +49,7 @@ export async function readValidatedJson<T extends z.ZodType>(request: Request, s
   if (!contentType.includes("application/json")) throw new Error("INVALID_CONTENT_TYPE");
   const text = await request.text();
   if (text.length > 32768) throw new Error("BODY_TOO_LARGE");
-  const body: unknown = JSON.parse(text);
+  const body = sanitizeJsonInput(JSON.parse(text));
   return schema.parse(body);
 }
 

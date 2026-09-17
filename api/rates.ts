@@ -1,8 +1,9 @@
-import { json } from "./_lib/server.js";
+import { checkRateLimit, json } from "./_lib/server.js";
 
 interface RateRow { quote: string; rate: number }
 
 export async function GET(request: Request): Promise<Response> {
+  if (!await checkRateLimit(request, 30)) return json({ error: "Requests are temporarily limited." }, 429);
   const base = new URL(request.url).searchParams.get("base")?.toUpperCase() || "GBP";
   if (!/^[A-Z]{3}$/.test(base)) return json({ error: "Invalid base currency." }, 400);
   try {

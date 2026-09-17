@@ -5,7 +5,8 @@ function page(message: string, action?: string) {
   return new Response(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Email preferences | Fieldio</title><body style="font:18px/1.6 sans-serif;max-width:40rem;margin:12vh auto;padding:24px;background:#f6f6f3;color:#151612"><main><h1>Fieldio email preferences</h1><p>${message}</p>${action ? `<form method="post"><button style="font:inherit;padding:12px 24px" type="submit">${action}</button></form>` : '<a href="/">Return to Fieldio</a>'}</main></body></html>`, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } });
 }
 
-export function GET(request: Request) {
+export async function GET(request: Request) {
+  if (!await checkRateLimit(request, 30)) return page("Please wait a minute and try again.");
   try {
     const { action } = readPreferenceToken(new URL(request.url).searchParams.get("token") || "");
     return page(action === "subscribe" ? "Confirm your email to join the Fieldio list." : "Stop receiving Fieldio marketing emails.", action === "subscribe" ? "Confirm subscription" : "Unsubscribe");

@@ -9,6 +9,7 @@ import { useLocale } from "../context/LocaleContext";
 import { usePageMeta } from "../hooks/usePageMeta";
 import { useSession } from "../hooks/useSession";
 import { supabase } from "../lib/supabase";
+import { DOCUMENT_UPLOAD_TYPES, IMAGE_UPLOAD_TYPES, uploadExtension, validateUpload } from "../lib/uploads";
 
 type ReviewStatus = "draft" | "pending" | "approved" | "rejected" | "suspended";
 type ListingStatus = ReviewStatus | "archived";
@@ -36,17 +37,8 @@ const listingSchema = z.object({
 }).superRefine((values, context) => { if (values.compare_at_price !== "" && values.compare_at_price <= values.price) context.addIssue({ code: "custom", path: ["compare_at_price"], message: "The original price must be higher than the selling price." }); });
 type ListingValues = z.infer<typeof listingSchema>;
 
-const allowedImages = ["image/jpeg", "image/png", "image/webp", "image/avif"];
-const allowedDocuments = [...allowedImages.slice(0, 3), "application/pdf"];
 const splitOptions = (value: string) => value.split(",").map((item) => item.trim()).filter(Boolean);
 const slugify = (value: string) => value.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
-const extension = (file: File) => file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || (file.type === "application/pdf" ? "pdf" : "jpg");
-
-function validateFile(file: File, types: string[]) {
-  if (!types.includes(file.type)) return "Choose a supported file type.";
-  if (file.size > 10 * 1024 * 1024) return "Each file must be under 10 MB.";
-  return "";
-}
 
 async function uploadFile(bucket: string, path: string, file: File) {
   const { error } = await supabase!.storage.from(bucket).upload(path, file, { contentType: file.type, upsert: false });
@@ -74,11 +66,11 @@ function VerificationForm({ userId, email, application, onDone }: { userId: stri
     if (!address && !application?.address_document_path) { setStatus("Add proof of address."); return; }
     if (kind === "vendor" && !business && !application?.business_document_path) { setStatus("Vendors must add a business registration document."); return; }
     const files = [["identity", identity], ["address", address], ["business", business]] as const;
-    for (const [, file] of files) { if (file) { const message = validateFile(file, allowedDocuments); if (message) { setStatus(message); return; } } }
+    for (const [, file] of files) { if (file) { const message = validateUpload(file, DOCUMENT_UPLOAD_TYPES); if (message) { setStatus(message); return; } } }
     const uploaded: string[] = [];
     try {
       const paths: Record<string, string | null> = { identity: application?.identity_document_path ?? null, address: application?.address_document_path ?? null, business: application?.business_document_path ?? null };
-      for (const [name, file] of files) if (file) { const path = `${userId}/${name}-${crypto.randomUUID()}.${extension(file)}`; paths[name] = await uploadFile("seller-verification", path, file); uploaded.push(path); }
+      for (const [name, file] of files) if (file) { const path = `${userId}/${name}-${crypto.randomUUID()}.${uploadExtension(file)}`; paths[name] = await uploadFile("seller-verification", path, file); uploaded.push(path); }
       const details = { kind: values.kind, legal_name: values.legal_name, business_name: values.business_name || null, country_code: values.country_code, phone: values.phone, contact_email: values.contact_email, website: values.website || null, identity_document_path: paths.identity!, address_document_path: paths.address!, business_document_path: paths.business, declaration_accepted: true };
       const result = application ? await supabase!.from("seller_applications").update(details).eq("id", application.id) : await supabase!.from("seller_applications").insert({ owner_id: userId, ...details });
       if (result.error) throw result.error;
@@ -139,8 +131,8 @@ function ListingForm({ userId, store, categories, currency, onCancel, onSubmitte
   function addImages(files: FileList | null) {
     if (!files) return;
     const next = [...files];
-    const invalid = next.find((file) => validateFile(file, allowedImages));
-    if (invalid) { setStatus(validateFile(invalid, allowedImages)); return; }
+    const invalid = next.find((file) => validateUpload(file, IMAGE_UPLOAD_TYPES));
+    if (invalid) { setStatus(validateUpload(invalid, IMAGE_UPLOAD_TYPES)); return; }
     if (images.length + next.length > 8) { setStatus("Add up to 8 product images."); return; }
     setStatus(""); setImages((current) => [...current, ...next]);
   }
@@ -151,7 +143,7 @@ function ListingForm({ userId, store, categories, currency, onCancel, onSubmitte
     const uploaded: string[] = [];
     setStatus("");
     try {
-      for (const file of images) { const path = `${userId}/${listingId}/${crypto.randomUUID()}.${extension(file)}`; uploaded.push(await uploadFile("seller-listing-media", path, file)); }
+      for (const file of images) { const path = `${userId}/${listingId}/${crypto.randomUUID()}.${uploadExtension(file)}`; uploaded.push(await uploadFile("seller-listing-media", path, file)); }
       const { error: listingError } = await supabase!.from("seller_listings").insert({ id: listingId, owner_id: userId, store_id: store.id, title: values.title, description: values.description, category_id: values.category_id, subcategory_id: values.subcategory_id || null, condition: values.condition, price: Math.round(values.price * 100), compare_at_price: values.compare_at_price === "" ? null : Math.round(values.compare_at_price * 100), currency: values.currency, colors: splitOptions(values.colors), sizes: splitOptions(values.sizes), quantity: values.quantity, weight_kg: values.weight_kg });
       if (listingError) throw listingError;
       const { error: imageError } = await supabase!.from("seller_listing_images").insert(uploaded.map((path, position) => ({ listing_id: listingId, owner_id: userId, storage_path: path, alt_text: `${values.title}, image ${position + 1}`, position })));
@@ -169,7 +161,7 @@ function ListingForm({ userId, store, categories, currency, onCancel, onSubmitte
   if (reviewing) return <section className="seller-panel seller-review"><header><button type="button" className="text-link" onClick={() => setReviewing(false)}>← Edit listing</button><h1>Review listing</h1><p>Confirm every detail before sending it to Fieldio for approval.</p></header><div className="seller-review-grid"><div className="seller-review-images">{previews.map((url, index) => <img key={url} src={url} alt={`Product preview ${index + 1}`} />)}</div><dl><div><dt>Product</dt><dd>{values.title}</dd></div><div><dt>Store</dt><dd>{store.name}</dd></div><div><dt>Price</dt><dd>{values.currency} {Number(values.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}{values.compare_at_price !== "" && <> <s>{values.currency} {Number(values.compare_at_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</s></>}</dd></div><div><dt>Condition</dt><dd>{values.condition.replaceAll("_", " ")}</dd></div><div><dt>Options</dt><dd>{[values.colors, values.sizes].filter(Boolean).join(" · ") || "No colour or size options"}</dd></div><div><dt>Quantity / weight</dt><dd>{values.quantity} · {values.weight_kg} kg</dd></div></dl></div><p className="seller-review-copy">{values.description}</p>{status && <p className="form-message" role="alert">{status}</p>}<button className="primary-button" disabled={isSubmitting} onClick={() => void handleSubmit(submit)()}>{isSubmitting ? "Submitting…" : "Submit listing for review"}</button></section>;
 
   return <section className="seller-panel"><header><button type="button" className="text-link" onClick={onCancel}>← Seller dashboard</button><h1>Add a product</h1><p>Listings are checked for authenticity, ownership, condition, and image quality before they appear in the shop.</p></header><form className="seller-form" onSubmit={handleSubmit(() => { if (!images.length) { setStatus("Add at least one clear product image."); return; } setReviewing(true); }, (formErrors) => setFocus(Object.keys(formErrors)[0] as keyof ListingValues))} noValidate>
-    <fieldset className="seller-media"><legend>Product images</legend><div className="seller-media-actions"><label><ImageIcon /><span>Choose from gallery</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onChange={(event) => addImages(event.target.files)} /></label><label><ImageIcon /><span>Take a photo</span><input type="file" accept="image/*" capture="environment" onChange={(event) => addImages(event.target.files)} /></label></div>{previews.length > 0 && <div className="seller-media-preview">{previews.map((url, index) => <figure key={url}><img src={url} alt={`Product preview ${index + 1}`} /><button type="button" onClick={() => setImages((current) => current.filter((_, imageIndex) => imageIndex !== index))}>Remove</button></figure>)}</div>}<small>1–8 JPG, PNG, WebP, or AVIF images. Maximum 10 MB each.</small></fieldset>
+    <fieldset className="seller-media"><legend>Product images</legend><div className="seller-media-actions"><label><ImageIcon /><span>Choose from gallery</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onChange={(event) => addImages(event.target.files)} /></label><label><ImageIcon /><span>Take a photo</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" capture="environment" onChange={(event) => addImages(event.target.files)} /></label></div>{previews.length > 0 && <div className="seller-media-preview">{previews.map((url, index) => <figure key={url}><img src={url} alt={`Product preview ${index + 1}`} /><button type="button" onClick={() => setImages((current) => current.filter((_, imageIndex) => imageIndex !== index))}>Remove</button></figure>)}</div>}<small>1–8 JPG, PNG, WebP, or AVIF images. Maximum 10 MB each.</small></fieldset>
     <label><span>Product name</span><input {...register("title")} aria-invalid={!!errors.title} /><FieldError id="listing-title-error" message={errors.title?.message} /></label>
     <label><span>Description</span><textarea rows={6} {...register("description")} aria-invalid={!!errors.description} /><FieldError id="listing-description-error" message={errors.description?.message} /></label>
     <div className="seller-form-row"><label><span>Category</span><select {...register("category_id")} aria-invalid={!!errors.category_id}><option value="">Select category</option>{roots.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><FieldError id="listing-category-error" message={errors.category_id?.message} /></label><label><span>Subcategory <small>Optional</small></span><select {...register("subcategory_id")} disabled={!subcategories.length}><option value="">{subcategories.length ? "Select subcategory" : "No subcategories"}</option>{subcategories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div>

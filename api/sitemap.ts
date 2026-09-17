@@ -1,6 +1,8 @@
 import { escapeMarkup, publicClient, publicPages, siteOrigin } from "./_lib/public-catalog.js";
+import { checkRateLimit } from "./_lib/server.js";
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!await checkRateLimit(request, 30)) return new Response("Requests are temporarily limited.", { status: 429 });
   try {
     const paths = new Map<string, string | undefined>(Object.keys(publicPages).map((path) => [path, undefined]));
     const db = publicClient();

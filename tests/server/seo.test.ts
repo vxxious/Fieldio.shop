@@ -17,7 +17,7 @@ it("serves a distinct Fieldio search identity and crawlable public sitemap", asy
   expect(home).toContain('"@type":"WebSite"');
   expect(home).toContain('<link rel="canonical" href="https://fieldio.shop/">');
 
-  const sitemapResponse = await renderSitemap();
+  const sitemapResponse = await renderSitemap(new Request("https://fieldio.shop/api/sitemap"));
   const sitemap = await sitemapResponse.text();
   expect(sitemapResponse.headers.get("content-type")).toContain("application/xml");
   expect(sitemap).toContain("https://fieldio.shop/collections/men");
