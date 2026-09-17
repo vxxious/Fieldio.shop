@@ -272,6 +272,10 @@ test("scroll-to-top appears near the footer, rests quietly, and returns to the t
 
 test("account methods form a full-width mobile stack", async ({ page, isMobile }) => {
   test.skip(!isMobile, "Mobile account layout test");
+  await page.route("https://accounts.google.com/gsi/client", (route) => route.fulfill({
+    contentType: "text/javascript",
+    body: `window.google={accounts:{id:{initialize:()=>{},renderButton:(parent)=>{const button=document.createElement("button");button.textContent="Continue with Google";button.style.width="100%";parent.append(button)}}}};`
+  }));
   await page.goto("/account");
   const google = page.getByRole("button", { name: "Continue with Google" });
   const email = page.getByRole("button", { name: "Continue with email" });
