@@ -4,7 +4,8 @@ import { useForm } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { AccountDetails } from "../components/AccountDetails";
-import { EmailIcon, EyeIcon, GoogleIcon } from "../components/Icons";
+import { GoogleSignInButton } from "../components/GoogleSignInButton";
+import { EmailIcon, EyeIcon } from "../components/Icons";
 import { useLocale } from "../context/LocaleContext";
 import { usePageMeta } from "../hooks/usePageMeta";
 import { useAdminRole } from "../hooks/useAdminRole";
@@ -20,7 +21,6 @@ export function AccountPage() {
   const [mode, setMode] = useState<Mode>(() => searchParams.get("mode") === "signup" ? "signup" : "signin");
   const [status, setStatus] = useState<string | null>(null);
   const [confirmationEmail, setConfirmationEmail] = useState("");
-  const [oauthPending, setOauthPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const requestedReturnTo = searchParams.get("returnTo");
@@ -63,14 +63,13 @@ export function AccountPage() {
     } catch { setStatus(mode === "signin" ? "The email or password is incorrect." : "We could not complete that request. Please try again shortly."); }
   };
 
-  const oauth = async () => {
+  const googleSignIn = async (token: string) => {
     setStatus(null);
     if (!supabase) { setStatus("Account services are temporarily unavailable."); return; }
-    setOauthPending(true);
-    const redirectPath = returnTo ? `/account?returnTo=${encodeURIComponent(returnTo)}` : "/account";
-    const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}${redirectPath}` } });
-    if (error) setStatus("Google sign-in could not be completed. Please try again.");
-    setOauthPending(false);
+    try {
+      const { error } = await supabase.auth.signInWithIdToken({ provider: "google", token });
+      if (error) throw error;
+    } catch { setStatus("Google sign-in could not be completed. Please try again."); }
   };
   if (loading || (session && mode !== "update" && adminAccess.isPending)) return <div className="route-loading" role="status">Checking account…</div>;
   if (session && mode !== "update" && adminAccess.error) return <div className="not-found"><h1>Account unavailable</h1><p>We could not verify your account access.</p><button className="primary-button" onClick={() => void adminAccess.refetch()}>Try again</button></div>;
@@ -80,7 +79,7 @@ export function AccountPage() {
   const showAuthMethods = mode === "signin" || mode === "signup";
   return <div className="account-page"><section><h1>{titles[mode]}</h1><p>{t("account.intro")}</p>
     {showAuthMethods && <div className="oauth-buttons" aria-label={mode === "signup" ? "Account creation methods" : "Sign-in methods"}>
-      <button type="button" onClick={() => void oauth()} disabled={oauthPending} aria-busy={oauthPending}><GoogleIcon />{oauthPending ? `${t("common.loading")}…` : t("account.google")}</button>
+      <GoogleSignInButton onCredential={(token) => void googleSignIn(token)} onError={() => setStatus("Google sign-in could not be loaded. Please use email or try again shortly.")} />
       <button type="button" onClick={() => window.requestAnimationFrame(() => setFocus("email"))} aria-controls="account-email"><EmailIcon />{t("account.emailMethod")}</button>
     </div>}
     {showAuthMethods && <div className="auth-divider" aria-hidden="true"><span>{t("account.emailPassword")}</span></div>}
