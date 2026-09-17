@@ -36,6 +36,7 @@ export async function checkRateLimit(request: Request, limit = 8, windowMs = 60_
 }
 
 export async function readValidatedJson<T extends z.ZodType>(request: Request, schema: T): Promise<z.infer<T>> {
+  if (request.headers.get("sec-fetch-site") === "cross-site") throw new Error("CROSS_SITE_REQUEST");
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) throw new Error("INVALID_CONTENT_TYPE");
   const text = await request.text();
@@ -52,6 +53,7 @@ export function getAdminSupabase(): SupabaseClient | null {
 }
 
 export function handleApiError(error: unknown): Response {
+  if (error instanceof Error && error.message === "CROSS_SITE_REQUEST") return json({ error: "Cross-site requests are not allowed." }, 403);
   if (error instanceof SyntaxError) return json({ error: "Invalid JSON body." }, 400);
   if (error instanceof Error && error.message === "BODY_TOO_LARGE") return json({ error: "The request is too large." }, 413);
   if (error instanceof z.ZodError) return json({ error: "Check the submitted information.", issues: error.issues.map((issue) => ({ path: issue.path.join("."), message: issue.message })) }, 400);

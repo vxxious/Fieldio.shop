@@ -52,10 +52,15 @@ export function AccountPage() {
         : mode === "update" ? await supabase.auth.updateUser({ password })
         : await supabase.auth.signInWithPassword({ email, password });
       if (result.error) throw result.error;
-      setStatus(mode === "reset" ? "Check your email for the reset link." : mode === "signup" ? "Check your email to confirm your account." : mode === "update" ? "Password updated." : "Signed in.");
+      if (mode === "update") {
+        await supabase.auth.signOut({ scope: "global" });
+        setMode("signin");
+        setStatus("Password updated. Sign in again on this device.");
+        return;
+      }
+      setStatus(mode === "reset" ? "If an account exists, a reset link has been sent." : mode === "signup" ? "Check your email to continue if confirmation is required." : "Signed in.");
       if (mode === "signup") setConfirmationEmail(email);
-      if (mode === "update") setMode("signin");
-    } catch (error) { setStatus(error instanceof Error ? error.message : "We could not complete that request. Please try again."); }
+    } catch { setStatus(mode === "signin" ? "The email or password is incorrect." : "We could not complete that request. Please try again shortly."); }
   };
 
   const oauth = async () => {
@@ -64,7 +69,7 @@ export function AccountPage() {
     setOauthPending(true);
     const redirectPath = returnTo ? `/account?returnTo=${encodeURIComponent(returnTo)}` : "/account";
     const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}${redirectPath}` } });
-    if (error) setStatus(error.message);
+    if (error) setStatus("Google sign-in could not be completed. Please try again.");
     setOauthPending(false);
   };
   if (loading || (session && mode !== "update" && adminAccess.isPending)) return <div className="route-loading" role="status">Checking account…</div>;
@@ -86,7 +91,7 @@ export function AccountPage() {
     {confirmationEmail && mode === "signup" && <button className="text-link resend-link" type="button" onClick={async () => {
       if (!supabase) return;
       const { error } = await supabase.auth.resend({ type: "signup", email: confirmationEmail, options: { emailRedirectTo: `${window.location.origin}/account` } });
-      setStatus(error ? error.message : "Confirmation email sent again.");
+      setStatus(error ? "The confirmation email could not be sent. Please try again shortly." : "If confirmation is required, another email has been sent.");
     }}>Resend confirmation email</button>}
     <button className="primary-button" type="submit" disabled={isSubmitting}>{isSubmitting ? `${t("common.loading")}…` : mode === "reset" ? t("account.reset") : mode === "update" ? t("account.update") : mode === "signup" ? t("account.create") : t("account.signIn")}</button>
   </form>

@@ -144,7 +144,7 @@ export function ProductPage() {
 
   return (
     <article className="product-page">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />
       <div className="product-main">
         <div className="product-gallery" ref={galleryRef}>
           {product.images.map((image, index) => <img key={image.id} {...responsiveImage(image.url)} sizes="(max-width: 700px) 100vw, 50vw" alt={image.alt || product.name} loading={index ? "lazy" : "eager"} onLoad={() => { if (index === 0) setActiveImage(0); }} />)}
