@@ -7,6 +7,7 @@ import { AccountDetails } from "../components/AccountDetails";
 import { EmailIcon, EyeIcon, GoogleIcon } from "../components/Icons";
 import { useLocale } from "../context/LocaleContext";
 import { usePageMeta } from "../hooks/usePageMeta";
+import { useAdminRole } from "../hooks/useAdminRole";
 import { useSession } from "../hooks/useSession";
 import { supabase } from "../lib/supabase";
 
@@ -25,6 +26,7 @@ export function AccountPage() {
   const requestedReturnTo = searchParams.get("returnTo");
   const returnTo = requestedReturnTo?.startsWith("/") && !requestedReturnTo.startsWith("//") ? requestedReturnTo : "";
   const { session, loading } = useSession();
+  const adminAccess = useAdminRole(session?.user.id);
   const schema = z.object({
     email: mode === "update" ? z.string().optional() : z.string().email("Enter a valid email."),
     password: mode === "reset" ? z.string().optional() : z.string().min(8, "Use at least 8 characters.")
@@ -36,8 +38,10 @@ export function AccountPage() {
     return () => listener?.data.subscription.unsubscribe();
   }, []);
   useEffect(() => {
-    if (session && returnTo && mode !== "update") navigate(returnTo, { replace: true });
-  }, [mode, navigate, returnTo, session]);
+    if (!session || mode === "update" || adminAccess.isPending) return;
+    if (adminAccess.data) navigate("/admin", { replace: true });
+    else if (returnTo) navigate(returnTo, { replace: true });
+  }, [adminAccess.data, adminAccess.isPending, mode, navigate, returnTo, session]);
 
   const onSubmit = async ({ email = "", password = "" }: AuthValues) => {
     setStatus(null);
@@ -63,7 +67,9 @@ export function AccountPage() {
     if (error) setStatus(error.message);
     setOauthPending(false);
   };
-  if (loading) return <div className="route-loading" role="status">{t("common.loading")}…</div>;
+  if (loading || (session && mode !== "update" && adminAccess.isPending)) return <div className="route-loading" role="status">Checking account…</div>;
+  if (session && mode !== "update" && adminAccess.error) return <div className="not-found"><h1>Account unavailable</h1><p>We could not verify your account access.</p><button className="primary-button" onClick={() => void adminAccess.refetch()}>Try again</button></div>;
+  if (session && mode !== "update" && adminAccess.data) return <div className="route-loading" role="status">Opening administration…</div>;
   if (session && mode !== "update") return <AccountDetails userId={session.user.id} email={session.user.email || ""} avatarUrl={String(session.user.user_metadata.avatar_url || session.user.user_metadata.picture || "")} />;
   const titles = { signin: t("account.signInTitle"), signup: t("account.signUpTitle"), reset: t("account.resetTitle"), update: t("account.updateTitle") };
   const showAuthMethods = mode === "signin" || mode === "signup";
