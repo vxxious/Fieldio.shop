@@ -56,6 +56,14 @@ test("homepage keeps top-level shopping grouped by gender", async ({ page }) => 
   await expect(categories.getByRole("link")).toHaveText(["All", "Women", "Men"]);
 });
 
+test("seller entry is clear, responsive, and returns to the protected flow after sign in", async ({ page }) => {
+  await page.goto("/sell");
+  await expect(page.getByRole("heading", { name: "Sell with Fieldio" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Create seller account" })).toHaveAttribute("href", "/account?mode=signup&returnTo=%2Fsell");
+  await expect(page.getByRole("link", { name: /Already have an account/ })).toHaveAttribute("href", "/account?returnTo=%2Fsell");
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
 test("mobile purchase bar appears only after the in-flow controls are passed", async ({ page, isMobile }) => {
   test.skip(!isMobile, "Mobile purchase bar test");
   await page.addInitScript(() => {

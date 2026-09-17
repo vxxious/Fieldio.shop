@@ -108,7 +108,7 @@ export function AccountDetails({ userId, email, avatarUrl = "" }: { userId: stri
       </header>
       <section className="account-seller-card">
         <div><h2>{t(intent === "sell" ? "account.readySell" : "account.interestedSell")}</h2><p>{t(intent === "sell" ? "account.readySellCopy" : "account.interestedSellCopy")}</p></div>
-        <Link className="text-link" to="/wholesale">{t("account.getStarted")}</Link>
+        <Link className="text-link" to="/sell">{t("account.getStarted")}</Link>
       </section>
       <nav className="account-menu" aria-label={t("account.yourAccount")}>
         <button type="button" onClick={() => setView("orders")}><BagIcon /><span>{t("account.myRequests")}</span><ArrowIcon /></button>

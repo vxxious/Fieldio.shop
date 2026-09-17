@@ -96,7 +96,7 @@ export function HomePage() {
       <Reveal>
         <section className="vendor-callout" aria-labelledby="vendor-callout-title">
           <div><h2 id="vendor-callout-title">Sell with Fieldio.</h2><p>Independent boutiques, collectors, and trusted vendors can submit authentic fashion for review. Create an account, choose “I want to sell,” and tell us what you supply.</p></div>
-          <Button asChild size="lg" className="primary-button"><Link to="/account?mode=signup">Create a seller account</Link></Button>
+          <Button asChild size="lg" className="primary-button"><Link to="/sell">Create a seller account</Link></Button>
         </section>
       </Reveal>
     </>

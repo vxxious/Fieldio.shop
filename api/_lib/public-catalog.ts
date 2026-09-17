@@ -11,6 +11,7 @@ export const publicPages: Record<string, [string, string]> = {
   "/about": ["About Fieldio | Personal Fashion Sourcing", "Meet Fieldio, a personal fashion sourcing service connecting clients with designer pieces and worldwide delivery support."],
   "/personal-shopping": ["Luxury Personal Shopping | Fieldio", "Ask Fieldio to source a specific designer piece, confirm availability, and coordinate worldwide delivery."],
   "/wholesale": ["Fashion Wholesale Enquiries | Fieldio", "Contact Fieldio about designer fashion supply, boutique sourcing, and wholesale enquiries."],
+  "/sell": ["Sell Fashion with Fieldio", "Apply as a verified seller or vendor, create your Fieldio store, and submit authentic fashion for review."],
   "/contact": ["Contact Fieldio | Fashion Sourcing Support", "Contact Fieldio for designer product sourcing, order requests, worldwide shipping, and wholesale enquiries."],
   "/shipping": ["Shipping | Fieldio", "How shipping is confirmed for Fieldio order requests."],
   "/returns": ["Returns | Fieldio", "Return terms are confirmed before purchase."],

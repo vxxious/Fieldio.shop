@@ -84,3 +84,15 @@ export function ThemeDiscIcon(props: IconProps) {
     <path d="M12 3.75v16.5" fill="none" stroke="currentColor" strokeWidth="1.25" />
   </svg>;
 }
+
+export function StoreIcon(props: IconProps) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}><path {...base} d="M4 10v10h16V10M3 10l2-6h14l2 6" /><path {...base} d="M3 10a3 3 0 0 0 5 2 3 3 0 0 0 4 0 3 3 0 0 0 4 0 3 3 0 0 0 5-2M9 20v-5h6v5" /></svg>;
+}
+
+export function ImageIcon(props: IconProps) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}><rect {...base} x="3.5" y="4" width="17" height="16" /><circle {...base} cx="9" cy="9" r="1.5" /><path {...base} d="m5 18 5-5 3 3 2-2 4 4" /></svg>;
+}
+
+export function CheckSealIcon(props: IconProps) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}><path {...base} d="m12 2 2.2 2 3-.2.7 2.9 2.6 1.5-1.2 2.8 1.2 2.8-2.6 1.5-.7 2.9-3-.2-2.2 2-2.2-2-3 .2-.7-2.9-2.6-1.5L3.5 11 2.3 8.2l2.6-1.5.7-2.9 3 .2L12 2Z" /><path {...base} d="m8.5 11.5 2.2 2.2 4.8-5" /></svg>;
+}
