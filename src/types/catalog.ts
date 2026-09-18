@@ -1,4 +1,4 @@
-export type Currency = "GBP" | "EUR" | "USD";
+export type Currency = "AED" | "AFN" | "ALL" | "AMD" | "AOA" | "ARS" | "AUD" | "BRL" | "CAD" | "CHF" | "CNY" | "DKK" | "DZD" | "EGP" | "EUR" | "GBP" | "GHS" | "HKD" | "INR" | "JPY" | "KES" | "KRW" | "MAD" | "MXN" | "NGN" | "NOK" | "NZD" | "PLN" | "QAR" | "SAR" | "SEK" | "SGD" | "TRY" | "USD" | "XCD" | "ZAR";
 
 export interface ProductImage {
   id: string;
