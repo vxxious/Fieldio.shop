@@ -8,6 +8,24 @@ async function openFirstProduct(page: Page) {
   await expect(page).toHaveURL(/\/products\//);
 }
 
+test("boot loader is centred before the client bundle starts", async ({ page }) => {
+  await page.route("**/", async (route) => {
+    const response = await route.fetch();
+    const html = (await response.text()).replace(/<script type="module" src="\/src\/main\.tsx"><\/script>|<script type="module" crossorigin src="\/assets\/index-[^"]+"><\/script>/, "");
+    await route.fulfill({ response, body: html });
+  });
+  await page.goto("/");
+  const loader = page.getByRole("status").filter({ hasText: "Loading Fieldio" });
+  await expect(loader).toBeVisible();
+  const box = await loader.boundingBox();
+  const viewport = page.viewportSize();
+  expect(box).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  expect(Math.abs(box!.x + box!.width / 2 - viewport!.width / 2)).toBeLessThan(2);
+  expect(Math.abs(box!.y + box!.height / 2 - viewport!.height / 2)).toBeLessThan(2);
+  await expect(loader).toHaveCSS("font-family", /Manrope/);
+});
+
 test("customer can build a request from product to checkout", async ({ page }) => {
   await openFirstProduct(page);
   const firstVariant = page.locator('input[type="radio"]:not([disabled])').first();
@@ -41,6 +59,7 @@ test("mobile navigation opens, traps focus, and closes with Escape", async ({ pa
   await expect(dialog).toBeFocused();
   await expect(dialog.getByRole("link", { name: "Bags", exact: true })).toHaveCount(0);
   await expect(dialog.getByRole("link", { name: "Shoes", exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole("link", { name: "Brands", exact: true })).toHaveAttribute("href", "/brands");
   const controls = dialog.locator('a[href], button:not([disabled])');
   await controls.last().focus();
   await page.keyboard.press("Tab");

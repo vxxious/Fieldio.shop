@@ -19,6 +19,16 @@
         } catch {}
       })();
     </script>
+    <style>
+      html, body { min-height: 100%; margin: 0; background: #f6f6f3; }
+      html[data-theme="dark"] body { background: #11120f; }
+      .app-boot-loader { min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; color: #66685f; font: 500 12px/1.5 Manrope, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; }
+      html[data-theme="dark"] .app-boot-loader { color: #c9cabf; }
+      .app-boot-loader::before { content: ""; width: 38px; height: 38px; border: 1px solid #d9dad4; border-top-color: #151612; border-right-color: #151612; border-radius: 50%; animation: fieldio-boot-spin 900ms linear infinite; }
+      html[data-theme="dark"] .app-boot-loader::before { border-color: #3b3c37; border-top-color: #f6f6f3; border-right-color: #f6f6f3; }
+      @keyframes fieldio-boot-spin { to { transform: rotate(1turn); } }
+      @media (prefers-reduced-motion: reduce) { .app-boot-loader::before { animation-duration: 1.8s; } }
+    </style>
     <link rel="icon" type="image/png" sizes="192x192" href="/brand/fieldio-icon-192.png" />
     <link rel="apple-touch-icon" href="/brand/fieldio-icon-180.png" />
     <link rel="manifest" href="/site.webmanifest" />

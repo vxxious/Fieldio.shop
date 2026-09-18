@@ -10,6 +10,12 @@ vi.mock("node:fs/promises", async () => ({
 import { GET as renderPage } from "../../api/render";
 import { GET as renderSitemap } from "../../api/sitemap";
 
+it("centres the boot loader before the client bundle starts", () => {
+  const html = readFileSync("index.html", "utf8");
+  expect(html.indexOf(".app-boot-loader")).toBeLessThan(html.indexOf('<div id="root">'));
+  expect(html).toContain("min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center");
+});
+
 it("serves a distinct Fieldio search identity and crawlable public sitemap", async () => {
   expect(readFileSync("index.html", "utf8")).toContain('<script id="fieldio-identity" type="application/ld+json">');
   const home = await (await renderPage(new Request("https://fieldio.shop/api/render?path=/"))).text();
