@@ -40,6 +40,12 @@ const en = {
   "catalog.errorTitle": "The edit could not load.",
   "brand.title": "Brands",
   "brand.intro": "Explore the labels in our edit, or ask Fieldio to source a specific piece.",
+  "brand.browseAlphabet": "Browse brands by letter",
+  "brand.search": "Search brands",
+  "brand.all": "All",
+  "brand.result": "brand",
+  "brand.results": "brands",
+  "brand.noResults": "No matching brands.",
   "brand.sourceIntro": "Looking for a specific piece? Share the name, reference, or screenshot. Fieldio will confirm authenticity, availability, condition, final price, and shipping before purchase.",
   "brand.request": "Request",
   "brand.emptyTitle": "No pieces published yet.",
@@ -312,12 +318,12 @@ const pageTranslations: Partial<Record<LanguageCode, Dictionary>> = {
 };
 
 const utilityTranslations: Partial<Record<LanguageCode, Dictionary>> = {
-  fr: { "nav.openBag": "Ouvrir le sac", "nav.items": "articles", "account.copyReference": "Copier la référence", "account.referenceCopied": "Référence copiée", "account.copyReferenceError": "Échec de la copie — réessayez" },
-  de: { "nav.openBag": "Tasche öffnen", "nav.items": "Artikel", "account.copyReference": "Referenz kopieren", "account.referenceCopied": "Referenz kopiert", "account.copyReferenceError": "Kopieren fehlgeschlagen – erneut versuchen" },
-  es: { "nav.openBag": "Abrir la bolsa", "nav.items": "artículos", "account.copyReference": "Copiar referencia", "account.referenceCopied": "Referencia copiada", "account.copyReferenceError": "No se pudo copiar — inténtalo de nuevo" },
-  it: { "nav.openBag": "Apri la borsa", "nav.items": "articoli", "account.copyReference": "Copia riferimento", "account.referenceCopied": "Riferimento copiato", "account.copyReferenceError": "Copia non riuscita — riprova" },
-  pt: { "nav.openBag": "Abrir a sacola", "nav.items": "artigos", "account.copyReference": "Copiar referência", "account.referenceCopied": "Referência copiada", "account.copyReferenceError": "Falha ao copiar — tente novamente" },
-  ar: { "nav.openBag": "فتح الحقيبة", "nav.items": "عناصر", "account.copyReference": "نسخ المرجع", "account.referenceCopied": "تم نسخ المرجع", "account.copyReferenceError": "تعذر النسخ — حاول مرة أخرى" }
+  fr: { "nav.openBag": "Ouvrir le sac", "nav.items": "articles", "brand.browseAlphabet": "Parcourir les marques par lettre", "brand.search": "Rechercher une marque", "brand.all": "Toutes", "brand.result": "marque", "brand.results": "marques", "brand.noResults": "Aucune marque correspondante.", "account.copyReference": "Copier la référence", "account.referenceCopied": "Référence copiée", "account.copyReferenceError": "Échec de la copie — réessayez" },
+  de: { "nav.openBag": "Tasche öffnen", "nav.items": "Artikel", "brand.browseAlphabet": "Marken nach Buchstaben durchsuchen", "brand.search": "Marken suchen", "brand.all": "Alle", "brand.result": "Marke", "brand.results": "Marken", "brand.noResults": "Keine passenden Marken.", "account.copyReference": "Referenz kopieren", "account.referenceCopied": "Referenz kopiert", "account.copyReferenceError": "Kopieren fehlgeschlagen – erneut versuchen" },
+  es: { "nav.openBag": "Abrir la bolsa", "nav.items": "artículos", "brand.browseAlphabet": "Explorar marcas por letra", "brand.search": "Buscar marcas", "brand.all": "Todas", "brand.result": "marca", "brand.results": "marcas", "brand.noResults": "No hay marcas coincidentes.", "account.copyReference": "Copiar referencia", "account.referenceCopied": "Referencia copiada", "account.copyReferenceError": "No se pudo copiar — inténtalo de nuevo" },
+  it: { "nav.openBag": "Apri la borsa", "nav.items": "articoli", "brand.browseAlphabet": "Sfoglia i marchi per lettera", "brand.search": "Cerca marchi", "brand.all": "Tutti", "brand.result": "marchio", "brand.results": "marchi", "brand.noResults": "Nessun marchio corrispondente.", "account.copyReference": "Copia riferimento", "account.referenceCopied": "Riferimento copiato", "account.copyReferenceError": "Copia non riuscita — riprova" },
+  pt: { "nav.openBag": "Abrir a sacola", "nav.items": "artigos", "brand.browseAlphabet": "Explorar marcas por letra", "brand.search": "Pesquisar marcas", "brand.all": "Todas", "brand.result": "marca", "brand.results": "marcas", "brand.noResults": "Nenhuma marca correspondente.", "account.copyReference": "Copiar referência", "account.referenceCopied": "Referência copiada", "account.copyReferenceError": "Falha ao copiar — tente novamente" },
+  ar: { "nav.openBag": "فتح الحقيبة", "nav.items": "عناصر", "brand.browseAlphabet": "تصفح العلامات التجارية حسب الحرف", "brand.search": "البحث عن العلامات التجارية", "brand.all": "الكل", "brand.result": "علامة تجارية", "brand.results": "علامات تجارية", "brand.noResults": "لا توجد علامات تجارية مطابقة.", "account.copyReference": "نسخ المرجع", "account.referenceCopied": "تم نسخ المرجع", "account.copyReferenceError": "تعذر النسخ — حاول مرة أخرى" }
 };
 
 const experienceTranslations: Partial<Record<LanguageCode, Dictionary>> = {

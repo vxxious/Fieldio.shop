@@ -270,6 +270,24 @@ test("homepage account invitation opens account creation directly", async ({ pag
   await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
 });
 
+test("brand directory searches and filters the available brands", async ({ page }) => {
+  await page.goto("/brands");
+  const search = page.getByRole("searchbox", { name: "Search brands" });
+  await expect(search).toBeVisible();
+  await expect(page.getByRole("link", { name: "Prada", exact: true })).toBeVisible();
+
+  await search.fill("Prada");
+  await expect(page.getByText("1 brand", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Prada", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Gucci", exact: true })).not.toBeVisible();
+
+  await page.getByRole("button", { name: "G", exact: true }).click();
+  await expect(search).toHaveValue("");
+  await expect(page.getByRole("button", { name: "G", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("link", { name: "Gucci", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Prada", exact: true })).not.toBeVisible();
+});
+
 test("scroll-to-top appears near the footer, rests quietly, and returns to the top", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");

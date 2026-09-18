@@ -24,7 +24,7 @@ export function MotionDirector({ routeKey }: { routeKey: string }) {
     let frame = 0;
 
     const bindMotion = () => {
-      root.querySelectorAll<HTMLElement>("h1:not(:has(.editorial-text)), h2:not(.sr-only):not(:has(.editorial-text))").forEach((heading) => {
+      root.querySelectorAll<HTMLElement>("h1:not(:has(.editorial-text)), h2:not(.sr-only):not(.brand-directory-letter):not(:has(.editorial-text))").forEach((heading) => {
         if (heading.dataset.motionBound) return;
         heading.dataset.motionBound = "true";
         animations.push(gsap.fromTo(heading,

@@ -537,6 +537,29 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .brand-page h1 { font-size: clamp(66px, 10.2vw, 154px); line-height: 0.84; margin-bottom: 34px; }
 .brand-page header p { max-width: 60ch; color: var(--muted); font-size: 15px; }
 .brand-page header .primary-button { margin-top: 22px; }
+.brand-directory > header { min-height: 320px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 0.55fr); align-items: end; gap: 8vw; padding: 70px 0 42px; margin-bottom: 0; }
+.brand-directory > header h1 { margin: 0; }
+.brand-directory > header p { justify-self: end; margin: 0 0 6px; }
+.brand-directory-tools { border-bottom: 1px solid var(--line-dark); }
+.brand-alphabet { display: grid; grid-template-columns: 52px repeat(26, minmax(28px, 1fr)); border-bottom: 1px solid var(--line); }
+.brand-alphabet button { min-width: 0; height: 52px; padding: 0; border: 0; color: var(--ink); background: transparent; font: inherit; font-size: 13px; cursor: pointer; }
+.brand-alphabet button::after { display: block; width: 16px; height: 1px; margin: 5px auto 0; background: currentColor; content: ""; transform: scaleX(0); transition: transform 150ms ease; }
+.brand-alphabet button:hover::after, .brand-alphabet button.is-active::after { transform: scaleX(1); }
+.brand-alphabet button:disabled { color: var(--line-dark); cursor: default; }
+.brand-alphabet button:disabled::after { display: none; }
+.brand-search { position: relative; display: flex; align-items: center; min-height: 68px; }
+.brand-search svg { flex: 0 0 auto; width: 23px; height: 23px; margin-right: 14px; }
+.brand-search input { min-width: 0; flex: 1; padding: 20px 0; border: 0; color: var(--ink); background: transparent; font: inherit; font-size: 18px; }
+.brand-search input:focus { outline: none; }
+.brand-search input::placeholder { color: var(--muted); opacity: 1; }
+.brand-search .text-link { margin-left: 14px; }
+.brand-directory-count { margin: 24px 0 0; color: var(--muted); font-size: 13px; }
+.brand-directory .product-grid { margin-top: 24px; }
+.brand-directory-groups { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 62px clamp(28px, 5vw, 80px); padding: 46px 0 20px; }
+.brand-directory-group h2 { margin: 0 0 17px; font-family: var(--font-display); font-size: 37px; font-weight: 500; line-height: 1; }
+.brand-directory-group > div { border-top: 1px solid var(--line-dark); }
+.brand-directory-group a { display: flex; min-height: 47px; align-items: center; border-bottom: 1px solid var(--line); font-size: 15px; transition: transform 150ms ease; }
+.brand-directory-group a:hover { transform: translateX(6px); text-decoration: none; }
 
 .service-page { display: grid; grid-template-columns: 1fr minmax(340px, 0.8fr); gap: 10vw; padding: clamp(70px, 10vw, 150px) 0; }
 .service-lead h1 { font-size: clamp(62px, 8.3vw, 120px); line-height: 0.86; max-width: 9ch; margin-bottom: 38px; }
@@ -947,6 +970,18 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .search-page h1 { font-size: 57px; }
   .brand-page > header { min-height: 480px; }
   .brand-page h1 { font-size: 76px; }
+  .brand-directory > header { min-height: 230px; display: block; padding: 58px 0 34px; }
+  .brand-directory > header h1 { margin-bottom: 23px; font-size: 76px; }
+  .brand-directory > header p { max-width: 48ch; }
+  .brand-alphabet { display: flex; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: none; }
+  .brand-alphabet::-webkit-scrollbar { display: none; }
+  .brand-alphabet button { flex: 0 0 44px; height: 48px; }
+  .brand-alphabet button:first-child { flex-basis: 52px; text-align: left; }
+  .brand-search { min-height: 62px; }
+  .brand-search input { padding: 17px 0; font-size: 16px; }
+  .brand-directory-count { margin-top: 20px; }
+  .brand-directory-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 42px 24px; padding-top: 38px; }
+  .brand-directory-group h2 { font-size: 32px; }
   .service-page { display: block; padding: 70px 0; }
   .service-lead h1 { font-size: 66px; }
   .service-form { margin-top: 70px; }
