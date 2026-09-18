@@ -6,7 +6,7 @@ import { AccountPage } from "../pages/AccountPage";
 const auth = vi.hoisted(() => ({ updateUser: vi.fn(), signOut: vi.fn() }));
 
 vi.mock("../hooks/useSession", () => ({ useSession: () => ({ session: null, loading: false }) }));
-vi.mock("../hooks/useAdminRole", () => ({ useAdminRole: () => ({ data: null, isPending: false }) }));
+vi.mock("../hooks/useAccountRole", () => ({ useAccountRole: () => ({ data: null, error: null, isPending: false }) }));
 vi.mock("../hooks/usePageMeta", () => ({ usePageMeta: () => undefined }));
 vi.mock("../context/LocaleContext", () => ({ useLocale: () => ({ t: (key: string) => key }) }));
 vi.mock("./supabase", () => ({

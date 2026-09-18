@@ -6,17 +6,17 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { AccountPage } from "../pages/AccountPage";
 import { AdminPage } from "../pages/AdminPage";
 
-const state = vi.hoisted(() => ({ role: "owner" as string | null }));
+const state = vi.hoisted(() => ({ adminRole: "owner" as string | null, accountRole: "admin" as "buyer" | "seller" | "admin" }));
 
 vi.mock("../hooks/useSession", () => ({ useSession: () => ({ session: { user: { id: "admin-1", email: "admin@example.com", user_metadata: {} } }, loading: false }) }));
 vi.mock("../hooks/usePageMeta", () => ({ usePageMeta: () => undefined }));
 vi.mock("../context/LocaleContext", () => ({ useLocale: () => ({ t: (key: string) => key }) }));
-vi.mock("../components/AccountDetails", () => ({ AccountDetails: () => <div>Buyer account</div> }));
+vi.mock("../components/AccountDetails", () => ({ AccountDetails: ({ accountRole }: { accountRole: string }) => <div>{accountRole} account</div> }));
 vi.mock("../components/admin/AdminWorkspace", () => ({ AdminWorkspace: ({ resource }: { resource: { title: string } }) => <div>{resource.title} workspace</div> }));
 vi.mock("../components/admin/SellerModeration", () => ({ SellerModeration: () => <div>Seller review workspace</div> }));
 vi.mock("./supabase", () => ({
   supabase: {
-    rpc: async () => ({ data: state.role, error: null }),
+    rpc: async (name: string) => ({ data: name === "current_account_role" ? state.accountRole : state.adminRole, error: null }),
     auth: { onAuthStateChange: () => ({ data: { subscription: { unsubscribe: vi.fn() } } }), signOut: async () => ({ error: null }) }
   }
 }));
@@ -26,12 +26,18 @@ function renderWithApp(ui: ReactNode) {
   return render(<QueryClientProvider client={client}><MemoryRouter>{ui}</MemoryRouter></QueryClientProvider>);
 }
 
-beforeEach(() => { state.role = "owner"; });
+beforeEach(() => { state.adminRole = "owner"; state.accountRole = "admin"; });
 
 it("sends a signed-in staff account directly to administration", async () => {
   renderWithApp(<Routes><Route path="/" element={<AccountPage />} /><Route path="/admin" element={<div>Admin destination</div>} /></Routes>);
   expect(await screen.findByText("Admin destination")).toBeVisible();
   expect(screen.queryByText("Buyer account")).not.toBeInTheDocument();
+});
+
+it("keeps an approved seller in the seller account experience", async () => {
+  state.accountRole = "seller";
+  renderWithApp(<AccountPage />);
+  expect(await screen.findByText("seller account")).toBeVisible();
 });
 
 it("provides one compact section selector for the admin workspace", async () => {

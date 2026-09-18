@@ -214,6 +214,9 @@ const en = {
   "account.changePassword": "Change password",
   "account.delete": "Request account deletion",
   "account.continueWhatsApp": "Continue conversation on WhatsApp",
+  "account.copyReference": "Copy reference",
+  "account.referenceCopied": "Reference copied",
+  "account.copyReferenceError": "Copy failed — try again",
   "account.quantity": "Quantity",
   "account.variantConfirmed": "Variant confirmed directly",
   "account.progress": "Order progress",
@@ -308,12 +311,12 @@ const pageTranslations: Partial<Record<LanguageCode, Dictionary>> = {
 };
 
 const utilityTranslations: Partial<Record<LanguageCode, Dictionary>> = {
-  fr: { "nav.openBag": "Ouvrir le sac", "nav.items": "articles" },
-  de: { "nav.openBag": "Tasche öffnen", "nav.items": "Artikel" },
-  es: { "nav.openBag": "Abrir la bolsa", "nav.items": "artículos" },
-  it: { "nav.openBag": "Apri la borsa", "nav.items": "articoli" },
-  pt: { "nav.openBag": "Abrir a sacola", "nav.items": "artigos" },
-  ar: { "nav.openBag": "فتح الحقيبة", "nav.items": "عناصر" }
+  fr: { "nav.openBag": "Ouvrir le sac", "nav.items": "articles", "account.copyReference": "Copier la référence", "account.referenceCopied": "Référence copiée", "account.copyReferenceError": "Échec de la copie — réessayez" },
+  de: { "nav.openBag": "Tasche öffnen", "nav.items": "Artikel", "account.copyReference": "Referenz kopieren", "account.referenceCopied": "Referenz kopiert", "account.copyReferenceError": "Kopieren fehlgeschlagen – erneut versuchen" },
+  es: { "nav.openBag": "Abrir la bolsa", "nav.items": "artículos", "account.copyReference": "Copiar referencia", "account.referenceCopied": "Referencia copiada", "account.copyReferenceError": "No se pudo copiar — inténtalo de nuevo" },
+  it: { "nav.openBag": "Apri la borsa", "nav.items": "articoli", "account.copyReference": "Copia riferimento", "account.referenceCopied": "Riferimento copiato", "account.copyReferenceError": "Copia non riuscita — riprova" },
+  pt: { "nav.openBag": "Abrir a sacola", "nav.items": "artigos", "account.copyReference": "Copiar referência", "account.referenceCopied": "Referência copiada", "account.copyReferenceError": "Falha ao copiar — tente novamente" },
+  ar: { "nav.openBag": "فتح الحقيبة", "nav.items": "عناصر", "account.copyReference": "نسخ المرجع", "account.referenceCopied": "تم نسخ المرجع", "account.copyReferenceError": "تعذر النسخ — حاول مرة أخرى" }
 };
 
 const experienceTranslations: Partial<Record<LanguageCode, Dictionary>> = {

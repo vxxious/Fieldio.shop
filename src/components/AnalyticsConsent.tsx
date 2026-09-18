@@ -1,5 +1,6 @@
 import { Analytics } from "@vercel/analytics/react";
 import { useEffect, useState } from "react";
+import { trackEvent } from "../lib/analytics";
 
 const consentKey = "fieldio-analytics-consent";
 type Choice = "accepted" | "declined" | null;
@@ -23,6 +24,7 @@ export function AnalyticsConsent() {
     localStorage.setItem(consentKey, next);
     setChoice(next);
     setOpen(false);
+    if (next === "accepted") trackEvent("page_view", { path: window.location.pathname });
   };
 
   return <>

@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { z } from "zod";
 import { AccountIcon, ArrowIcon, BagIcon, EmailIcon, HeartIcon, PlusIcon } from "./Icons";
 import { useLocale } from "../context/LocaleContext";
+import type { AccountRole } from "../hooks/useAccountRole";
 import { supabase } from "../lib/supabase";
 import type { TranslationKey } from "../lib/translations";
 import { createWhatsAppUrl } from "../lib/whatsapp";
@@ -34,11 +35,12 @@ const orderStatusKeys: Record<string, TranslationKey> = {
 };
 const orderSteps = ["order_request", "confirmed", "processing", "shipped", "delivered"] as const;
 
-export function AccountDetails({ userId, email, avatarUrl = "" }: { userId: string; email: string; avatarUrl?: string }) {
+export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "buyer" }: { userId: string; email: string; avatarUrl?: string; accountRole?: Exclude<AccountRole, "admin"> }) {
   const { formatMoney, language, t } = useLocale();
   const cache = useQueryClient();
   const [view, setView] = useState<AccountView>("overview");
   const [status, setStatus] = useState("");
+  const [copyStatus, setCopyStatus] = useState<{ reference: string; state: "copied" | "error" } | null>(null);
   const [savingIntent, setSavingIntent] = useState(false);
   const viewHeading = useRef<HTMLHeadingElement>(null);
   const details = useQuery({ queryKey: ["account-details", userId], queryFn: async () => {
@@ -84,6 +86,15 @@ export function AccountDetails({ userId, email, avatarUrl = "" }: { userId: stri
     setStatus(t("account.saved"));
   }
 
+  async function copyReference(reference: string) {
+    try {
+      await navigator.clipboard.writeText(reference);
+      setCopyStatus({ reference, state: "copied" });
+    } catch {
+      setCopyStatus({ reference, state: "error" });
+    }
+  }
+
   if (details.isPending) return <div className="route-loading" role="status">{t("common.loading")}…</div>;
   if (details.error) return <div className="account-load-error" role="alert"><p>{t("account.detailsError")}</p><button className="primary-button" onClick={() => void details.refetch()}>{t("account.retry")}</button></div>;
   if (!details.data.profile?.account_intent) return <section className="account-intent" aria-labelledby="account-intent-title">
@@ -104,11 +115,11 @@ export function AccountDetails({ userId, email, avatarUrl = "" }: { userId: stri
     {view === "overview" ? <>
       <header className="account-identity">
         <div className="account-avatar">{profileAvatar ? <img src={profileAvatar} alt="" referrerPolicy="no-referrer" /> : <AccountIcon />}</div>
-        <h1>{profileName}</h1><p>{email}</p>
+        <h1>{profileName}</h1><p>{email}</p><span className="account-role">{accountRole === "seller" ? "Verified seller" : "Buyer account"}</span>
       </header>
       <section className="account-seller-card">
-        <div><h2>{t(intent === "sell" ? "account.readySell" : "account.interestedSell")}</h2><p>{t(intent === "sell" ? "account.readySellCopy" : "account.interestedSellCopy")}</p></div>
-        <Link className="text-link" to="/sell">{t("account.getStarted")}</Link>
+        <div><h2>{accountRole === "seller" ? "Manage your seller store" : t(intent === "sell" ? "account.readySell" : "account.interestedSell")}</h2><p>{accountRole === "seller" ? "Review your products, add listings, and follow their approval status." : t(intent === "sell" ? "account.readySellCopy" : "account.interestedSellCopy")}</p></div>
+        <Link className="text-link" to="/sell">{accountRole === "seller" ? "Open dashboard" : t("account.getStarted")}</Link>
       </section>
       <nav className="account-menu" aria-label={t("account.yourAccount")}>
         <button type="button" onClick={() => setView("orders")}><BagIcon /><span>{t("account.myRequests")}</span><ArrowIcon /></button>
@@ -125,7 +136,7 @@ export function AccountDetails({ userId, email, avatarUrl = "" }: { userId: stri
           const statusKey = orderStatusKeys[order.status];
           const stepIndex = order.status === "awaiting_confirmation" ? 0 : orderSteps.indexOf(order.status as typeof orderSteps[number]);
           return <article className="account-order" key={order.id}>
-            <div className="account-order-heading"><div><h2>{order.public_reference}</h2><p>{statusKey ? t(statusKey) : order.status.replaceAll("_", " ")} · {new Intl.DateTimeFormat(language.locale, { dateStyle: "medium" }).format(new Date(order.created_at))}</p></div>{order.subtotal !== null && <strong>{formatMoney(order.subtotal, order.currency)}</strong>}</div>
+            <div className="account-order-heading"><div><div className="account-order-reference"><h2>{order.public_reference}</h2><button className="text-link" type="button" aria-live="polite" onClick={() => void copyReference(order.public_reference)}>{copyStatus?.reference === order.public_reference && copyStatus.state === "copied" ? t("account.referenceCopied") : copyStatus?.reference === order.public_reference && copyStatus.state === "error" ? t("account.copyReferenceError") : t("account.copyReference")}</button></div><p>{statusKey ? t(statusKey) : order.status.replaceAll("_", " ")} · {new Intl.DateTimeFormat(language.locale, { dateStyle: "medium" }).format(new Date(order.created_at))}</p></div>{order.subtotal !== null && <strong>{formatMoney(order.subtotal, order.currency)}</strong>}</div>
             {order.status === "cancelled" ? <p className="account-order-cancelled">{t("account.status.cancelled")}</p> : stepIndex >= 0 && <ol className="account-order-progress" aria-label={t("account.progress")}>{orderSteps.map((step, index) => <li key={step} className={index <= stepIndex ? "complete" : ""} aria-current={index === stepIndex ? "step" : undefined}><span>{t(orderStatusKeys[step]!)}</span></li>)}</ol>}
             <ul>{order.order_items.map((item) => <li key={item.id}>{item.product_name} · {item.size || t("account.variantConfirmed")} · {t("account.quantity")} {item.quantity}</li>)}</ul>
             <a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, I would like an update on order request ${order.public_reference}.`)} target="_blank" rel="noreferrer">{t("account.continueWhatsApp")}</a>
