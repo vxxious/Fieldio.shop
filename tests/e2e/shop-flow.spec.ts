@@ -270,11 +270,10 @@ test("scroll-to-top appears near the footer, rests quietly, and returns to the t
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(2);
 });
 
-test("account methods form a full-width mobile stack", async ({ page, isMobile }) => {
-  test.skip(!isMobile, "Mobile account layout test");
+test("account methods fit cleanly at desktop and mobile widths", async ({ page, isMobile }) => {
   await page.route("https://accounts.google.com/gsi/client", (route) => route.fulfill({
     contentType: "text/javascript",
-    body: `window.google={accounts:{id:{initialize:()=>{},renderButton:(parent)=>{const button=document.createElement("button");button.textContent="Continue with Google";button.style.width="100%";parent.append(button)}}}};`
+    body: `window.google={accounts:{id:{initialize:()=>{},renderButton:(parent)=>{const button=document.createElement("button");button.textContent="Continue with Google";button.style.width="200px";parent.append(button)}}}};`
   }));
   await page.goto("/account");
   const google = page.getByRole("button", { name: "Continue with Google" });
@@ -284,9 +283,23 @@ test("account methods form a full-width mobile stack", async ({ page, isMobile }
   const [googleBox, emailBox] = await Promise.all([google.boundingBox(), email.boundingBox()]);
   expect(googleBox).not.toBeNull();
   expect(emailBox).not.toBeNull();
-  expect(emailBox!.y).toBeGreaterThan(googleBox!.y + googleBox!.height);
-  expect(Math.abs(emailBox!.width - googleBox!.width)).toBeLessThan(1);
+  expect(await page.locator(".google-signin-button").evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  if (isMobile) {
+    expect(emailBox!.y).toBeGreaterThanOrEqual(googleBox!.y + googleBox!.height);
+  } else {
+    expect(Math.abs(emailBox!.y - googleBox!.y)).toBeLessThan(1);
+    expect(emailBox!.x).toBeGreaterThanOrEqual(googleBox!.x + googleBox!.width);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   await expect(page.getByText("Email and password", { exact: true })).toBeVisible();
+});
+
+test("primary public routes do not overflow the viewport", async ({ page }) => {
+  for (const path of ["/", "/collections", "/collections/women", "/collections/men", "/brands", "/search", "/wishlist", "/account", "/sell", "/personal-shopping", "/wholesale", "/contact", "/about", "/shipping", "/returns", "/privacy", "/terms", "/cookies"]) {
+    await page.goto(path, { waitUntil: "domcontentloaded" });
+    await expect(page.locator("#main-content")).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), `${path} overflows the viewport`).toBe(true);
+  }
 });
 
 

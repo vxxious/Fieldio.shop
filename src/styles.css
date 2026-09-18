@@ -575,11 +575,11 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .collection-editorial-copy > .text-link { margin-top: 24px; }
 
 .account-page { min-height: 70vh; display: grid; place-items: center; padding: 80px 0; }
-.account-page section { width: min(100%, 470px); background: var(--surface); padding: clamp(28px, 5vw, 60px); }
+.account-page section { width: min(100%, 620px); background: var(--surface); padding: clamp(28px, 5vw, 60px); }
 .account-page h1 { font-size: clamp(42px, 5.3vw, 60px); }
 .account-page section > p { color: var(--muted); font-size: 14px; }
 .account-page form { display: flex; flex-direction: column; gap: 18px; margin-top: 28px; }
-.oauth-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 28px; }
+.oauth-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 28px; }
 .google-signin-button { min-width: 0; min-height: 48px; display: flex; align-items: center; overflow: hidden; }
 .google-signin-button > div { width: 100% !important; }
 .google-signin-error { margin: 0; align-self: center; color: var(--muted); font-size: 12px; line-height: 1.35; }
