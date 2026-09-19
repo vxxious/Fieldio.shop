@@ -94,7 +94,7 @@ function VerificationForm({ userId, email, application, defaultCountryCode, onDo
       const details = { kind: values.kind, legal_name: values.legal_name, business_name: values.business_name || null, country_code: values.country_code, phone_country_code: values.phone_country_code, phone: internationalPhone(values.phone_country_code, values.phone), whatsapp_country_code: values.whatsapp_country_code, whatsapp_phone: internationalPhone(values.whatsapp_country_code, values.whatsapp_phone), contact_email: values.contact_email, website: values.website || null, identity_document_path: paths.identity!, address_document_path: paths.address!, business_document_path: paths.business, declaration_accepted: true };
       const result = application ? await supabase!.from("seller_applications").update(details).eq("id", application.id) : await supabase!.from("seller_applications").insert({ owner_id: userId, ...details });
       if (result.error) throw result.error;
-      await authenticatedPost("/api/seller-application-submit", {});
+      await authenticatedPost("/api/seller", { action: "submit-application" });
       await onDone();
     } catch (error) {
       await Promise.all(uploaded.map((path) => supabase!.storage.from("seller-verification").remove([path])));
@@ -206,7 +206,7 @@ function ListingForm({ userId, store, categories, currency, onCancel, onSubmitte
       if (listingError) throw listingError;
       const { error: imageError } = await supabase!.from("seller_listing_images").insert(uploaded.map((path, position) => ({ listing_id: listingId, owner_id: userId, storage_path: path, alt_text: `${values.title}, image ${position + 1}`, position })));
       if (imageError) throw imageError;
-      await authenticatedPost("/api/seller-listing-submit", { listingId });
+      await authenticatedPost("/api/seller", { action: "submit-listing", listingId });
       await onSubmitted(values.title);
     } catch (error) {
       await Promise.all([supabase!.storage.from("seller-listing-media").remove(uploaded), supabase!.from("seller_listings").delete().eq("id", listingId)]);

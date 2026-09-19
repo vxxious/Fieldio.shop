@@ -44,7 +44,7 @@ export function SellerModeration() {
     if (decision !== "approved" && !reason) { setStatus("Add a clear reason before rejecting or suspending a seller."); return; }
     setWorking(id); setStatus("");
     try {
-      await authenticatedPost("/api/seller-application-review", { applicationId: id, decision, reason });
+      await authenticatedPost("/api/seller", { action: "review-application", applicationId: id, decision, reason });
       setStatus(`Seller ${decision}.`); await cache.invalidateQueries({ queryKey: ["admin", "seller-applications"] });
     } catch (error) { setStatus(error instanceof Error ? error.message : "The seller review could not be completed."); }
     finally { setWorking(""); }
