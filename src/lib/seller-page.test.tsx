@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { expect, it, vi } from "vitest";
-import { SellerPage } from "../pages/SellerPage";
+import { ContactDetailsForm, SellerPage } from "../pages/SellerPage";
 
 vi.mock("../hooks/useSession", () => ({ useSession: () => ({ session: null, loading: false }) }));
 vi.mock("../hooks/usePageMeta", () => ({ usePageMeta: () => undefined }));
@@ -15,4 +15,24 @@ it("requires an account before a seller can apply", () => {
   expect(screen.getByRole("heading", { name: "Sell with Fieldio" })).toBeVisible();
   expect(screen.getByRole("link", { name: "Create seller account" })).toHaveAttribute("href", "/account?mode=signup&returnTo=%2Fsell");
   expect(screen.getByText(/Every seller and vendor is verified/)).toBeVisible();
+});
+
+it("lets an approved seller edit separate call and WhatsApp details", () => {
+  const application = {
+    id: "application", kind: "vendor" as const, legal_name: "Ada Vendor", business_name: "Ada Studio", country_code: "NG",
+    phone_country_code: "NG", phone: "+2348012345678", whatsapp_country_code: "US", whatsapp_phone: "+12025550123",
+    contact_email: "hello@example.com", website: null, identity_document_path: "id", address_document_path: "address", business_document_path: "business",
+    status: "approved" as const, review_reason: null
+  };
+  const store = {
+    id: "store", name: "Ada Studio", slug: "ada-studio", description: "Independent fashion seller.", contact_email: "store@example.com",
+    contact_phone_country_code: "NG", contact_phone: "+2348012345678", contact_whatsapp_country_code: "US", contact_whatsapp_phone: "+12025550123",
+    status: "active" as const
+  };
+  render(<ContactDetailsForm application={application} store={store} onCancel={() => undefined} onDone={async () => undefined} />);
+  expect(screen.getByRole("combobox", { name: "Calling code" })).toHaveValue("NG");
+  expect(screen.getByRole("textbox", { name: "Phone calls" })).toHaveValue("8012345678");
+  expect(screen.getByRole("combobox", { name: "WhatsApp country code" })).toHaveValue("US");
+  expect(screen.getByRole("textbox", { name: "WhatsApp number" })).toHaveValue("2025550123");
+  expect(screen.getByRole("button", { name: "Save contact details" })).toBeVisible();
 });

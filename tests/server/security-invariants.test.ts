@@ -36,4 +36,13 @@ describe("security invariants", () => {
     const source = readTree("../../src/");
     expect(source).not.toMatch(/SUPABASE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY|NEWSLETTER_TOKEN_SECRET/);
   });
+
+  it("limits seller contact changes to the approved owner and records an audit event", () => {
+    const sql = readFileSync(fileURLToPath(new URL("../../supabase/migrations/202609190002_seller_contact_numbers.sql", import.meta.url)), "utf8");
+    expect(sql).toMatch(/security definer\s+set search_path = ''/i);
+    expect(sql).toMatch(/owner_id = \(select auth\.uid\(\)\) and status = 'approved'/i);
+    expect(sql).toMatch(/owner_id = \(select auth\.uid\(\)\) and status = 'active'/i);
+    expect(sql).toContain("'seller.contacts_updated'");
+    expect(sql).toMatch(/revoke all on function public\.update_seller_contacts[\s\S]+from public/i);
+  });
 });

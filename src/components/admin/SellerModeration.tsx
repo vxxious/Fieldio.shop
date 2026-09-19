@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "../../lib/supabase";
 
-interface Application { id: string; kind: string; legal_name: string; business_name: string | null; country_code: string; phone: string; contact_email: string; website: string | null; identity_document_path: string; address_document_path: string; business_document_path: string | null; status: string; review_reason: string | null; submitted_at: string | null; }
+interface Application { id: string; kind: string; legal_name: string; business_name: string | null; country_code: string; phone: string; whatsapp_phone: string; contact_email: string; website: string | null; identity_document_path: string; address_document_path: string; business_document_path: string | null; status: string; review_reason: string | null; submitted_at: string | null; }
 interface ListingImage { storage_path: string; alt_text: string; position: number; }
 interface Listing { id: string; title: string; description: string; audience: string | null; condition: string; condition_notes: string | null; materials: string | null; item_reference: string | null; price: number; compare_at_price: number | null; currency: string; colors: string[]; sizes: string[]; quantity: number; weight_kg: number; status: string; review_reason: string | null; submitted_at: string | null; store: { name: string } | null; category: { name: string } | null; subcategory: { name: string } | null; images: ListingImage[]; }
 
@@ -27,7 +27,10 @@ export function SellerModeration() {
   const applications = useQuery({ queryKey: ["admin", "seller-applications"], queryFn: async () => {
     const { data, error } = await supabase!.from("seller_applications").select("*").order("submitted_at", { ascending: false, nullsFirst: false });
     if (error) throw error;
-    return data as Application[];
+    return (data as Application[]).map((application) => ({
+      ...application,
+      phone: `Calls: ${application.phone} · WhatsApp: ${application.whatsapp_phone}`
+    }));
   } });
   const listings = useQuery({ queryKey: ["admin", "seller-listings"], queryFn: async () => {
     const { data, error } = await supabase!.from("seller_listings").select("id,title,description,audience,condition,condition_notes,materials,item_reference,price,compare_at_price,currency,colors,sizes,quantity,weight_kg,status,review_reason,submitted_at,store:seller_stores(name),category:categories!seller_listings_category_id_fkey(name),subcategory:categories!seller_listings_subcategory_id_fkey(name),images:seller_listing_images(storage_path,alt_text,position)").order("submitted_at", { ascending: false, nullsFirst: false });

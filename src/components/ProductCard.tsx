@@ -45,7 +45,7 @@ export function ProductCard({ product, priority = false, quickAdd = false }: { p
             transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
           /> : <div className="image-placeholder">Photography coming soon</div>}
         </Link>
-        {(product.isNewArrival || product.inquiryOnly) && <div className="product-badges">{product.isNewArrival && <span className="product-badge">{t("product.new")}</span>}{product.inquiryOnly && <span className="product-badge">{t("product.requestOnly")}</span>}</div>}
+        {product.isNewArrival && <div className="product-badges"><span className="product-badge">{t("product.new")}</span></div>}
         <button
           className="wishlist-button"
           type="button"

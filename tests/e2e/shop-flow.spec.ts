@@ -75,6 +75,13 @@ test("homepage keeps top-level shopping grouped by gender", async ({ page }) => 
   await expect(categories.getByRole("link")).toHaveText(["All", "Women", "Men"]);
 });
 
+test("product cards and details do not show request-only labels", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByText("Request only", { exact: true })).toHaveCount(0);
+  await openFirstProduct(page);
+  await expect(page.getByText("Request only", { exact: true })).toHaveCount(0);
+});
+
 test("seller entry is clear, responsive, and returns to the protected flow after sign in", async ({ page }) => {
   await page.goto("/sell");
   await expect(page.getByRole("heading", { name: "Sell with Fieldio" })).toBeVisible();

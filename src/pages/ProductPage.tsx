@@ -157,7 +157,7 @@ export function ProductPage() {
           {product.images.length > 1 && <p className="gallery-position" aria-live="polite">{activeImage + 1} / {product.images.length}<span>{t("product.swipe")}</span></p>}
         </div>
         <section className="product-purchase" aria-labelledby="product-name">
-        <div className="product-status"><span>{product.isNewArrival ? t("nav.new") : product.collection}</span>{product.inquiryOnly && <span>{t("product.requestOnly")}</span>}</div>
+        <div className="product-status"><span>{product.isNewArrival ? t("nav.new") : product.collection}</span></div>
         <p className="product-brand">{product.brand}</p>
         <h1 id="product-name"><EditorialText text={product.name} /></h1>
         <p className="product-price product-price-large">{formatMoney(selectedVariant?.priceOverride ?? product.price, product.currency)}</p>
