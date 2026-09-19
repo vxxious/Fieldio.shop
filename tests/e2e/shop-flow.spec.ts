@@ -223,6 +223,12 @@ test("contact form recovers from a lost network connection", async ({ page }) =>
   await expect(form.locator(".form-message")).toContainText("offline");
 });
 
+test("availability requests prefill the contact form", async ({ page }) => {
+  await page.goto("/contact?subject=Availability%20alert&message=Please%20notify%20me");
+  await expect(page.getByLabel("Subject", { exact: true })).toHaveValue("Availability alert");
+  await expect(page.getByLabel("Message", { exact: true })).toHaveValue("Please notify me");
+});
+
 test("Arabic customer pages use translated copy and RTL layout", async ({ page, isMobile }) => {
   await page.route("**/api/locale", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ country: "GB", language: "en-GB" }) }));
   await page.goto("/");
@@ -332,7 +338,7 @@ test("account methods fit cleanly at desktop and mobile widths", async ({ page, 
 });
 
 test("primary public routes do not overflow the viewport", async ({ page }) => {
-  for (const path of ["/", "/collections", "/collections/women", "/collections/men", "/brands", "/search", "/wishlist", "/account", "/sell", "/personal-shopping", "/wholesale", "/contact", "/about", "/shipping", "/returns", "/privacy", "/terms", "/cookies"]) {
+  for (const path of ["/", "/collections", "/collections/women", "/collections/men", "/brands", "/search", "/wishlist", "/account", "/sell", "/personal-shopping", "/wholesale", "/contact", "/about", "/promise", "/how-it-works", "/shipping", "/returns", "/privacy", "/terms", "/cookies"]) {
     await page.goto(path, { waitUntil: "domcontentloaded" });
     await expect(page.locator("#main-content")).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1), `${path} overflows the viewport`).toBe(true);

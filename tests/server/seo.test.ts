@@ -27,6 +27,8 @@ it("serves a distinct Fieldio search identity and crawlable public sitemap", asy
   const sitemap = await sitemapResponse.text();
   expect(sitemapResponse.headers.get("content-type")).toContain("application/xml");
   expect(sitemap).toContain("https://fieldio.shop/collections/men");
+  expect(sitemap).toContain("https://fieldio.shop/promise");
+  expect(sitemap).toContain("https://fieldio.shop/how-it-works");
   expect(sitemap).not.toContain("/account");
   expect(sitemap).not.toContain("/collections/bags");
 });

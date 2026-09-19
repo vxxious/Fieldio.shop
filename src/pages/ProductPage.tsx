@@ -11,7 +11,8 @@ import { usePageMeta } from "../hooks/usePageMeta";
 import { useLocale } from "../context/LocaleContext";
 import { trackEvent } from "../lib/analytics";
 import { responsiveImage } from "../lib/images";
-import { createProductEnquiryUrl } from "../lib/whatsapp";
+import { createProductEnquiryUrl, createWhatsAppUrl } from "../lib/whatsapp";
+import { deliveryGuidance, productCondition, returnEligibility } from "../lib/product-trust";
 import { selectCartCount, selectCartSubtotal, useCartStore } from "../store/cart";
 import { useWishlistStore } from "../store/wishlist";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion";
@@ -27,7 +28,7 @@ const accordionItems: Array<{ value: string; label: TranslationKey }> = [
 ];
 
 export function ProductPage() {
-  const { formatMoney, t } = useLocale();
+  const { formatMoney, language, region, t } = useLocale();
   const { slug = "" } = useParams();
   const { product, data: catalog = emptyCatalog, isLoading, error, refetch } = useCatalogProduct(slug);
   const [variantId, setVariantId] = useState("");
@@ -131,6 +132,9 @@ export function ProductPage() {
   const selectedLabel = selectedVariant?.size ?? selectedVariant?.name ?? t("product.selectSize");
   const bagTotalLabel = product.price === null || bagSubtotal === null ? t("cart.confirm") : formatMoney(bagSubtotal, product.currency);
   const availableSizes = product.variants.flatMap((variant) => variant.size ? [variant.size] : []);
+  const unavailableSizes = product.variants.flatMap((variant) => variant.inventory === 0 && variant.size ? [variant.size] : []);
+  const delivery = deliveryGuidance(region.code);
+  const destination = new Intl.DisplayNames([language.locale], { type: "region" }).of(region.code) ?? region.code;
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -171,13 +175,21 @@ export function ProductPage() {
           <button className="icon-button wishlist-product" type="button" aria-label={t(wished ? "product.removeWishlist" : "product.addWishlist")} aria-pressed={wished} onClick={() => toggleWishlist(product.id)}><HeartIcon fill={wished ? "currentColor" : "none"} /></button>
         </div>
         <a className="whatsapp-enquiry" target="_blank" rel="noreferrer" href={createProductEnquiryUrl(product.name, product.sku, window.location.href)}>{t("product.askWhatsApp")}</a>
+        <div className="stock-request-actions"><span>Need another size?</span><a target="_blank" rel="noreferrer" href={createWhatsAppUrl(`Hello Fieldio, please notify me when ${product.name}${unavailableSizes.length ? ` in ${unavailableSizes.join(", ")}` : " in my preferred size"} is available. Product: ${window.location.href}`)}>Request on WhatsApp</a><Link to={`/contact?subject=${encodeURIComponent(`Availability alert · ${product.name}`)}&message=${encodeURIComponent(`Please notify me when ${product.name} is available in my preferred size. Product: ${window.location.href}`)}`}>Request by email</Link></div>
         <Accordion type="single" defaultValue="Description" collapsible className="product-accordions">
           {accordionItems.map((item) => {
             const content = item.value === "Description" ? product.description : item.value === "Size & fit" ? availableSizes.length ? `${t("product.availableSizes")} ${availableSizes.join(", ")}. ${t("product.exactFit")}` : t("product.fitUnknown") : item.value === "Materials & care" ? `${product.materials} ${product.care}` : t("product.shippingCopy");
             return <AccordionItem value={item.value} key={item.value}><AccordionTrigger>{t(item.label)}</AccordionTrigger><AccordionContent>{content}</AccordionContent></AccordionItem>;
           })}
         </Accordion>
-        <div className="product-assurance" aria-label={t("product.assurance")}><p><strong>{t("product.condition")}</strong><span>{t("product.confirmedBeforePayment")}</span></p><p><strong>{t("product.authenticity")}</strong><span>{t("product.authenticityCopy")}</span></p><p><strong>{t("product.delivery")}</strong><span>{t("product.deliveryCopy")}</span></p></div>
+        <div className="product-assurance" aria-label={t("product.assurance")}>
+          <p><strong>{t("product.condition")}</strong><span>{productCondition(product)}</span></p>
+          <p><strong>{t("product.authenticity")}</strong><span>{product.sellerVerified ? "Seller identity and listing reviewed by Fieldio." : t("product.authenticityCopy")}</span></p>
+          {product.sellerVerified && product.sellerStoreSlug && <p><strong>Seller</strong><span><Link className="text-link" to={`/stores/${product.sellerStoreSlug}`}>{product.sellerStoreName || product.brand}</Link>{product.sellerCountryCode ? ` · ${product.sellerCountryCode}` : ""}</span></p>}
+          <p><strong>{t("product.delivery")}</strong><span>{destination} · {delivery.estimate} Sourcing time is confirmed separately.</span></p>
+          <p><strong>Duties</strong><span>{delivery.duties}</span></p>
+          <p><strong>Returns</strong><span>{returnEligibility}</span></p>
+        </div>
         </section>
       </div>
       <section className="product-editorial-details" aria-labelledby="details-fit-title">

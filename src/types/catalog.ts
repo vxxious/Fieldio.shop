@@ -47,6 +47,11 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   inquiryOnly?: boolean;
+  condition?: string | null;
+  sellerVerified?: boolean;
+  sellerStoreName?: string | null;
+  sellerStoreSlug?: string | null;
+  sellerCountryCode?: string | null;
 }
 
 export interface CartItem {

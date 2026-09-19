@@ -15,6 +15,7 @@ import type { CartItem } from "../types/catalog";
 import { catalogPreview } from "../lib/config";
 import { supabase } from "../lib/supabase";
 import { useSession } from "../hooks/useSession";
+import { deliveryGuidance, returnEligibility } from "../lib/product-trust";
 
 const checkoutSchema = z.object({
   name: z.string().trim().min(2, "Enter your full name."),
@@ -52,6 +53,7 @@ export function CheckoutPage() {
   const requestAttempt = useRef({ fingerprint: "", key: "" });
   const { session } = useSession();
   const [draft] = useState(readCheckoutDraft);
+  const delivery = deliveryGuidance(region.code);
   const { control, register, handleSubmit, reset, setFocus, formState: { errors, isSubmitting, isDirty } } = useForm<CheckoutValues>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: { name: "", phone: "", email: "", shippingAddress: "", note: "", consent: false, ...draft }
@@ -152,7 +154,12 @@ export function CheckoutPage() {
             <section>
               <h3>{t("checkout.destination")}</h3>
               <strong>{getRegionName(region.code, language.locale)} · {region.currency}</strong>
-              <p>{t(region.code === "GB" ? "checkout.ukShipping" : "checkout.internationalShipping")}</p>
+              <p>{delivery.estimate} Sourcing time, carrier, and final cost are confirmed before payment.</p>
+              <p>{delivery.duties}</p>
+            </section>
+            <section>
+              <h3>Returns</h3>
+              <p>{returnEligibility}</p>
             </section>
             <section>
               <h3>{t("checkout.paymentTitle")}</h3>

@@ -25,12 +25,13 @@ const copy: Record<string, { title: TranslationKey; intro: TranslationKey; point
 };
 
 export function ServicePage() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { t } = useLocale();
   const page = copy[pathname] ?? copy["/contact"]!;
   const isWholesale = pathname === "/wholesale";
   const [status, setStatus] = useState<string | null>(null);
-  const { register, handleSubmit, reset, setFocus, formState: { errors, isSubmitting } } = useForm<EnquiryValues>({ resolver: zodResolver(enquirySchema) });
+  const params = new URLSearchParams(search);
+  const { register, handleSubmit, reset, setFocus, formState: { errors, isSubmitting } } = useForm<EnquiryValues>({ resolver: zodResolver(enquirySchema), defaultValues: { subject: (params.get("subject") ?? "").slice(0, 160), message: (params.get("message") ?? "").slice(0, 2000) } });
   usePageMeta({ title: `${t(page.title).replace(".", "")} | Fieldio`, description: t(page.intro), canonical: `https://fieldio.shop${pathname}` });
 
   const onSubmit = async (values: EnquiryValues) => {

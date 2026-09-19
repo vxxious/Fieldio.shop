@@ -19,6 +19,11 @@ export async function GET(request: Request) {
         if (data.length < 500) break;
       }
     }
+    if (db) {
+      const { data: stores, error } = await db.from("products").select("seller_store_slug,updated_at").eq("status", "active").eq("seller_verified", true).not("seller_store_slug", "is", null).order("seller_store_slug");
+      if (error) throw error;
+      stores.forEach(({ seller_store_slug, updated_at }) => { if (seller_store_slug) paths.set(`/stores/${seller_store_slug}`, updated_at); });
+    }
     const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[...paths].map(([path, lastmod]) => `  <url><loc>${escapeMarkup(siteOrigin() + path)}</loc>${lastmod ? `<lastmod>${escapeMarkup(lastmod)}</lastmod>` : ""}</url>`).join("\n")}\n</urlset>`;
     return new Response(xml, { headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, s-maxage=300" } });
   } catch { return new Response("Sitemap temporarily unavailable", { status: 503 }); }

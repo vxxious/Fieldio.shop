@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   let structured: Record<string, unknown> = pathname === "/" ? { "@context": "https://schema.org", "@graph": [organization, { "@type": "WebSite", "@id": `${origin}/#website`, url: origin, name: "Fieldio", alternateName: "Fieldio Shop", publisher: { "@id": `${origin}/#organization` } }] } : { "@context": "https://schema.org", ...organization };
   try {
     const db = publicClient();
-    const match = /^\/(products|collections|brands)\/([a-z0-9-]+)$/.exec(pathname);
+    const match = /^\/(products|collections|brands|stores)\/([a-z0-9-]+)$/.exec(pathname);
     if (match?.[1] === "products") {
       const result = db ? await db.from("products").select("name,sku,seo_title,seo_description,short_description,description,price,currency,brand:brands(name),images:product_images(public_url,storage_path,alt_text,position)").eq("slug", match[2]!).eq("status", "active").lte("published_at", new Date().toISOString()).maybeSingle() : null;
       if (result?.error) throw result.error;
@@ -41,6 +41,15 @@ export async function GET(request: Request) {
       const name = result?.data?.name || match[2]!.replaceAll("-", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
       title = `${name} sourcing | Fieldio`; description = result?.data?.description || `Request ${name} pieces through Fieldio personal shopping and worldwide delivery support.`;
       structured = { "@context": "https://schema.org", "@type": "CollectionPage", name: title, description, url: `${origin}${pathname}` };
+    } else if (match?.[1] === "stores") {
+      const result = db ? await db.from("products").select("seller_store_name,seller_country_code").eq("seller_store_slug", match[2]!).eq("seller_verified", true).eq("status", "active").limit(1).maybeSingle() : null;
+      if (result?.error) throw result.error;
+      if (!result?.data) { status = 404; title = "Seller store not found | Fieldio"; }
+      else {
+        title = `${result.data.seller_store_name} | Verified Fieldio seller`;
+        description = `Shop approved listings from ${result.data.seller_store_name} on Fieldio${result.data.seller_country_code ? `, based in ${result.data.seller_country_code}` : ""}.`;
+        structured = { "@context": "https://schema.org", "@type": "CollectionPage", name: title, description, url: `${origin}${pathname}` };
+      }
     }
     const privateRoute = /^\/(account|admin|checkout|wishlist|search)(\/|$)/.test(pathname);
     if (!publicPages[pathname] && !match && !privateRoute) status = 404;

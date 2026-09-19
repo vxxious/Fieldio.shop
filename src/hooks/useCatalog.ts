@@ -20,6 +20,11 @@ interface CatalogRow {
   is_new_arrival: boolean;
   is_sale: boolean;
   inquiry_only: boolean;
+  condition: string | null;
+  seller_verified: boolean;
+  seller_store_name: string | null;
+  seller_store_slug: string | null;
+  seller_country_code: string | null;
   tags: string[];
   seo_title: string | null;
   seo_description: string | null;
@@ -58,7 +63,12 @@ function toProduct(row: CatalogRow): Product {
     seoDescription: row.seo_description ?? row.short_description,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    inquiryOnly: row.inquiry_only
+    inquiryOnly: row.inquiry_only,
+    condition: row.condition,
+    sellerVerified: row.seller_verified,
+    sellerStoreName: row.seller_store_name,
+    sellerStoreSlug: row.seller_store_slug,
+    sellerCountryCode: row.seller_country_code
   };
 }
 
@@ -66,7 +76,7 @@ async function fetchCatalog(): Promise<Product[]> {
   if (!supabase) return catalogPreview ? previewProducts : [];
   const { data, error } = await supabase
     .from("products")
-    .select("id,sku,slug,name,description,short_description,price,currency,materials,care_information,featured,is_new_arrival,is_sale,inquiry_only,tags,seo_title,seo_description,created_at,updated_at,brand:brands(name),category:categories(name),images:product_images(id,public_url,storage_path,alt_text,position),variants:product_variants(id,sku,name,size,color,price_override,is_active,inventory(quantity,reserved_quantity,allow_backorder)),collection_products(collection:collections(name,slug))")
+    .select("id,sku,slug,name,description,short_description,price,currency,materials,care_information,featured,is_new_arrival,is_sale,inquiry_only,condition,seller_verified,seller_store_name,seller_store_slug,seller_country_code,tags,seo_title,seo_description,created_at,updated_at,brand:brands(name),category:categories(name),images:product_images(id,public_url,storage_path,alt_text,position),variants:product_variants(id,sku,name,size,color,price_override,is_active,inventory(quantity,reserved_quantity,allow_backorder)),collection_products(collection:collections(name,slug))")
     .eq("status", "active")
     .order("published_at", { ascending: false });
   if (error) throw error;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { listingSchema, subcategoriesFor } from "../../src/pages/SellerPage";
+import { listingSchema, requiresDefectEvidence, subcategoriesFor } from "../../src/pages/SellerPage";
 
 const validListing = {
   title: "Tailored wool jacket",
@@ -34,5 +34,11 @@ describe("seller listing details", () => {
       { id: "33333333-3333-4333-8333-333333333333", parent_id: "44444444-4444-4444-8444-444444444444", name: "Boots" }
     ];
     expect(subcategoriesFor(categories, validListing.category_id).map(({ name }) => name)).toEqual(["Jackets"]);
+  });
+
+  it("requires defect evidence for visibly worn condition grades", () => {
+    expect(requiresDefectEvidence("good")).toBe(true);
+    expect(requiresDefectEvidence("fair")).toBe(true);
+    expect(requiresDefectEvidence("excellent")).toBe(false);
   });
 });

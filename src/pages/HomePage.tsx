@@ -88,7 +88,7 @@ export function HomePage() {
           <div className="service-copy">
             <h2><EditorialText text={t("home.personalTitle")} /></h2>
             <p>Share a product link, screenshot, name, or brief. Fieldio sources across luxury, sportswear, accessories, and everyday fashion, then coordinates worldwide delivery.</p>
-            <div><Button asChild size="lg" className="primary-button"><Link to="/personal-shopping">{t("home.howItWorks")}</Link></Button><a href={createWhatsAppUrl("Hello Fieldio, I would like to speak with a personal shopper.")} target="_blank" rel="noreferrer" className="text-link">{t("home.chat")}</a></div>
+            <div><Button asChild size="lg" className="primary-button"><Link to="/how-it-works">{t("home.howItWorks")}</Link></Button><a href={createWhatsAppUrl("Hello Fieldio, I would like to speak with a personal shopper.")} target="_blank" rel="noreferrer" className="text-link">{t("home.chat")}</a></div>
           </div>
         </section>
       </Reveal>

@@ -14,6 +14,7 @@ const NotFoundPage = lazy(() => import("./pages/NotFoundPage").then((module) => 
 const ProductPage = lazy(() => import("./pages/ProductPage").then((module) => ({ default: module.ProductPage })));
 const SearchPage = lazy(() => import("./pages/SearchPage").then((module) => ({ default: module.SearchPage })));
 const SellerPage = lazy(() => import("./pages/SellerPage").then((module) => ({ default: module.SellerPage })));
+const StorePage = lazy(() => import("./pages/StorePage").then((module) => ({ default: module.StorePage })));
 const ServicePage = lazy(() => import("./pages/ServicePage").then((module) => ({ default: module.ServicePage })));
 const WishlistPage = lazy(() => import("./pages/WishlistPage").then((module) => ({ default: module.WishlistPage })));
 
@@ -36,8 +37,11 @@ export const router = createBrowserRouter([
       { path: "/contact", element: <ServicePage /> },
       { path: "/account", element: <AccountPage /> },
       { path: "/sell", element: <SellerPage /> },
+      { path: "/stores/:slug", element: <StorePage /> },
       { path: "/admin", element: <AdminPage /> },
       { path: "/about", element: <ContentPage /> },
+      { path: "/promise", element: <ContentPage /> },
+      { path: "/how-it-works", element: <ContentPage /> },
       { path: "/shipping", element: <ContentPage /> },
       { path: "/returns", element: <ContentPage /> },
       { path: "/privacy", element: <ContentPage /> },

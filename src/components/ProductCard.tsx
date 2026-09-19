@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { trackEvent } from "../lib/analytics";
 import { useLocale } from "../context/LocaleContext";
 import { responsiveImage } from "../lib/images";
+import { productCondition, productSizeSummary } from "../lib/product-trust";
 import { useCartStore } from "../store/cart";
 import { useWishlistStore } from "../store/wishlist";
 import type { Product } from "../types/catalog";
@@ -44,7 +45,7 @@ export function ProductCard({ product, priority = false, quickAdd = false }: { p
             transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
           /> : <div className="image-placeholder">Photography coming soon</div>}
         </Link>
-        {product.isNewArrival && <span className="product-badge">{t("product.new")}</span>}
+        {(product.isNewArrival || product.inquiryOnly) && <div className="product-badges">{product.isNewArrival && <span className="product-badge">{t("product.new")}</span>}{product.inquiryOnly && <span className="product-badge">{t("product.requestOnly")}</span>}</div>}
         <button
           className="wishlist-button"
           type="button"
@@ -56,11 +57,15 @@ export function ProductCard({ product, priority = false, quickAdd = false }: { p
         </button>
       </div>
       <div className="product-card-info">
-        <Link to={`/products/${product.slug}`}>
-          <p className="product-brand">{product.brand}</p>
-          <h3>{product.name}</h3>
-          <p className="product-price">{formatMoney(product.price, product.currency)}</p>
-        </Link>
+        <div className="product-card-copy">
+          <Link to={`/products/${product.slug}`}>
+            <p className="product-brand">{product.brand}</p>
+            <h3>{product.name}</h3>
+            <p className="product-price">{formatMoney(product.price, product.currency)}</p>
+          </Link>
+          <p className="product-card-options">{productSizeSummary(product)}{product.condition ? ` · ${productCondition(product)}` : ""}</p>
+          {product.sellerVerified && product.sellerStoreSlug && <Link className="product-card-seller" to={`/stores/${product.sellerStoreSlug}`}>Verified seller{product.sellerCountryCode ? ` · ${product.sellerCountryCode}` : ""}</Link>}
+        </div>
         {quickAdd ? (
           <div className="related-quick-add">
             {singleVariant ? <button type="button" className="quick-action" disabled={singleVariant.inventory === 0} onClick={(event) => addVariant(singleVariant, event.currentTarget)}>{singleVariant.inventory === 0 ? t("product.unavailable") : quickLabel}</button> : <>
