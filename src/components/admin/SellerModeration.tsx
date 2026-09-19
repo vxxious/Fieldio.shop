@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { authenticatedPost } from "../../lib/authenticated-api";
 import { supabase } from "../../lib/supabase";
 
 interface Application { id: string; kind: string; legal_name: string; business_name: string | null; country_code: string; phone: string; whatsapp_phone: string; contact_email: string; website: string | null; identity_document_path: string; address_document_path: string; business_document_path: string | null; status: string; review_reason: string | null; submitted_at: string | null; }
@@ -42,10 +43,11 @@ export function SellerModeration() {
     const reason = reasons[id]?.trim() || null;
     if (decision !== "approved" && !reason) { setStatus("Add a clear reason before rejecting or suspending a seller."); return; }
     setWorking(id); setStatus("");
-    const { error } = await supabase!.rpc("review_seller_application", { p_application_id: id, p_decision: decision, p_reason: reason });
-    setWorking("");
-    if (error) { setStatus(error.message); return; }
-    setStatus(`Seller ${decision}.`); await cache.invalidateQueries({ queryKey: ["admin", "seller-applications"] });
+    try {
+      await authenticatedPost("/api/seller-application-review", { applicationId: id, decision, reason });
+      setStatus(`Seller ${decision}.`); await cache.invalidateQueries({ queryKey: ["admin", "seller-applications"] });
+    } catch (error) { setStatus(error instanceof Error ? error.message : "The seller review could not be completed."); }
+    finally { setWorking(""); }
   }
 
   async function reviewListing(listing: Listing, decision: "approved" | "rejected" | "suspended") {
@@ -53,12 +55,7 @@ export function SellerModeration() {
     if (decision !== "approved" && !reason) { setListingNotices((current) => ({ ...current, [listing.id]: { message: "Add a clear reason before rejecting or suspending this listing.", error: true } })); return; }
     setWorking(listing.id); setListingNotices((current) => ({ ...current, [listing.id]: { message: decision === "approved" ? "Publishing product and images…" : "Saving review…" } }));
     try {
-      const { data: session } = await supabase!.auth.getSession();
-      const token = session.session?.access_token;
-      if (!token) throw new Error("Your session has expired. Sign in again.");
-      const response = await fetch("/api/seller-listing-review", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ listingId: listing.id, decision, reason }) });
-      const result = await response.json() as { error?: string };
-      if (!response.ok) throw new Error(result.error || "The listing review could not be completed.");
+      await authenticatedPost("/api/seller-listing-review", { listingId: listing.id, decision, reason });
       setListingNotices((current) => ({ ...current, [listing.id]: { message: `Listing ${decision}.` } }));
       await Promise.all([cache.invalidateQueries({ queryKey: ["admin", "seller-listings"] }), cache.invalidateQueries({ queryKey: ["catalog"] })]);
     } catch (error) { setListingNotices((current) => ({ ...current, [listing.id]: { message: error instanceof Error ? error.message : "The listing review could not be completed.", error: true } })); }

@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { sendTransactionalEmail } from "./_lib/email.js";
 import { checkRateLimit, getAdminSupabase, handleApiError, json, readValidatedJson } from "./_lib/server.js";
 
 const schema = z.object({
@@ -60,6 +61,16 @@ export async function POST(request: Request): Promise<Response> {
       if (error.message.includes("Not authorised")) return json({ error: "You are not authorised to review listings." }, 403);
       throw error;
     }
+    const listing = data as { store_id?: string; title?: string; review_reason?: string | null };
+    const { data: store } = listing.store_id ? await admin.from("seller_stores").select("contact_email").eq("id", listing.store_id).maybeSingle() : { data: null };
+    const approved = input.decision === "approved";
+    await sendTransactionalEmail({
+      to: store?.contact_email ?? "",
+      subject: approved ? "Your Fieldio listing is live" : `Fieldio listing ${input.decision}`,
+      heading: approved ? `${listing.title ?? "Your product"} is now live` : `${listing.title ?? "Your product"} was ${input.decision}`,
+      message: approved ? "Customers can now discover the product in the Fieldio catalogue." : "Sign in to review the decision and update the listing if required.",
+      details: listing.review_reason ? [{ label: "Reason", value: listing.review_reason }] : []
+    });
     return json({ listing: data });
   } catch (error) { return handleApiError(error); }
 }

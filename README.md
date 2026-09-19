@@ -36,7 +36,7 @@ The browser reads only active catalog rows permitted by RLS. Order requests are 
 
 ## Email and analytics
 
-Newsletter subscribers are stored in Supabase. To also sync confirmed subscribers with Resend, configure `RESEND_API_KEY` and `RESEND_AUDIENCE_ID` in the server environment. `VITE_ANALYTICS_ID` is a deployment placeholder for the selected consent-aware analytics provider; no personal data is sent by the included event adapter.
+Transactional email uses server-only `RESEND_API_KEY`, `RESEND_FROM`, and `FIELDIO_NOTIFICATION_EMAIL` variables. Newsletter confirmation additionally requires `NEWSLETTER_TOKEN_SECRET` and `APP_URL`. `VITE_ANALYTICS_ID` is a deployment placeholder for the selected consent-aware analytics provider; no personal data is sent by the included event adapter.
 
 ## Commands
 

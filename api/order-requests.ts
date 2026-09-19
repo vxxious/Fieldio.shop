@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { notificationEmail, sendTransactionalEmail } from "./_lib/email.js";
 import { checkRateLimit, getAdminSupabase, handleApiError, json, readValidatedJson } from "./_lib/server.js";
 
 const schema = z.object({
@@ -41,6 +42,13 @@ export async function POST(request: Request): Promise<Response> {
       if (error.message.includes("MIXED_CURRENCY")) return json({ error: "Please request items in one currency at a time." }, 409);
       throw error;
     }
+    const response = data as { reference?: unknown; items?: unknown } | null;
+    const reference = typeof response?.reference === "string" ? response.reference : "Pending";
+    const itemCount = Array.isArray(response?.items) ? response.items.length : input.items.length;
+    await Promise.all([
+      sendTransactionalEmail({ to: input.customer.email, subject: `Fieldio order request ${reference}`, heading: "Your order request is with Fieldio", message: "We will confirm availability, shipping, and payment before the order is final.", details: [{ label: "Reference", value: reference }, { label: "Items", value: String(itemCount) }] }),
+      sendTransactionalEmail({ to: notificationEmail(), replyTo: input.customer.email, subject: `New Fieldio order request ${reference}`, heading: "New order request", message: "A customer has submitted an order request.", details: [{ label: "Reference", value: reference }, { label: "Customer", value: input.customer.name }, { label: "Email", value: input.customer.email }, { label: "Phone", value: input.customer.phone }, { label: "Ship to", value: input.customer.shippingAddress }, { label: "Items", value: String(itemCount) }, ...(input.customer.note ? [{ label: "Note", value: input.customer.note }] : [])] })
+    ]);
     return json(data, 201);
   } catch (error) { return handleApiError(error); }
 }

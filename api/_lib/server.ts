@@ -60,7 +60,24 @@ export function getAdminSupabase(): SupabaseClient | null {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
+export async function getAuthenticatedSupabase(request: Request): Promise<{ admin: SupabaseClient; client: SupabaseClient }> {
+  const admin = getAdminSupabase();
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!admin || !url || !key) throw new Error("SERVER_UNCONFIGURED");
+  const token = request.headers.get("authorization")?.match(/^Bearer (.+)$/i)?.[1];
+  if (!token || token.length > 8192) throw new Error("AUTH_REQUIRED");
+  const { data, error } = await admin.auth.getUser(token);
+  if (error || !data.user) throw new Error("AUTH_REQUIRED");
+  return {
+    admin,
+    client: createClient(url, key, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false, autoRefreshToken: false } })
+  };
+}
+
 export function handleApiError(error: unknown): Response {
+  if (error instanceof Error && error.message === "AUTH_REQUIRED") return json({ error: "Your session has expired. Sign in again." }, 401);
+  if (error instanceof Error && error.message === "SERVER_UNCONFIGURED") return json({ error: "This service is temporarily unavailable." }, 503);
   if (error instanceof Error && error.message === "CROSS_SITE_REQUEST") return json({ error: "Cross-site requests are not allowed." }, 403);
   if (error instanceof SyntaxError) return json({ error: "Invalid JSON body." }, 400);
   if (error instanceof Error && error.message === "BODY_TOO_LARGE") return json({ error: "The request is too large." }, 413);
