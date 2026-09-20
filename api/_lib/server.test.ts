@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { handleApiError, readValidatedJson } from "./server";
+import { handleApiError, readValidatedJson } from "./server.js";
 import { z } from "zod";
 
 const schema = z.object({ value: z.string() });

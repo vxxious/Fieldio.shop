@@ -53,7 +53,6 @@ export const listingSchema = z.object({
 type ListingValues = z.infer<typeof listingSchema>;
 
 const splitOptions = (value: string) => value.split(",").map((item) => item.trim()).filter(Boolean);
-const slugify = (value: string) => value.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
 export const subcategoriesFor = (categories: Category[], categoryId: string | undefined) => categories.filter((item) => item.parent_id === categoryId);
 export const requiresDefectEvidence = (condition: ListingValues["condition"]) => condition === "good" || condition === "fair";
 
@@ -119,7 +118,7 @@ function VerificationForm({ userId, email, application, defaultCountryCode, onDo
   </section>;
 }
 
-function StoreForm({ userId, application, onDone }: { userId: string; application: SellerApplication; onDone: () => Promise<void> }) {
+function StoreForm({ application, onDone }: { application: SellerApplication; onDone: () => Promise<void> }) {
   const [status, setStatus] = useState("");
   const { register, handleSubmit, setFocus, formState: { errors, isSubmitting } } = useForm<StoreValues>({ resolver: zodResolver(storeSchema), defaultValues: {
     contact_email: application.contact_email, phone_country_code: application.phone_country_code, phone: nationalPhone(application.phone_country_code, application.phone),
@@ -127,10 +126,12 @@ function StoreForm({ userId, application, onDone }: { userId: string; applicatio
   } });
   async function submit(values: StoreValues) {
     setStatus("");
-    const slug = `${slugify(values.name) || "store"}-${userId.slice(0, 6)}`;
-    const { error } = await supabase!.from("seller_stores").insert({ owner_id: userId, name: values.name, description: values.description, contact_email: values.contact_email, contact_phone_country_code: values.phone_country_code, contact_phone: internationalPhone(values.phone_country_code, values.phone), contact_whatsapp_country_code: values.whatsapp_country_code, contact_whatsapp_phone: internationalPhone(values.whatsapp_country_code, values.whatsapp_phone), slug });
-    if (error) { setStatus(error.message); return; }
-    await onDone();
+    try {
+      await authenticatedPost("/api/seller", { action: "create-store", name: values.name, description: values.description, contactEmail: values.contact_email, phoneCountryCode: values.phone_country_code, phone: internationalPhone(values.phone_country_code, values.phone), whatsappCountryCode: values.whatsapp_country_code, whatsappPhone: internationalPhone(values.whatsapp_country_code, values.whatsapp_phone) });
+      await onDone();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Your store could not be created. Try again.");
+    }
   }
   return <section className="seller-panel"><header><StoreIcon /><h1>Create your store</h1><p>Your approved store name becomes the brand shown on your products.</p></header><form className="seller-form" onSubmit={handleSubmit(submit, (formErrors) => setFocus(Object.keys(formErrors)[0] as keyof StoreValues))} noValidate>
     <label><span>Store or brand name</span><input {...register("name")} aria-invalid={!!errors.name} /><FieldError id="store-name-error" message={errors.name?.message} /></label>
@@ -273,7 +274,7 @@ export function SellerPage() {
   if (!application || application.status === "draft" || application.status === "rejected") return <VerificationForm userId={session.user.id} email={session.user.email ?? ""} application={application} defaultCountryCode={region.code} onDone={refresh} />;
   if (application.status === "pending") return <div className="seller-gate"><CheckSealIcon /><h1>Verification in review</h1><p>We are checking your identity and seller details. You will be able to create your store after approval.</p><Link className="text-link" to="/account">Return to account</Link></div>;
   if (application.status === "suspended") return <div className="seller-gate"><h1>Seller access paused</h1><p>{application.review_reason || "Contact Fieldio for help with your seller account."}</p><Link className="primary-button" to="/contact">Contact Fieldio</Link></div>;
-  if (!store) return <StoreForm userId={session.user.id} application={application} onDone={refresh} />;
+  if (!store) return <StoreForm application={application} onDone={refresh} />;
   if (store.status === "suspended") return <div className="seller-gate"><h1>Store access paused</h1><p>Contact Fieldio to review your store status.</p><Link className="primary-button" to="/contact">Contact Fieldio</Link></div>;
   if (submittedTitle) return <SubmittedState title={submittedTitle} onAdd={() => { setSubmittedTitle(""); setMode("listing"); }} />;
   if (mode === "contacts") return <ContactDetailsForm application={application} store={store} onCancel={() => setMode("dashboard")} onDone={refresh} />;

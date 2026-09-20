@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { parseAdminValues, type AdminResource } from "../../lib/admin-resources";
+import { authenticatedPost } from "../../lib/authenticated-api";
 import { supabase } from "../../lib/supabase";
 import { IMAGE_UPLOAD_TYPES, uploadExtension, validateUpload } from "../../lib/uploads";
 
@@ -99,9 +100,10 @@ export function AdminWorkspace({ resource, onDirtyChange }: { resource: AdminRes
       const payload = parseAdminValues(resource, values);
       const key = resource.key ?? "id";
       const id = editing?.[key];
+      let savedStatus = "Saved.";
       if (id && resource.table === "order_requests") {
-        const result = await supabase!.rpc("update_order_request_status", { p_order_id: id, p_status: payload.status });
-        if (result.error) throw result.error;
+        const result = await authenticatedPost<{ emailDelivered: boolean }>("/api/order-status", { orderId: id, status: payload.status });
+        if (!result.emailDelivered) savedStatus = "Order updated, but the customer email could not be sent.";
       } else if (id) {
         let mutation = supabase!.from(resource.table).update(payload).eq(key, id);
         if (resource.table === "collection_products") mutation = mutation.eq("collection_id", editing?.collection_id);
@@ -112,7 +114,7 @@ export function AdminWorkspace({ resource, onDirtyChange }: { resource: AdminRes
         if (result.error) throw result.error;
       }
       await Promise.all([cache.invalidateQueries({ queryKey: ["admin", resource.table] }), cache.invalidateQueries({ queryKey: ["catalog"] })]);
-      setEditing(null); setStatus("Saved.");
+      setEditing(null); setStatus(savedStatus);
     } catch (error) {
       if (error instanceof z.ZodError) {
         const firstField = error.issues.find((issue) => typeof issue.path[0] === "string")?.path[0];

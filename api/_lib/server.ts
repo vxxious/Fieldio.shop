@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { z } from "zod";
 import { createHmac } from "node:crypto";
 
@@ -60,7 +60,7 @@ export function getAdminSupabase(): SupabaseClient | null {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-export async function getAuthenticatedSupabase(request: Request): Promise<{ admin: SupabaseClient; client: SupabaseClient }> {
+export async function getAuthenticatedSupabase(request: Request): Promise<{ admin: SupabaseClient; client: SupabaseClient; user: User }> {
   const admin = getAdminSupabase();
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -71,7 +71,8 @@ export async function getAuthenticatedSupabase(request: Request): Promise<{ admi
   if (error || !data.user) throw new Error("AUTH_REQUIRED");
   return {
     admin,
-    client: createClient(url, key, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false, autoRefreshToken: false } })
+    client: createClient(url, key, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false, autoRefreshToken: false } }),
+    user: data.user
   };
 }
 

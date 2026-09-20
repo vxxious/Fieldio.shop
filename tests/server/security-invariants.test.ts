@@ -27,9 +27,10 @@ describe("security invariants", () => {
     const tables = [...sql.matchAll(/create table(?: if not exists)? public\.([a-z_]+)/gi)].map((match) => match[1]!);
     const secured = new Set([...sql.matchAll(/alter table public\.([a-z_]+) enable row level security/gi)].map((match) => match[1]!));
     const policies = new Set([...sql.matchAll(/create policy [^\n]+ on public\.([a-z_]+)/gi)].map((match) => match[1]!));
+    const serverOnlyTables = new Set(["api_rate_limits", "notification_deliveries"]);
 
     expect(tables.filter((table) => !secured.has(table))).toEqual([]);
-    expect(tables.filter((table) => table !== "api_rate_limits" && !policies.has(table))).toEqual([]);
+    expect(tables.filter((table) => !serverOnlyTables.has(table) && !policies.has(table))).toEqual([]);
   });
 
   it("keeps privileged environment variable names out of frontend source", () => {

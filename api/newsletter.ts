@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { sendTransactionalEmail } from "./_lib/email.js";
 import { checkRateLimit, getAdminSupabase, handleApiError, json, readValidatedJson } from "./_lib/server.js";
-import { emailRequest, preferenceToken } from "./_lib/newsletter.js";
+import { preferenceToken } from "./_lib/newsletter.js";
 const schema = z.object({ email: z.string().trim().email().max(254), consent: z.literal(true) });
 
 export async function POST(request: Request): Promise<Response> {
@@ -18,7 +19,8 @@ export async function POST(request: Request): Promise<Response> {
       const token = preferenceToken(data.id, "subscribe");
       const url = new URL("/api/newsletter-preferences", process.env.APP_URL);
       url.searchParams.set("token", token);
-      await emailRequest("/emails", { from: process.env.RESEND_FROM, to: [normalized], subject: "Confirm your Fieldio subscription", text: "Confirm your email to receive the Fieldio edit, new arrivals, and selected updates.\n\n" + url.href + "\n\nIf you did not request this, ignore this email." });
+      const sent = await sendTransactionalEmail({ to: normalized, subject: "Confirm your Fieldio subscription", heading: "Confirm your subscription", message: "Confirm your email to receive the Fieldio edit, new arrivals, and selected updates.", action: { label: "Confirm subscription", url: url.href } });
+      if (!sent) throw new Error("EMAIL_PROVIDER_UNAVAILABLE");
     }
     return json({ message: "If confirmation is needed, a link has been sent to your email." }, 202);
   } catch (error) { return handleApiError(error); }
