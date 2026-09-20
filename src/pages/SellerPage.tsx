@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { z } from "zod";
@@ -17,7 +17,8 @@ type ReviewStatus = "draft" | "pending" | "approved" | "rejected" | "suspended";
 type ListingStatus = ReviewStatus | "archived";
 interface SellerApplication { id: string; kind: "seller" | "vendor"; legal_name: string; business_name: string | null; country_code: string; phone_country_code: string; phone: string; whatsapp_country_code: string; whatsapp_phone: string; contact_email: string; website: string | null; identity_document_path: string; address_document_path: string; business_document_path: string | null; status: ReviewStatus; review_reason: string | null; }
 interface Store { id: string; name: string; slug: string; description: string; contact_email: string; contact_phone_country_code: string; contact_phone: string; contact_whatsapp_country_code: string; contact_whatsapp_phone: string; status: "active" | "suspended"; }
-interface Listing { id: string; title: string; price: number; currency: string; status: ListingStatus; review_reason: string | null; published_product_id: string | null; created_at: string; }
+interface ListingImage { id: string; storage_path: string; alt_text: string; position: number; preview_url: string; }
+interface Listing { id: string; title: string; description: string; audience: ListingValues["audience"]; category_id: string; subcategory_id: string; condition: ListingValues["condition"]; condition_notes: string; materials: string; item_reference: string | null; price: number; compare_at_price: number | null; currency: string; colors: string[]; sizes: string[]; quantity: number; weight_kg: number; authenticity_confirmed: boolean; status: ListingStatus; review_reason: string | null; published_product_id: string | null; created_at: string; images: ListingImage[]; }
 interface Category { id: string; parent_id: string | null; name: string; }
 
 const callingCodeOptions = phoneCountryOptions();
@@ -55,6 +56,12 @@ type ListingValues = z.infer<typeof listingSchema>;
 const splitOptions = (value: string) => value.split(",").map((item) => item.trim()).filter(Boolean);
 export const subcategoriesFor = (categories: Category[], categoryId: string | undefined) => categories.filter((item) => item.parent_id === categoryId);
 export const requiresDefectEvidence = (condition: ListingValues["condition"]) => condition === "good" || condition === "fair";
+export const listingValuesFor = (listing: Listing | null, currency: string): Partial<ListingValues> => listing ? {
+  title: listing.title, description: listing.description, audience: listing.audience, category_id: listing.category_id, subcategory_id: listing.subcategory_id,
+  condition: listing.condition, condition_notes: listing.condition_notes, materials: listing.materials, item_reference: listing.item_reference ?? "",
+  price: listing.price / 100, compare_at_price: listing.compare_at_price === null ? "" : listing.compare_at_price / 100, currency: listing.currency,
+  colors: listing.colors.join(", "), sizes: listing.sizes.join(", "), quantity: listing.quantity, weight_kg: listing.weight_kg, authenticity_confirmed: listing.authenticity_confirmed
+} : { audience: "women", condition: "excellent", currency, quantity: 1, colors: "", sizes: "", compare_at_price: "", condition_notes: "", materials: "", item_reference: "", authenticity_confirmed: false };
 
 async function uploadFile(bucket: string, path: string, file: File) {
   const { error } = await supabase!.storage.from(bucket).upload(path, file, { contentType: file.type, upsert: false });
@@ -173,44 +180,73 @@ export function ContactDetailsForm({ application, store, onCancel, onDone }: { a
   </form></section>;
 }
 
-function ListingForm({ userId, store, categories, currency, onCancel, onSubmitted }: { userId: string; store: Store; categories: Category[]; currency: string; onCancel: () => void; onSubmitted: (title: string) => Promise<void> }) {
+function ListingForm({ userId, store, categories, currency, listing, onCancel, onSubmitted }: { userId: string; store: Store; categories: Category[]; currency: string; listing: Listing | null; onCancel: () => void; onSubmitted: (title: string) => Promise<void> }) {
   const [images, setImages] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState(listing?.images ?? []);
   const [reviewing, setReviewing] = useState(false);
   const [status, setStatus] = useState("");
   const roots = categories.filter((item) => !item.parent_id);
-  const { control, register, handleSubmit, getValues, setFocus, setValue, formState: { errors, isSubmitting } } = useForm<ListingValues>({ resolver: zodResolver(listingSchema), defaultValues: { audience: "women", condition: "excellent", currency, quantity: 1, colors: "", sizes: "", compare_at_price: "", condition_notes: "", materials: "", item_reference: "", authenticity_confirmed: false } });
+  const { control, register, handleSubmit, getValues, setFocus, setValue, formState: { errors, isSubmitting } } = useForm<ListingValues>({ resolver: zodResolver(listingSchema), defaultValues: listingValuesFor(listing, currency) });
   const selectedCategory = useWatch({ control, name: "category_id" });
   const selectedCondition = useWatch({ control, name: "condition" });
+  const previousCategory = useRef(selectedCategory);
   const subcategories = subcategoriesFor(categories, selectedCategory);
-  const previews = useMemo(() => images.map((file) => URL.createObjectURL(file)), [images]);
-  useEffect(() => () => previews.forEach(URL.revokeObjectURL), [previews]);
-  useEffect(() => { setValue("subcategory_id", "", { shouldValidate: false }); }, [selectedCategory, setValue]);
+  const newPreviews = useMemo(() => images.map((file) => URL.createObjectURL(file)), [images]);
+  const previews = [...existingImages.map(({ preview_url }) => preview_url), ...newPreviews];
+  useEffect(() => () => newPreviews.forEach(URL.revokeObjectURL), [newPreviews]);
+  useEffect(() => {
+    if (previousCategory.current && previousCategory.current !== selectedCategory) setValue("subcategory_id", "", { shouldValidate: false });
+    previousCategory.current = selectedCategory;
+  }, [selectedCategory, setValue]);
 
   function addImages(files: FileList | null) {
     if (!files) return;
     const next = [...files];
     const invalid = next.find((file) => validateUpload(file, IMAGE_UPLOAD_TYPES));
     if (invalid) { setStatus(validateUpload(invalid, IMAGE_UPLOAD_TYPES)); return; }
-    if (images.length + next.length > 8) { setStatus("Add up to 8 product images."); return; }
+    if (existingImages.length + images.length + next.length > 8) { setStatus("Add up to 8 product images."); return; }
     setStatus(""); setImages((current) => [...current, ...next]);
   }
 
   async function submit(values: ListingValues) {
-    if (!images.length) { setReviewing(false); setStatus("Add at least one clear product image."); return; }
-    if (requiresDefectEvidence(values.condition) && images.length < 2) { setReviewing(false); setStatus("Good and Fair items need an additional close-up image showing the wear or defect."); return; }
-    const listingId = crypto.randomUUID();
+    const imageCount = existingImages.length + images.length;
+    if (!imageCount) { setReviewing(false); setStatus("Add at least one clear product image."); return; }
+    if (requiresDefectEvidence(values.condition) && imageCount < 2) { setReviewing(false); setStatus("Good and Fair items need an additional close-up image showing the wear or defect."); return; }
+    const listingId = listing?.id ?? crypto.randomUUID();
     const uploaded: string[] = [];
+    let submissionStarted = false;
     setStatus("");
     try {
       for (const file of images) { const path = `${userId}/${listingId}/${crypto.randomUUID()}.${uploadExtension(file)}`; uploaded.push(await uploadFile("seller-listing-media", path, file)); }
-      const { error: listingError } = await supabase!.from("seller_listings").insert({ id: listingId, owner_id: userId, store_id: store.id, title: values.title, description: values.description, audience: values.audience, category_id: values.category_id, subcategory_id: values.subcategory_id, condition: values.condition, condition_notes: values.condition_notes, materials: values.materials, item_reference: values.item_reference || null, price: Math.round(values.price * 100), compare_at_price: values.compare_at_price === "" ? null : Math.round(values.compare_at_price * 100), currency: values.currency, colors: splitOptions(values.colors), sizes: splitOptions(values.sizes), quantity: values.quantity, weight_kg: values.weight_kg, authenticity_confirmed: values.authenticity_confirmed });
+      const details = { title: values.title, description: values.description, audience: values.audience, category_id: values.category_id, subcategory_id: values.subcategory_id, condition: values.condition, condition_notes: values.condition_notes, materials: values.materials, item_reference: values.item_reference || null, price: Math.round(values.price * 100), compare_at_price: values.compare_at_price === "" ? null : Math.round(values.compare_at_price * 100), currency: values.currency, colors: splitOptions(values.colors), sizes: splitOptions(values.sizes), quantity: values.quantity, weight_kg: values.weight_kg, authenticity_confirmed: values.authenticity_confirmed };
+      const listingResult = listing
+        ? await supabase!.from("seller_listings").update(details).eq("id", listingId)
+        : await supabase!.from("seller_listings").insert({ id: listingId, owner_id: userId, store_id: store.id, ...details });
+      const listingError = listingResult.error;
       if (listingError) throw listingError;
-      const { error: imageError } = await supabase!.from("seller_listing_images").insert(uploaded.map((path, position) => ({ listing_id: listingId, owner_id: userId, storage_path: path, alt_text: `${values.title}, image ${position + 1}`, position })));
-      if (imageError) throw imageError;
+      if (listing) {
+        const removed = listing.images.filter(({ id }) => !existingImages.some((image) => image.id === id));
+        if (removed.length) {
+          const { error } = await supabase!.from("seller_listing_images").delete().in("id", removed.map(({ id }) => id));
+          if (error) throw error;
+          const { error: storageError } = await supabase!.storage.from("seller-listing-media").remove(removed.map(({ storage_path }) => storage_path));
+          if (storageError) throw storageError;
+        }
+      }
+      const usedPositions = new Set(existingImages.map(({ position }) => position));
+      const positions = Array.from({ length: 10 }, (_, position) => position).filter((position) => !usedPositions.has(position));
+      if (uploaded.length) {
+        const { error: imageError } = await supabase!.from("seller_listing_images").insert(uploaded.map((path, index) => ({ listing_id: listingId, owner_id: userId, storage_path: path, alt_text: `${values.title}, image ${existingImages.length + index + 1}`, position: positions[index] })));
+        if (imageError) throw imageError;
+      }
+      submissionStarted = true;
       await authenticatedPost("/api/seller", { action: "submit-listing", listingId });
       await onSubmitted(values.title);
     } catch (error) {
-      await Promise.all([supabase!.storage.from("seller-listing-media").remove(uploaded), supabase!.from("seller_listings").delete().eq("id", listingId)]);
+      if (!submissionStarted) {
+        if (uploaded.length) await Promise.all([supabase!.storage.from("seller-listing-media").remove(uploaded), supabase!.from("seller_listing_images").delete().in("storage_path", uploaded)]);
+        if (!listing) await supabase!.from("seller_listings").delete().eq("id", listingId);
+      }
       setStatus(error instanceof Error ? error.message : "The listing could not be submitted. Try again.");
     }
   }
@@ -218,10 +254,10 @@ function ListingForm({ userId, store, categories, currency, onCancel, onSubmitte
   const values = getValues();
   const categoryName = categories.find((item) => item.id === values.category_id)?.name;
   const subcategoryName = categories.find((item) => item.id === values.subcategory_id)?.name;
-  if (reviewing) return <section className="seller-panel seller-review"><header><button type="button" className="text-link" onClick={() => setReviewing(false)}>← Edit listing</button><h1>Review listing</h1><p>Confirm every detail before sending it to Fieldio for approval.</p></header><div className="seller-review-grid"><div className="seller-review-images">{previews.map((url, index) => <img key={url} src={url} alt={`Product preview ${index + 1}`} />)}</div><dl><div><dt>Product</dt><dd>{values.title}</dd></div><div><dt>Store</dt><dd>{store.name}</dd></div><div><dt>For</dt><dd>{values.audience}</dd></div><div><dt>Category</dt><dd>{categoryName} · {subcategoryName}</dd></div><div><dt>Price</dt><dd>{values.currency} {Number(values.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}{values.compare_at_price !== "" && <> <s>{values.currency} {Number(values.compare_at_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</s></>}</dd></div><div><dt>Condition</dt><dd>{values.condition.replaceAll("_", " ")} · {values.condition_notes}</dd></div><div><dt>Materials</dt><dd>{values.materials}</dd></div>{values.item_reference && <div><dt>Reference</dt><dd>{values.item_reference}</dd></div>}<div><dt>Options</dt><dd>{values.colors} · {values.sizes}</dd></div><div><dt>Quantity / weight</dt><dd>{values.quantity} per size · {values.weight_kg} kg</dd></div></dl></div><p className="seller-review-copy">{values.description}</p>{status && <p className="form-message" role="alert">{status}</p>}<button type="button" className="primary-button" disabled={isSubmitting} onClick={() => void handleSubmit(submit)()}>{isSubmitting ? "Submitting…" : "Submit listing for review"}</button></section>;
+  if (reviewing) return <section className="seller-panel seller-review"><header><button type="button" className="text-link" onClick={() => setReviewing(false)}>← Edit listing</button><h1>Review listing</h1><p>Confirm every detail before sending it to Fieldio for approval.</p></header><div className="seller-review-grid"><div className="seller-review-images">{previews.map((url, index) => <img key={`${url}-${index}`} src={url} alt={`Product preview ${index + 1}`} />)}</div><dl><div><dt>Product</dt><dd>{values.title}</dd></div><div><dt>Store</dt><dd>{store.name}</dd></div><div><dt>For</dt><dd>{values.audience}</dd></div><div><dt>Category</dt><dd>{categoryName} · {subcategoryName}</dd></div><div><dt>Price</dt><dd>{values.currency} {Number(values.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}{values.compare_at_price !== "" && <> <s>{values.currency} {Number(values.compare_at_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</s></>}</dd></div><div><dt>Condition</dt><dd>{values.condition.replaceAll("_", " ")} · {values.condition_notes}</dd></div><div><dt>Materials</dt><dd>{values.materials}</dd></div>{values.item_reference && <div><dt>Reference</dt><dd>{values.item_reference}</dd></div>}<div><dt>Options</dt><dd>{values.colors} · {values.sizes}</dd></div><div><dt>Quantity / weight</dt><dd>{values.quantity} per size · {values.weight_kg} kg</dd></div></dl></div><p className="seller-review-copy">{values.description}</p>{status && <p className="form-message" role="alert">{status}</p>}<button type="button" className="primary-button" disabled={isSubmitting} onClick={() => void handleSubmit(submit)()}>{isSubmitting ? "Submitting…" : "Submit listing for review"}</button></section>;
 
-  return <section className="seller-panel"><header><button type="button" className="text-link" onClick={onCancel}>← Seller dashboard</button><h1>Add a product</h1><p>Listings are checked for authenticity, ownership, condition, and image quality before they appear in the shop.</p></header><form className="seller-form" onSubmit={handleSubmit(() => { if (!images.length) { setStatus("Add at least one clear product image."); return; } setReviewing(true); }, (formErrors) => setFocus(Object.keys(formErrors)[0] as keyof ListingValues))} noValidate>
-    <fieldset className="seller-media"><legend>Product images</legend><div className="seller-media-actions"><label><ImageIcon /><span>Choose from gallery</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onChange={(event) => addImages(event.target.files)} /></label><label><ImageIcon /><span>Take a photo</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" capture="environment" onChange={(event) => addImages(event.target.files)} /></label></div>{previews.length > 0 && <div className="seller-media-preview">{previews.map((url, index) => <figure key={url}><img src={url} alt={`Product preview ${index + 1}`} /><button type="button" onClick={() => setImages((current) => current.filter((_, imageIndex) => imageIndex !== index))}>Remove</button></figure>)}</div>}<small>1–8 JPG, PNG, WebP, or AVIF images. Maximum 10 MB each.</small></fieldset>
+  return <section className="seller-panel"><header><button type="button" className="text-link" onClick={onCancel}>← Seller dashboard</button><h1>{listing ? "Edit your listing" : "Add a product"}</h1><p>{listing ? "Make the requested changes, review everything, then resubmit for approval." : "Listings are checked for authenticity, ownership, condition, and image quality before they appear in the shop."}</p></header><form className="seller-form" onSubmit={handleSubmit(() => { if (!existingImages.length && !images.length) { setStatus("Add at least one clear product image."); return; } setReviewing(true); }, (formErrors) => setFocus(Object.keys(formErrors)[0] as keyof ListingValues))} noValidate>
+    <fieldset className="seller-media"><legend>Product images</legend><div className="seller-media-actions"><label><ImageIcon /><span>Choose from gallery</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onChange={(event) => addImages(event.target.files)} /></label><label><ImageIcon /><span>Take a photo</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" capture="environment" onChange={(event) => addImages(event.target.files)} /></label></div>{previews.length > 0 && <div className="seller-media-preview">{previews.map((url, index) => <figure key={`${url}-${index}`}><img src={url} alt={`Product preview ${index + 1}`} /><button type="button" onClick={() => index < existingImages.length ? setExistingImages((current) => current.filter((_, imageIndex) => imageIndex !== index)) : setImages((current) => current.filter((_, imageIndex) => imageIndex !== index - existingImages.length))}>Remove</button></figure>)}</div>}<small>1–8 JPG, PNG, WebP, or AVIF images. Maximum 10 MB each.</small></fieldset>
     <label><span>Product name</span><input {...register("title")} aria-invalid={!!errors.title} aria-describedby={errors.title ? "listing-title-error" : undefined} /><FieldError id="listing-title-error" message={errors.title?.message} /></label>
     <label><span>Description</span><textarea rows={6} {...register("description")} aria-invalid={!!errors.description} aria-describedby={errors.description ? "listing-description-error" : undefined} /><FieldError id="listing-description-error" message={errors.description?.message} /></label>
     <div className="seller-form-row"><label><span>Who is it for?</span><select {...register("audience")} aria-invalid={!!errors.audience} aria-describedby={errors.audience ? "listing-audience-error" : undefined}><option value="women">Women</option><option value="men">Men</option><option value="unisex">Unisex</option></select><FieldError id="listing-audience-error" message={errors.audience?.message} /></label><label><span>Category</span><select {...register("category_id")} aria-invalid={!!errors.category_id} aria-describedby={errors.category_id ? "listing-category-error" : undefined}><option value="">Select category</option>{roots.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><FieldError id="listing-category-error" message={errors.category_id?.message} /></label></div>
@@ -237,8 +273,8 @@ function ListingForm({ userId, store, categories, currency, onCancel, onSubmitte
   </form></section>;
 }
 
-function SellerDashboard({ store, listings, onAdd, onEditContacts }: { store: Store; listings: Listing[]; onAdd: () => void; onEditContacts: () => void }) {
-  return <section className="seller-dashboard"><header><div><p>{store.name}</p><h1>Seller dashboard</h1><span>{store.description}</span></div><div className="seller-dashboard-actions"><button className="secondary-button" onClick={onEditContacts}>Edit contact details</button><button className="primary-button" onClick={onAdd}><PlusIcon /> Add product</button></div></header><div className="seller-summary"><div><strong>{listings.length}</strong><span>Total listings</span></div><div><strong>{listings.filter((item) => item.status === "pending").length}</strong><span>In review</span></div><div><strong>{listings.filter((item) => item.status === "approved").length}</strong><span>Live</span></div></div><section className="seller-listings"><h2>Your products</h2>{listings.length ? listings.map((listing) => <article key={listing.id}><div><h3>{listing.title}</h3><p>{listing.currency} {(listing.price / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} · <span className={`seller-status seller-status--${listing.status}`}>{listing.status}</span></p>{listing.review_reason && <small>{listing.review_reason}</small>}</div>{listing.published_product_id && <Link className="text-link" to="/collections">View in shop <ArrowIcon /></Link>}</article>) : <div className="seller-empty"><StoreIcon /><h3>Your store is ready.</h3><p>Add your first product. Fieldio will review it before publication.</p><button className="text-link" onClick={onAdd}>Add a product</button></div>}</section></section>;
+function SellerDashboard({ store, listings, onAdd, onEdit, onEditContacts }: { store: Store; listings: Listing[]; onAdd: () => void; onEdit: (listing: Listing) => void; onEditContacts: () => void }) {
+  return <section className="seller-dashboard"><header><div><p>{store.name}</p><h1>Seller dashboard</h1><span>{store.description}</span></div><div className="seller-dashboard-actions"><button className="secondary-button" onClick={onEditContacts}>Edit contact details</button><button className="primary-button" onClick={onAdd}><PlusIcon /> Add product</button></div></header><div className="seller-summary"><div><strong>{listings.length}</strong><span>Total listings</span></div><div><strong>{listings.filter((item) => item.status === "pending").length}</strong><span>In review</span></div><div><strong>{listings.filter((item) => item.status === "approved").length}</strong><span>Live</span></div></div><section className="seller-listings"><h2>Your products</h2>{listings.length ? listings.map((listing) => <article key={listing.id}><div><h3>{listing.title}</h3><p>{listing.currency} {(listing.price / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} · <span className={`seller-status seller-status--${listing.status}`}>{listing.status}</span></p>{listing.review_reason && <small>{listing.review_reason}</small>}</div><div className="seller-listing-actions">{listing.status === "rejected" && <button className="text-link" type="button" onClick={() => onEdit(listing)}>Edit and resubmit</button>}{listing.published_product_id && <Link className="text-link" to="/collections">View in shop <ArrowIcon /></Link>}</div></article>) : <div className="seller-empty"><StoreIcon /><h3>Your store is ready.</h3><p>Add your first product. Fieldio will review it before publication.</p><button className="text-link" onClick={onAdd}>Add a product</button></div>}</section></section>;
 }
 
 function SubmittedState({ title, onAdd }: { title: string; onAdd: () => void }) {
@@ -250,18 +286,24 @@ export function SellerPage() {
   const { region } = useLocale();
   const cache = useQueryClient();
   const [mode, setMode] = useState<"dashboard" | "listing" | "contacts">("dashboard");
+  const [editingListing, setEditingListing] = useState<Listing | null>(null);
   const [submittedTitle, setSubmittedTitle] = useState("");
   usePageMeta({ title: "Sell with Fieldio", description: "Apply to sell verified fashion through your Fieldio store.", canonical: "https://fieldio.shop/sell" });
   const query = useQuery({ queryKey: ["seller-account", session?.user.id], enabled: Boolean(session && supabase), queryFn: async () => {
     const [application, store, listings, categories] = await Promise.all([
       supabase!.from("seller_applications").select("*").eq("owner_id", session!.user.id).maybeSingle(),
       supabase!.from("seller_stores").select("*").eq("owner_id", session!.user.id).maybeSingle(),
-      supabase!.from("seller_listings").select("id,title,price,currency,status,review_reason,published_product_id,created_at").eq("owner_id", session!.user.id).order("created_at", { ascending: false }),
+      supabase!.from("seller_listings").select("id,title,description,audience,category_id,subcategory_id,condition,condition_notes,materials,item_reference,price,compare_at_price,currency,colors,sizes,quantity,weight_kg,authenticity_confirmed,status,review_reason,published_product_id,created_at,images:seller_listing_images(id,storage_path,alt_text,position)").eq("owner_id", session!.user.id).order("created_at", { ascending: false }),
       supabase!.from("categories").select("id,parent_id,name").eq("is_active", true).order("name")
     ]);
     const error = application.error || store.error || listings.error || categories.error;
     if (error) throw error;
-    return { application: application.data as SellerApplication | null, store: store.data as Store | null, listings: listings.data as Listing[], categories: categories.data as Category[] };
+    const listingRows = listings.data as unknown as Array<Omit<Listing, "images"> & { images: Array<Omit<ListingImage, "preview_url">> }>;
+    const imagePaths = listingRows.flatMap((listing) => listing.images.map(({ storage_path }) => storage_path));
+    const signedImages = imagePaths.length ? await supabase!.storage.from("seller-listing-media").createSignedUrls(imagePaths, 3600) : { data: [], error: null };
+    if (signedImages.error) throw signedImages.error;
+    const previewByPath = new Map((signedImages.data ?? []).map((image) => [image.path, image.signedUrl]));
+    return { application: application.data as SellerApplication | null, store: store.data as Store | null, listings: listingRows.map((listing) => ({ ...listing, images: listing.images.map((image) => ({ ...image, preview_url: previewByPath.get(image.storage_path) ?? "" })) })) as Listing[], categories: categories.data as Category[] };
   } });
   const refresh = async () => { await cache.invalidateQueries({ queryKey: ["seller-account", session?.user.id] }); };
 
@@ -278,6 +320,6 @@ export function SellerPage() {
   if (store.status === "suspended") return <div className="seller-gate"><h1>Store access paused</h1><p>Contact Fieldio to review your store status.</p><Link className="primary-button" to="/contact">Contact Fieldio</Link></div>;
   if (submittedTitle) return <SubmittedState title={submittedTitle} onAdd={() => { setSubmittedTitle(""); setMode("listing"); }} />;
   if (mode === "contacts") return <ContactDetailsForm application={application} store={store} onCancel={() => setMode("dashboard")} onDone={refresh} />;
-  if (mode === "listing") return <ListingForm userId={session.user.id} store={store} categories={categories} currency={region.currency} onCancel={() => setMode("dashboard")} onSubmitted={async (title) => { await refresh(); setSubmittedTitle(title); }} />;
-  return <SellerDashboard store={store} listings={listings} onAdd={() => setMode("listing")} onEditContacts={() => setMode("contacts")} />;
+  if (mode === "listing") return <ListingForm userId={session.user.id} store={store} categories={categories} currency={region.currency} listing={editingListing} onCancel={() => { setEditingListing(null); setMode("dashboard"); }} onSubmitted={async (title) => { await refresh(); setEditingListing(null); setSubmittedTitle(title); }} />;
+  return <SellerDashboard store={store} listings={listings} onAdd={() => { setEditingListing(null); setMode("listing"); }} onEdit={(listing) => { setEditingListing(listing); setMode("listing"); }} onEditContacts={() => setMode("contacts")} />;
 }

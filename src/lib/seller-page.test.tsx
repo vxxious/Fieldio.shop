@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { expect, it, vi } from "vitest";
-import { ContactDetailsForm, SellerPage } from "../pages/SellerPage";
+import { ContactDetailsForm, listingValuesFor, SellerPage } from "../pages/SellerPage";
 
 vi.mock("../hooks/useSession", () => ({ useSession: () => ({ session: null, loading: false }) }));
 vi.mock("../hooks/usePageMeta", () => ({ usePageMeta: () => undefined }));
@@ -35,4 +35,17 @@ it("lets an approved seller edit separate call and WhatsApp details", () => {
   expect(screen.getByRole("combobox", { name: "WhatsApp country code" })).toHaveValue("US");
   expect(screen.getByRole("textbox", { name: "WhatsApp number" })).toHaveValue("2025550123");
   expect(screen.getByRole("button", { name: "Save contact details" })).toBeVisible();
+});
+
+it("converts stored listing amounts and options back into editable form values", () => {
+  const values = listingValuesFor({
+    id: "listing", title: "Wool coat", description: "A carefully kept wool coat in excellent condition.", audience: "women",
+    category_id: "11111111-1111-4111-8111-111111111111", subcategory_id: "22222222-2222-4222-8222-222222222222",
+    condition: "excellent", condition_notes: "No visible defects.", materials: "100% wool", item_reference: null,
+    price: 125000, compare_at_price: 150000, currency: "GBP", colors: ["Black", "Cream"], sizes: ["S", "M"],
+    quantity: 2, weight_kg: 1.4, authenticity_confirmed: true, status: "rejected", review_reason: "Replace one image.",
+    published_product_id: null, created_at: "2026-09-20T00:00:00Z", images: []
+  }, "USD");
+
+  expect(values).toMatchObject({ price: 1250, compare_at_price: 1500, currency: "GBP", colors: "Black, Cream", sizes: "S, M", quantity: 2 });
 });

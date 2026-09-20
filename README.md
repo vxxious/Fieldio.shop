@@ -50,7 +50,7 @@ npm run test:e2e
 
 ## Deployment
 
-The repository includes `vercel.json` for Vite routes, cache headers, security headers, and the `/api/*` handlers. Configure all production environment variables in the hosting dashboard, apply the database migration, populate authorised catalog content, verify OAuth redirect URLs, and review the launch policy copy with Fieldio's legal adviser before going live.
+The repository includes `vercel.json` for Vite routes, cache headers, security headers, and the `/api/*` handlers. Configure all production environment variables in the hosting dashboard, apply the database migration, populate authorised catalog content, verify OAuth redirect URLs, and complete [`LAUNCH_SIGN_OFF.md`](./LAUNCH_SIGN_OFF.md) before going live.
 
 The WhatsApp destination is fixed to Fieldio's international number, `447344059705`. The generated request states that availability, shipping, and payment still require confirmation.
 

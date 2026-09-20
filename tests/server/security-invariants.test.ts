@@ -46,4 +46,11 @@ describe("security invariants", () => {
     expect(sql).toContain("'seller.contacts_updated'");
     expect(sql).toMatch(/revoke all on function public\.update_seller_contacts[\s\S]+from public/i);
   });
+
+  it("requires AAL2 for staff authorization and stock-controls seller products", () => {
+    const sql = readFileSync(fileURLToPath(new URL("../../supabase/migrations/202609200002_marketplace_hardening.sql", import.meta.url)), "utf8");
+    expect(sql).toMatch(/auth\.jwt\(\)->>'aal'\) = 'aal2'/i);
+    expect(sql).toMatch(/new\.inquiry_only := false/i);
+    expect(sql).toMatch(/set quantity = listing\.quantity[\s\S]+allow_backorder = false/i);
+  });
 });

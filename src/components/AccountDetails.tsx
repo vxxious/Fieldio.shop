@@ -7,6 +7,7 @@ import { z } from "zod";
 import { AccountIcon, ArrowIcon, BagIcon, EmailIcon, HeartIcon, PlusIcon } from "./Icons";
 import { useLocale } from "../context/LocaleContext";
 import type { AccountRole } from "../hooks/useAccountRole";
+import { authenticatedPost } from "../lib/authenticated-api";
 import { supabase } from "../lib/supabase";
 import type { TranslationKey } from "../lib/translations";
 import { createWhatsAppUrl } from "../lib/whatsapp";
@@ -42,6 +43,9 @@ export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "b
   const [status, setStatus] = useState("");
   const [copyStatus, setCopyStatus] = useState<{ reference: string; state: "copied" | "error" } | null>(null);
   const [savingIntent, setSavingIntent] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const viewHeading = useRef<HTMLHeadingElement>(null);
   const details = useQuery({ queryKey: ["account-details", userId], queryFn: async () => {
     const [profile, address] = await Promise.all([
@@ -92,6 +96,19 @@ export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "b
       setCopyStatus({ reference, state: "copied" });
     } catch {
       setCopyStatus({ reference, state: "error" });
+    }
+  }
+
+  async function deleteAccount() {
+    if (deleteConfirmation !== "DELETE") { setStatus("Type DELETE exactly to confirm account deletion."); return; }
+    setDeletingAccount(true); setStatus("");
+    try {
+      await authenticatedPost("/api/account", { action: "delete-account", confirmation: deleteConfirmation });
+      cache.clear();
+      window.location.assign("/");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Your account could not be deleted. Try again.");
+      setDeletingAccount(false);
     }
   }
 
@@ -152,7 +169,8 @@ export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "b
         ] as const).map(([key, label]) => { const errorId = `details-${key}-error`; return <label key={key}><span>{label}</span><input {...register(key)} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? errorId : undefined} />{errors[key] && <small id={errorId} role="alert">{errors[key]?.message}</small>}</label>; })}<button className="primary-button" disabled={isSubmitting}>{t("account.saveDetails")}</button></form>
         <div className="account-preference"><h2>{t("account.preference")}</h2><p>{t("account.preferenceCopy")}</p><div><button type="button" className={intent === "buy" ? "active" : ""} onClick={() => void selectIntent("buy")} disabled={savingIntent}>{t("account.buy")}</button><button type="button" className={intent === "sell" ? "active" : ""} onClick={() => void selectIntent("sell")} disabled={savingIntent}>{t("account.sell")}</button></div></div>
         {status && <p role="status">{status}</p>}
-        <div className="account-security"><h2>{t("account.security")}</h2><button className="text-link" type="button" onClick={async () => { const { error } = await supabase!.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/account` }); setStatus(error ? error.message : t("account.passwordEmail")); }}>{t("account.changePassword")}</button><a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, I would like to request deletion of the account registered to ${email}.`)} target="_blank" rel="noreferrer">{t("account.delete")}</a></div>
+        <div className="account-security"><h2>{t("account.security")}</h2><button className="text-link" type="button" onClick={async () => { const { error } = await supabase!.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/account` }); setStatus(error ? error.message : t("account.passwordEmail")); }}>{t("account.changePassword")}</button><button className="text-link" type="button" onClick={() => { setShowDelete(true); setStatus(""); }}>{t("account.delete")}</button></div>
+        {showDelete && <section className="account-delete" aria-labelledby="account-delete-title"><h2 id="account-delete-title">Delete account and seller data</h2><p>This permanently removes your account, seller verification documents, listing media, and seller products. Linked order records are anonymised.</p><label htmlFor="account-delete-confirmation">Type DELETE to confirm</label><input id="account-delete-confirmation" value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} autoComplete="off" /><div><button className="primary-button" type="button" disabled={deletingAccount || deleteConfirmation !== "DELETE"} onClick={() => void deleteAccount()}>{deletingAccount ? "Deleting…" : "Delete permanently"}</button><button className="text-link" type="button" disabled={deletingAccount} onClick={() => { setShowDelete(false); setDeleteConfirmation(""); }}>Cancel</button></div></section>}
       </section>}
     </>}
   </div>;

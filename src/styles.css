@@ -135,6 +135,18 @@
 .admin-page aside nav button[aria-current] { background: var(--ink); color: var(--surface); }
 .admin-page-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
 .admin-page-heading span { color: var(--muted); font-size: 12px; text-transform: capitalize; }
+.admin-mfa { width: min(calc(100% - 28px), 620px); min-height: 65vh; display: flex; flex-direction: column; justify-content: center; margin: 0 auto; padding: 54px 0 90px; }
+.admin-mfa h1 { max-width: 10ch; margin: 0; font-size: clamp(48px, 7vw, 76px); line-height: .96; }
+.admin-mfa > p { max-width: 50ch; margin: 20px 0 30px; color: var(--muted); }
+.admin-mfa form { display: grid; gap: 10px; margin-top: 28px; }
+.admin-mfa input { min-height: 52px; padding: 12px; color: var(--ink); background: var(--surface); border: 1px solid var(--line-dark); font-size: 20px; letter-spacing: .16em; }
+.admin-mfa form .primary-button { justify-self: start; margin-top: 8px; }
+.admin-mfa-setup { padding: 24px; background: var(--surface); border: 1px solid var(--line); }
+.admin-mfa-setup img { width: min(100%, 240px); height: auto; background: #fff; }
+.admin-mfa-setup p { max-width: 48ch; color: var(--muted); }
+.admin-mfa-setup details { margin-top: 16px; }
+.admin-mfa-setup code { display: block; margin-top: 10px; overflow-wrap: anywhere; }
+.admin-mfa-signout { align-self: flex-start; margin-top: 24px; }
 .admin-mobile-navigation { display: none; }
 .admin-signout { margin: 24px 10px 0; font-size: 13px; }
 .admin-workspace { min-width: 0; }
@@ -669,6 +681,12 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .account-security { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding-top: 30px; margin-top: 30px; border-top: 1px solid var(--line); }
 .account-security h2 { width: 100%; }
 .account-security .text-link { text-decoration: underline; text-underline-offset: 4px; }
+.account-delete { display: grid; gap: 14px; margin-top: 24px; padding: 24px; border: 1px solid var(--error); }
+.account-delete h2, .account-delete p { margin: 0; }
+.account-delete p { max-width: 62ch; color: var(--muted); }
+.account-delete label { margin-top: 8px; font-size: 14px; }
+.account-delete input { min-height: 48px; padding: 12px; color: var(--ink); background: var(--surface); border: 1px solid var(--line-dark); }
+.account-delete > div { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
 .account-order { display: grid; gap: 16px; padding: 24px 0; border-bottom: 1px solid var(--line); }
 .account-order ul { display: grid; gap: 6px; }
 .account-order-heading { display: flex; justify-content: space-between; align-items: start; gap: 24px; }
@@ -737,7 +755,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .seller-media-preview, .seller-review-images, .seller-review-thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 18px; }
 .seller-media-preview figure { margin: 0; }
 .seller-media-preview img, .seller-review-images img, .seller-review-thumbs img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; background: var(--image-field); }
-.seller-media-preview button { width: 100%; min-height: 40px; border: 1px solid var(--line); border-top: 0; font-size: 12px; }
+.seller-media-preview button { width: 100%; min-height: 44px; border: 1px solid var(--line); border-top: 0; font-size: 12px; }
 .seller-review-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 36px; margin-top: 36px; }
 .seller-review-images { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
 .seller-review dl, .seller-review-queue dl { margin: 0; }
@@ -763,6 +781,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .seller-listings article small { display: block; max-width: 60ch; margin-top: 7px; color: #9f2635; }
 .seller-listings article .text-link { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .seller-listings article .text-link svg { width: 16px; }
+.seller-listing-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px 20px; }
 .seller-status { display: inline-block; padding: 4px 7px; color: var(--muted); border: 1px solid var(--line-dark); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
 .seller-status--approved { color: #28633b; border-color: #28633b; }
 .seller-status--rejected, .seller-status--suspended { color: #9f2635; border-color: #9f2635; }

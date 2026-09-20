@@ -5,6 +5,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { AccountDetails } from "../components/AccountDetails";
 
 const account = vi.hoisted(() => ({ intent: null as "buy" | "sell" | null, orders: [] as Array<Record<string, unknown>>, update: vi.fn() }));
+vi.mock("./authenticated-api", () => ({ authenticatedPost: vi.fn() }));
 
 vi.mock("../context/LocaleContext", () => ({
   useLocale: () => ({ formatMoney: () => "£0", language: { locale: "en-GB" }, t: (key: string) => ({ "account.wantBuy": "I want to buy", "account.yourAccount": "Your account", "account.myRequests": "My order requests", "account.copyReference": "Copy reference", "account.referenceCopied": "Reference copied" })[key] ?? key })
@@ -45,4 +46,17 @@ it("copies an order reference", async () => {
   fireEvent.click(await screen.findByRole("button", { name: "Copy reference" }));
   await waitFor(() => expect(writeText).toHaveBeenCalledWith("FLD-123"));
   expect(screen.getByRole("button", { name: "Reference copied" })).toBeVisible();
+});
+
+it("requires an exact confirmation before account deletion", async () => {
+  account.intent = "buy";
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<MemoryRouter><QueryClientProvider client={client}><AccountDetails userId="user-1" email="ada@example.com" /></QueryClientProvider></MemoryRouter>);
+  fireEvent.click(await screen.findByRole("button", { name: "account.myDetails" }));
+  fireEvent.click(await screen.findByRole("button", { name: "account.delete" }));
+  const confirm = screen.getByLabelText("Type DELETE to confirm");
+  const remove = screen.getByRole("button", { name: "Delete permanently" });
+  expect(remove).toBeDisabled();
+  fireEvent.change(confirm, { target: { value: "DELETE" } });
+  expect(remove).toBeEnabled();
 });

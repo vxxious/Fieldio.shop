@@ -19,6 +19,9 @@ describe("transactional email renderer", () => {
 
     expect(result.html).toContain("fieldio-email-logo.png");
     expect(result.html).toContain("mix-blend-mode:difference");
+    expect(result.html).toContain('name="color-scheme" content="light dark"');
+    expect(result.html).toContain("@media (prefers-color-scheme:dark)");
+    expect(result.html).toContain(".email-action{background-color:#f7f7f4!important");
     expect(result.html).toContain("Order &lt;confirmed&gt;");
     expect(result.html).toContain("Hello &amp; welcome");
     expect(result.html).toContain("FLD-1 &lt;script&gt;");
