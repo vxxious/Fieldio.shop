@@ -33,7 +33,7 @@ export function Newsletter() {
   };
 
   return (
-    <section className="newsletter" aria-labelledby="newsletter-title">
+    <section id="newsletter" className="newsletter" aria-labelledby="newsletter-title">
       <div>
         <h2 id="newsletter-title">The Fieldio list</h2>
         <p>New arrivals, exceptional finds, and selected brand updates. Sent with restraint.</p>
