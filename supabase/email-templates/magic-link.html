@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your Fieldio sign-in link</title>
+  <style>
+    @media only screen and (max-width: 620px) {
+      .email-shell { width: 100% !important; }
+      .email-pad { padding-left: 24px !important; padding-right: 24px !important; }
+      .email-title { font-size: 36px !important; line-height: 40px !important; }
+      .button-link { display: block !important; text-align: center !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f3f0;color:#151612;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
+    Sign in to Fieldio securely with your one-time link.
+  </div>
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background-color:#f3f3f0;">
+    <tr>
+      <td align="center" style="padding:24px 12px;">
+        <table class="email-shell" role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="width:600px;max-width:600px;background-color:#ffffff;">
+          <tr>
+            <td class="email-pad" style="padding:24px 36px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td width="50" valign="middle">
+                    <img src="https://fieldio.shop/brand/fieldio-email-logo.png" width="40" height="40" alt="Fieldio" style="display:block;width:40px;height:40px;border:0;mix-blend-mode:difference;">
+                  </td>
+                  <td valign="middle" style="font-family:Arial,Helvetica,sans-serif;font-size:23px;line-height:28px;font-weight:700;letter-spacing:-1px;color:#151612;">
+                    Fieldio
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="height:1px;background-color:#d9dad4;font-size:0;line-height:0;">&nbsp;</td>
+          </tr>
+
+          <tr>
+            <td class="email-pad" style="padding:48px 36px 42px;">
+              <h1 class="email-title" style="margin:0 0 22px;font-family:Arial,Helvetica,sans-serif;font-size:44px;line-height:48px;font-weight:500;letter-spacing:-1.8px;color:#151612;">
+                Your sign-in link
+              </h1>
+
+              <p style="margin:0 0 30px;max-width:470px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:26px;color:#55574f;">
+                Use the secure link below to sign in to your Fieldio account. This link can only be used once and expires for your security.
+              </p>
+
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td bgcolor="#151612" style="background-color:#151612;border:1px solid #151612;">
+                    <a class="button-link" href="{{ .ConfirmationURL }}" style="display:inline-block;padding:16px 24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:18px;font-weight:700;color:#ffffff;text-decoration:none;">
+                      Sign in to Fieldio
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="email-pad" style="padding:0 36px 38px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-top:1px solid #d9dad4;">
+                <tr>
+                  <td style="padding-top:24px;">
+                    <p style="margin:0 0 10px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:21px;color:#66685f;">
+                      Button not working?
+                      <a href="{{ .ConfirmationURL }}" style="color:#151612;font-weight:700;text-decoration:underline;text-underline-offset:3px;">Use the secure sign-in link</a>.
+                    </p>
+                    <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:21px;color:#66685f;">
+                      If you did not request this sign-in link, you can safely ignore this email.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="email-pad" style="padding:20px 36px;background-color:#f3f3f0;border-top:1px solid #d9dad4;">
+              <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:#66685f;">
+                Fieldio &nbsp;&middot;&nbsp;
+                <a href="https://fieldio.shop" style="color:#151612;text-decoration:underline;text-underline-offset:3px;">fieldio.shop</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
