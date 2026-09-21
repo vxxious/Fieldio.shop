@@ -231,7 +231,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .fieldio-wordmark { display: inline-flex; align-items: center; gap: 9px; font-family: var(--font-display); font-weight: 600; font-size: 24px; letter-spacing: -0.055em; }
 .fieldio-wordmark:hover { text-decoration: none; }
 .fieldio-monogram { width: 34px; height: 44px; object-fit: contain; mix-blend-mode: multiply; flex-shrink: 0; }
-.icon-button { width: 34px; height: 34px; display: inline-grid; place-items: center; padding: 6px; }
+.icon-button { width: 44px; height: 44px; display: inline-grid; place-items: center; padding: 11px; }
 .icon-button svg, .bag-button svg { width: 20px; height: 20px; }
 .bag-button { display: flex; align-items: center; gap: 5px; font-size: 12px; padding: 6px 0; }
 .theme-toggle { position: relative; overflow: visible; color: var(--ink); }
@@ -303,7 +303,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .product-card-media img { width: 100%; height: 100%; object-fit: cover; transform-origin: center; }
 .product-badges { position: absolute; top: 10px; left: 10px; display: flex; flex-wrap: wrap; gap: 5px; max-width: calc(100% - 58px); }
 .product-badge { background: var(--paper); padding: 6px 9px; font-size: 13px; }
-.wishlist-button { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; display: grid; place-items: center; color: var(--floating-control-ink); background: var(--floating-control); border: 1px solid color-mix(in srgb, var(--floating-control-ink) 10%, transparent); border-radius: 50%; }
+.wishlist-button { position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; display: grid; place-items: center; color: var(--floating-control-ink); background: var(--floating-control); border: 1px solid color-mix(in srgb, var(--floating-control-ink) 10%, transparent); border-radius: 50%; }
 .wishlist-button svg { width: 17px; }
 .product-card-info { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 12px 1px 30px; }
 .product-card-info a:first-child:hover { text-decoration: none; }
@@ -315,7 +315,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .quick-action { align-self: end; font-size: 13px; text-decoration: underline; text-underline-offset: 4px; padding: 0 0 2px; white-space: nowrap; }
 .related-quick-add { align-self: end; text-align: right; }
 .quick-size-options { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; max-width: 190px; margin-top: 8px; }
-.quick-size-options button { min-width: 34px; min-height: 34px; padding: 5px; border: 1px solid var(--line-dark); background: var(--surface); font-size: 12px; }
+.quick-size-options button { min-width: 44px; min-height: 44px; padding: 5px; border: 1px solid var(--line-dark); background: var(--surface); font-size: 12px; }
 .quick-size-options button:hover, .quick-size-options button:focus-visible { background: var(--ink); color: var(--surface); }
 
 .brand-ledger { width: var(--page); margin: clamp(90px, 12vw, 180px) auto; display: grid; grid-template-columns: minmax(0, 0.86fr) 1.14fr; gap: 9vw; padding-top: 32px; border-top: 1px solid var(--ink); }
@@ -568,6 +568,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .brand-search input:focus { outline: none; }
 .brand-search input::placeholder { color: var(--muted); opacity: 1; }
 .brand-search .text-link { margin-left: 14px; }
+.region-search:focus-within, .newsletter-field:focus-within, .search-page form:focus-within, .brand-search:focus-within { outline: 2px solid var(--focus); outline-offset: 3px; }
 .brand-directory-count { margin: 24px 0 0; color: var(--muted); font-size: 13px; }
 .brand-directory .product-grid { margin-top: 24px; }
 .brand-directory-groups { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 62px clamp(28px, 5vw, 80px); padding: 46px 0 20px; }
@@ -874,10 +875,18 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .personal-shopping-home { grid-template-columns: 1fr 1fr; }
 }
 
-@media (max-width: 760px) {
-  :root { --page: calc(100% - 28px); }
+@media (max-width: 820px) {
   .desktop-only, .desktop-nav { display: none !important; }
   .mobile-only { display: inline-grid; }
+  .header-left, .header-actions { gap: 0; }
+  .brand-alphabet { display: flex; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: none; }
+  .brand-alphabet::-webkit-scrollbar { display: none; }
+  .brand-alphabet button { flex: 0 0 44px; height: 48px; }
+  .brand-alphabet button:first-child { flex-basis: 52px; text-align: left; }
+}
+
+@media (max-width: 760px) {
+  :root { --page: calc(100% - 28px); }
   .announcement { font-size: 9px; min-height: 28px; padding-inline: 14px; }
   .announcement > span:not(.announcement-copy) { display: none; }
   .announcement .region-trigger { display: none; }
@@ -890,13 +899,10 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .site-header { width: 100%; padding: 0 14px; height: 66px; }
   .site-header .fieldio-wordmark { font-size: 21px; }
   .site-header .fieldio-monogram { width: 28px; height: 36px; }
-  .header-left, .header-actions { gap: 0; }
   .header-left .menu-button { margin-left: -6px; }
   .menu-button svg { width: 22px !important; height: 22px !important; }
   .site-header .icon-button, .site-header .bag-button { min-width: 44px; min-height: 44px; }
-  .site-header .header-left .icon-button { width: 42px; min-width: 42px; }
-  .site-header .header-actions .icon-button { width: 40px; min-width: 40px; }
-  .site-header .header-actions .bag-button { width: auto; min-width: 40px; padding-inline: 5px 0; }
+  .site-header .header-actions .bag-button { width: auto; min-width: 44px; padding-inline: 5px 0; }
   .catalog-intro { padding-top: 36px; }
   .catalog-copy { display: block; margin-bottom: 38px; }
   .catalog-copy h1 { font-size: clamp(52px, 16.8vw, 74px); max-width: 8ch; }
@@ -1020,10 +1026,6 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .brand-directory > header { min-height: 230px; display: block; padding: 58px 0 34px; }
   .brand-directory > header h1 { margin-bottom: 23px; font-size: 76px; }
   .brand-directory > header p { max-width: 48ch; }
-  .brand-alphabet { display: flex; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: none; }
-  .brand-alphabet::-webkit-scrollbar { display: none; }
-  .brand-alphabet button { flex: 0 0 44px; height: 48px; }
-  .brand-alphabet button:first-child { flex-basis: 52px; text-align: left; }
   .brand-search { min-height: 62px; }
   .brand-search input { padding: 17px 0; font-size: 16px; }
   .brand-directory-count { margin-top: 20px; }

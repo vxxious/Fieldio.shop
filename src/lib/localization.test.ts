@@ -5,6 +5,7 @@ describe("localization", () => {
   it("uses the browser region and a supported language", () => {
     expect(detectBrowserPreference("fr-CA")).toEqual({ region: "CA", language: "fr" });
     expect(detectBrowserPreference("de-DE")).toEqual({ region: "DE", language: "de" });
+    expect(detectBrowserPreference("it-IT")).toEqual({ region: "IT", language: "en" });
   });
 
   it("falls back to Fieldio's United Kingdom region safely", () => {

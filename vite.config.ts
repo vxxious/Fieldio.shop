@@ -34,20 +34,7 @@ export default defineConfig(({ mode }) => {
     port: 5173,
   },
   build: {
-    sourcemap: uploadSourceMaps ? "hidden" : false,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes("node_modules")) return undefined;
-          if (id.includes("gsap") || id.includes("lenis") || id.includes("framer-motion")) return "motion";
-          if (id.includes("@supabase")) return "supabase";
-          if (id.includes("@tanstack")) return "query";
-          if (id.includes("react-hook-form") || id.includes("zod") || id.includes("@hookform")) return "forms";
-          if (id.includes("react-router") || id.includes("react-dom") || id.includes("node_modules/react/")) return "react";
-          return "vendor";
-        }
-      }
-    }
+    sourcemap: uploadSourceMaps ? "hidden" : false
   },
   };
 });

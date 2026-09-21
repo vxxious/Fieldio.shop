@@ -20,31 +20,43 @@ colors:
 typography:
   display:
     fontFamily: '"Schibsted Grotesk", sans-serif'
-    fontSize: "clamp(44px, 6vw, 92px)"
+    fontSize: "clamp(62px, 8.3vw, 120px)"
     fontWeight: 500
-    lineHeight: 0.92
+    lineHeight: 0.86
     letterSpacing: "-0.035em"
   headline:
     fontFamily: '"Schibsted Grotesk", sans-serif'
-    fontSize: "clamp(35px, 4.5vw, 68px)"
+    fontSize: "clamp(39px, 4.8vw, 78px)"
     fontWeight: 500
-    lineHeight: 0.98
+    lineHeight: 0.96
     letterSpacing: "-0.035em"
   title:
     fontFamily: '"Schibsted Grotesk", sans-serif'
-    fontSize: "24px"
+    fontSize: "32px"
     fontWeight: 500
     letterSpacing: "-0.035em"
   body:
     fontFamily: '"Manrope", sans-serif'
-    fontSize: "13px"
+    fontSize: "15px"
     fontWeight: 400
     lineHeight: 1.55
+  utility:
+    fontFamily: '"Manrope", sans-serif'
+    fontSize: "14px"
+    fontWeight: 400
   label:
     fontFamily: '"Manrope", sans-serif'
-    fontSize: "10px"
+    fontSize: "13px"
     fontWeight: 400
     letterSpacing: "0.02em"
+  micro:
+    fontFamily: '"Manrope", sans-serif'
+    fontSize: "12px"
+    fontWeight: 400
+  button:
+    fontFamily: '"Manrope", sans-serif'
+    fontSize: "11px"
+    fontWeight: 400
 rounded:
   square: "0"
   circle: "50%"
@@ -58,7 +70,7 @@ components:
   button-primary:
     backgroundColor: "{colors.ink}"
     textColor: "{colors.surface}"
-    typography: "{typography.label}"
+    typography: "{typography.button}"
     rounded: "{rounded.square}"
     padding: "13px 24px"
     height: "46px"
@@ -71,28 +83,28 @@ components:
   button-outline:
     backgroundColor: "transparent"
     textColor: "{colors.ink}"
-    typography: "{typography.label}"
+    typography: "{typography.button}"
     rounded: "{rounded.square}"
     padding: "0 20px"
     height: "44px"
   button-secondary:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
-    typography: "{typography.label}"
+    typography: "{typography.button}"
     rounded: "{rounded.square}"
     padding: "0 20px"
     height: "44px"
   button-ghost:
     backgroundColor: "transparent"
     textColor: "{colors.ink}"
-    typography: "{typography.label}"
+    typography: "{typography.button}"
     rounded: "{rounded.square}"
     padding: "0 20px"
     height: "44px"
   button-link:
     backgroundColor: "transparent"
     textColor: "{colors.ink}"
-    typography: "{typography.label}"
+    typography: "{typography.button}"
     rounded: "{rounded.square}"
     padding: "0"
   input:
@@ -123,8 +135,8 @@ components:
     backgroundColor: "transparent"
     textColor: "{colors.ink}"
     rounded: "{rounded.square}"
-    padding: "6px"
-    size: "34px"
+    padding: "11px"
+    size: "44px"
   rail-control:
     backgroundColor: "transparent"
     textColor: "{colors.ink}"
@@ -140,10 +152,10 @@ components:
   quick-size-option:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
-    typography: "{typography.label}"
+    typography: "{typography.micro}"
     rounded: "{rounded.square}"
     padding: "5px"
-    size: "34px"
+    size: "44px"
   accordion-trigger:
     backgroundColor: "transparent"
     textColor: "{colors.ink}"
@@ -219,11 +231,14 @@ The palette is a mineral-white and near-black neutral system, with muted moss an
 
 ### Hierarchy
 
-- **Display** (500, fluid from 44px to 92px, 0.92 line-height): Opening catalog and checkout statements; keep lines short and balanced.
-- **Headline** (500, fluid from 35px to 68px, 0.98 line-height): Editorial sections, service propositions, and major supporting moments.
-- **Title** (500, 24px): Compact section and drawer headings.
-- **Body** (400, 13px, 1.55 line-height): Explanatory copy, typically constrained to roughly 48–62 characters for reading comfort.
-- **Label** (400, 10px, 0.02em tracking): Product brands, state labels, form labels, and compact metadata.
+- **Display** (500, fluid from 62px to 120px, 0.86 line-height): Collection, service, and policy statements; narrower catalog displays use the same face and tracking at a smaller fluid range, while brand and footer statements may extend to 154px.
+- **Headline** (500, fluid from 39px to 78px, 0.96 line-height): Editorial sections, account propositions, and major supporting moments.
+- **Title** (500, 32px): Section, form, drawer, and directory headings.
+- **Body** (400, 15px, 1.55 line-height): Explanatory copy, typically constrained to roughly 48–65 characters for reading comfort.
+- **Utility** (400, 14px): Buttons written outside the shared primitive, links, filters, notices, and supporting interface copy.
+- **Label** (400, 13px, 0.02em tracking): Product brands, field labels, prices, and compact commerce metadata.
+- **Micro** (400, 12px): Secondary states, counts, helper copy, and dense administrative metadata.
+- **Button** (400, 11px): The shared Shadcn button primitive and similarly compact atomic controls.
 
 ### Named Rules
 
@@ -233,7 +248,7 @@ The palette is a mineral-white and near-black neutral system, with muted moss an
 
 ## Layout
 
-The primary page container is fluid with 20px side gutters and a 1600px ceiling. At widths up to 1050px the gutters become 16px; at 760px and below they become 14px. The header uses a three-part grid with the Fieldio mark centered independently between primary navigation and utilities.
+The primary page container is fluid with 20px side gutters and a 1600px ceiling. At widths up to 1050px the gutters become 16px; the Brands alphabet becomes a horizontal 44px touch rail at 820px; at 760px and below the page gutters become 14px. The header uses a three-part grid with the Fieldio mark centered independently between primary navigation and utilities.
 
 The catalog is a four-column image index with a fluid 10–18px gap, reducing to three columns below 1050px and two columns with a 9px gap on mobile. Product media uses a tall 4:5.25 proportion on larger screens and 3:4 on mobile. Collection pages begin with a white editorial hero, 520–760px tall, using one of four actual variants: a narrow-copy/wide-image split; its image-left reverse; an index with a full-width copy row above a full-width image; or a cinematic image with copy overlaid on a translucent ink block. At 760px, split, reverse, and index heroes become image-first stacks, while cinematic heroes retain the overlay composition.
 
@@ -321,7 +336,7 @@ The 74px desktop masthead uses compact 12px links arranged around the independen
 
 ### Product Card
 
-The product card is the signature index unit: tall flush imagery, a small paper badge, one circular wishlist action, then compact brand, name, price, and request action aligned beneath. Wishlist actions retain a minimum 44px by 44px hit area on mobile. In the related-products rail, the action becomes Quick add or Quick request. Multi-variant products disclose square 34px size choices in a wrapped row; mobile enlarges them to 44px touch targets. It should read like catalog notation attached to an image, not like a boxed ecommerce tile.
+The product card is the signature index unit: tall flush imagery, a small paper badge, one circular wishlist action, then compact brand, name, price, and request action aligned beneath. Wishlist actions and quick-size choices retain a minimum 44px by 44px hit area across pointer and touch contexts. In the related-products rail, the action becomes Quick add or Quick request. It should read like catalog notation attached to an image, not like a boxed ecommerce tile.
 
 ### Collection Editorial Hero
 
