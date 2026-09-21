@@ -1,5 +1,6 @@
 import { escapeHtml, sendTransactionalEmail } from "./_lib/email.js";
 import { preferenceToken, readPreferenceToken } from "./_lib/newsletter.js";
+import { captureServerException } from "./_lib/monitoring.js";
 import { checkRateLimit, getAdminSupabase } from "./_lib/server.js";
 
 interface PreferencePage {
@@ -136,7 +137,8 @@ export async function POST(request: Request) {
     return unsubscribed
       ? page({ title: "You are unsubscribed.", message: "You will no longer receive Fieldio marketing emails. You can join the list again at any time." })
       : page({ title: "You are on the list.", message: "Your subscription is confirmed. Watch your inbox for the Fieldio edit and selected updates." });
-  } catch {
+  } catch (error) {
+    captureServerException(error);
     return page({ title: "We could not update your preference.", message: "Try this link again. If the problem continues, contact Fieldio and we will help.", action: "Try again" }, 500);
   }
 }

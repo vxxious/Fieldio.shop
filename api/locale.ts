@@ -1,4 +1,5 @@
 import { checkRateLimit, json } from "./_lib/server.js";
+import { captureServerException } from "./_lib/monitoring.js";
 
 interface RateRow { quote: string; rate: number }
 
@@ -14,7 +15,8 @@ export async function GET(request: Request): Promise<Response> {
       const rows = await response.json() as RateRow[];
       const rates = Object.fromEntries(rows.filter((row) => /^[A-Z]{3}$/i.test(row.quote) && Number.isFinite(row.rate) && row.rate > 0).map((row) => [row.quote.toUpperCase(), row.rate]));
       return Response.json({ base, rates }, { headers: { "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=86400", "X-Content-Type-Options": "nosniff" } });
-    } catch {
+    } catch (error) {
+      captureServerException(error);
       return json({ error: "Currency conversion is temporarily unavailable." }, 503);
     }
   }

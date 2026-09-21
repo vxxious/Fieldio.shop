@@ -12,6 +12,7 @@ Fieldio is a production-oriented fashion storefront for a launch-stage personal-
 - React Hook Form and Zod for validated forms
 - Supabase Auth, PostgreSQL, Storage, and Row Level Security
 - Vercel-compatible server handlers and Resend newsletter sync
+- Sentry browser and API error monitoring
 - Vitest, React Testing Library, and Playwright
 
 ## Local setup
@@ -37,6 +38,10 @@ The browser reads only active catalog rows permitted by RLS. Order requests are 
 ## Email and analytics
 
 Transactional email uses server-only `RESEND_API_KEY`, `RESEND_FROM`, and `FIELDIO_NOTIFICATION_EMAIL` variables. Newsletter confirmation additionally requires `NEWSLETTER_TOKEN_SECRET` and `APP_URL`. `VITE_ANALYTICS_ID` is a deployment placeholder for the selected consent-aware analytics provider; no personal data is sent by the included event adapter.
+
+## Error monitoring
+
+Set `VITE_SENTRY_DSN` and `SENTRY_DSN` to capture production browser and API failures. For readable production stack traces, also set `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` in Vercel; source maps are uploaded during the build and removed from the public output. Session replay, performance tracing, and default personal-data collection are disabled.
 
 ## Commands
 

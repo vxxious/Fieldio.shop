@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { escapeMarkup, publicClient, publicPages, siteOrigin } from "./_lib/public-catalog.js";
 import { checkRateLimit } from "./_lib/server.js";
+import { captureServerException } from "./_lib/monitoring.js";
 
 export async function GET(request: Request) {
   if (!await checkRateLimit(request, 120)) return new Response("Requests are temporarily limited.", { status: 429 });
@@ -60,5 +61,8 @@ export async function GET(request: Request) {
     const template = await readFile(join(process.cwd(), "dist", "index.html"), "utf8");
     const html = template.replace(/<title>[\s\S]*?<\/title>/i, "").replace(/<meta\s+(?:name|property)=["'](?:description|og:[^"']+|twitter:[^"']+)["'][^>]*>/gi, "").replace(/<link\s+rel=["']canonical["'][^>]*>/gi, "").replace(/<script id=["']fieldio-identity["'][\s\S]*?<\/script>/i, "").replace("</head>", `${head}</head>`);
     return new Response(html, { status, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": privateRoute ? "no-store" : "public, s-maxage=60, stale-while-revalidate=300" } });
-  } catch { return new Response("Fieldio is temporarily unavailable. Please try again shortly.", { status: 503, headers: { "Cache-Control": "no-store" } }); }
+  } catch (error) {
+    captureServerException(error);
+    return new Response("Fieldio is temporarily unavailable. Please try again shortly.", { status: 503, headers: { "Cache-Control": "no-store" } });
+  }
 }

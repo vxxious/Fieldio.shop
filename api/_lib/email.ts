@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { emailRequest } from "./newsletter.js";
+import { captureServerException } from "./monitoring.js";
 
 interface EmailDetails {
   label: string;
@@ -43,7 +44,10 @@ export function renderTransactionalEmail({ heading, message, details = [], actio
 
 export async function sendTransactionalEmail({ to, subject, heading, message, details = [], replyTo, action }: TransactionalEmail): Promise<boolean> {
   const from = process.env.RESEND_FROM;
-  if (!process.env.RESEND_API_KEY || !from || !to) return false;
+  if (!process.env.RESEND_API_KEY || !from || !to) {
+    if (to) captureServerException(new Error("EMAIL_UNCONFIGURED"));
+    return false;
+  }
   const content = renderTransactionalEmail({ heading, message, details, action });
   try {
     await emailRequest("/emails", {
@@ -54,7 +58,8 @@ export async function sendTransactionalEmail({ to, subject, heading, message, de
       ...content
     });
     return true;
-  } catch {
+  } catch (error) {
+    captureServerException(error);
     console.error("Fieldio transactional email delivery failed");
     return false;
   }
@@ -74,6 +79,7 @@ export async function sendTrackedEmail(database: SupabaseClient, eventKey: strin
     }
   }
   if (error) {
+    captureServerException(error);
     console.error("Fieldio notification delivery could not be recorded", { code: error.code });
     return await sendTransactionalEmail({ ...email, to: recipient }) ? "sent" : "failed";
   }
@@ -81,7 +87,10 @@ export async function sendTrackedEmail(database: SupabaseClient, eventKey: strin
 
   const sent = await sendTransactionalEmail({ ...email, to: recipient });
   const { error: updateError } = await database.from("notification_deliveries").update({ status: sent ? "sent" : "failed", sent_at: sent ? new Date().toISOString() : null, last_error: sent ? null : "EMAIL_PROVIDER_UNAVAILABLE" }).eq("id", data.id);
-  if (updateError) console.error("Fieldio notification delivery status could not be updated", { code: updateError.code });
+  if (updateError) {
+    captureServerException(updateError);
+    console.error("Fieldio notification delivery status could not be updated", { code: updateError.code });
+  }
   return sent ? "sent" : "failed";
 }
 

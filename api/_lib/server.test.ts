@@ -1,6 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { handleApiError, readValidatedJson } from "./server.js";
+import { captureServerException } from "./monitoring.js";
 import { z } from "zod";
+
+vi.mock("./monitoring.js", () => ({ captureServerException: vi.fn() }));
 
 const schema = z.object({ value: z.string() });
 
@@ -44,5 +47,18 @@ describe("API request boundary", () => {
     });
 
     await expect(readValidatedJson(request, schema)).rejects.toThrow("BODY_TOO_LARGE");
+  });
+
+  it("reports unexpected server failures without reporting expected request errors", () => {
+    const error = new Error("DATABASE_FAILURE");
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    expect(handleApiError(error).status).toBe(500);
+    expect(captureServerException).toHaveBeenCalledWith(error);
+    vi.mocked(captureServerException).mockClear();
+    expect(handleApiError(new Error("AUTH_REQUIRED")).status).toBe(401);
+    expect(captureServerException).not.toHaveBeenCalled();
+
+    consoleError.mockRestore();
   });
 });

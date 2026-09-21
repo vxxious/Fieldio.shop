@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { z } from "zod";
 import { createHmac } from "node:crypto";
+import { captureServerException } from "./monitoring.js";
 
 const requests = new Map<string, { count: number; resetAt: number }>();
 const controlCharacters = /\p{Cc}/gu;
@@ -27,7 +28,10 @@ export async function checkRateLimit(request: Request, limit = 8, windowMs = 60_
   if (database && secret) {
     const digest = createHmac("sha256", secret).update(key).digest("hex");
     const { data, error } = await database.rpc("consume_rate_limit", { p_key: digest, p_limit: limit, p_window_seconds: Math.ceil(windowMs / 1000) });
-    if (error) console.error("Fieldio rate-limit RPC failed", { code: error.code, secretFormatValid: secret.startsWith("sb_secret_") });
+    if (error) {
+      captureServerException(error);
+      console.error("Fieldio rate-limit RPC failed", { code: error.code, secretFormatValid: secret.startsWith("sb_secret_") });
+    }
     return !error && data === true;
   }
   const now = Date.now();
@@ -84,6 +88,7 @@ export function handleApiError(error: unknown): Response {
   if (error instanceof Error && error.message === "BODY_TOO_LARGE") return json({ error: "The request is too large." }, 413);
   if (error instanceof z.ZodError) return json({ error: "Check the submitted information.", issues: error.issues.map((issue) => ({ path: issue.path.join("."), message: issue.message })) }, 400);
   if (error instanceof Error && error.message === "INVALID_CONTENT_TYPE") return json({ error: "Content-Type must be application/json." }, 415);
+  captureServerException(error);
   console.error("Fieldio API request failed", error instanceof Error ? error.name : "DatabaseError");
   return json({ error: "The request could not be completed. Please try again or contact Fieldio on WhatsApp." }, 500);
 }

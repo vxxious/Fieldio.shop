@@ -1,5 +1,6 @@
 import { escapeMarkup, publicClient, publicPages, siteOrigin } from "./_lib/public-catalog.js";
 import { checkRateLimit } from "./_lib/server.js";
+import { captureServerException } from "./_lib/monitoring.js";
 
 export async function GET(request: Request) {
   if (!await checkRateLimit(request, 30)) return new Response("Requests are temporarily limited.", { status: 429 });
@@ -26,5 +27,8 @@ export async function GET(request: Request) {
     }
     const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[...paths].map(([path, lastmod]) => `  <url><loc>${escapeMarkup(siteOrigin() + path)}</loc>${lastmod ? `<lastmod>${escapeMarkup(lastmod)}</lastmod>` : ""}</url>`).join("\n")}\n</urlset>`;
     return new Response(xml, { headers: { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, s-maxage=300" } });
-  } catch { return new Response("Sitemap temporarily unavailable", { status: 503 }); }
+  } catch (error) {
+    captureServerException(error);
+    return new Response("Sitemap temporarily unavailable", { status: 503 });
+  }
 }

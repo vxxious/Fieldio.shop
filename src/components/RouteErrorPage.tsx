@@ -1,10 +1,16 @@
 import { isRouteErrorResponse, Link, useRouteError } from "react-router-dom";
+import { useEffect } from "react";
+import { captureRouteError } from "../lib/monitoring";
 import { createWhatsAppUrl } from "../lib/whatsapp";
 
 export function RouteErrorPage() {
   const error = useRouteError();
   const unavailable = isRouteErrorResponse(error) && error.status === 404;
   const title = unavailable ? "This page could not be found." : "Fieldio could not open this page.";
+
+  useEffect(() => {
+    if (!unavailable) captureRouteError(error);
+  }, [error, unavailable]);
 
   return (
     <main id="main-content" className="recovery-page" tabIndex={-1}>

@@ -6,9 +6,12 @@ import { RouterProvider } from "react-router-dom";
 import { Toaster } from "sonner";
 import { router } from "./router";
 import { LocaleProvider } from "./context/LocaleContext";
+import { initMonitoring } from "./lib/monitoring";
 import "./styles.css";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000, retry: 1, refetchOnWindowFocus: false } } });
+
+initMonitoring();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
