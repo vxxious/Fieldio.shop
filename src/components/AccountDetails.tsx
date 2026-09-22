@@ -49,6 +49,7 @@ export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "b
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [savingPhoto, setSavingPhoto] = useState(false);
+  const [photoStatus, setPhotoStatus] = useState("");
   const viewHeading = useRef<HTMLHeadingElement>(null);
   const details = useQuery({ queryKey: ["account-details", userId], queryFn: async () => {
     const [profile, address] = await Promise.all([
@@ -102,16 +103,16 @@ export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "b
   async function uploadAvatar(file: File | undefined) {
     if (!file) return;
     const validation = validateUpload(file, IMAGE_UPLOAD_TYPES, MAX_PROFILE_IMAGE_BYTES);
-    if (validation) { setStatus(validation); return; }
-    setSavingPhoto(true); setStatus("");
+    if (validation) { setPhotoStatus(validation); return; }
+    setSavingPhoto(true); setPhotoStatus("");
     try {
       const path = `${userId}/avatar`;
       const upload = await supabase!.storage.from("profile-media").upload(path, file, { contentType: file.type, upsert: true });
       if (upload.error) throw upload.error;
       const publicUrl = supabase!.storage.from("profile-media").getPublicUrl(path).data.publicUrl;
       await saveAvatar(`${publicUrl}?v=${Date.now()}`);
-      setStatus("Profile photo updated.");
-    } catch (error) { setStatus(error instanceof Error ? error.message : "Your profile photo could not be updated."); }
+      setPhotoStatus("Profile photo updated.");
+    } catch (error) { setPhotoStatus(error instanceof Error ? error.message : "Your profile photo could not be updated."); }
     finally { setSavingPhoto(false); }
   }
 
@@ -189,7 +190,7 @@ export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "b
           </article>;
         }) : <div className="account-empty"><p><strong>{t("account.noRequests")}</strong><br />{t("account.noRequestsCopy")}</p><Link className="text-link" to="/collections">{t("account.explore")}</Link></div>}
       </section> : <section className="account-view-content">
-        <section className="profile-photo-editor" aria-labelledby="profile-photo-title"><div className="account-avatar">{profileAvatar ? <img src={profileAvatar} alt="" referrerPolicy="no-referrer" /> : <AccountIcon />}</div><div><h2 id="profile-photo-title">Profile photo</h2><p>Upload a clear photo, or use the photo from your Google account.</p><div><label className="secondary-button">{savingPhoto ? "Uploading…" : "Upload photo"}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={savingPhoto} onChange={(event) => void uploadAvatar(event.target.files?.[0])} /></label>{avatarUrl && <button className="text-link" type="button" disabled={savingPhoto} onClick={async () => { setSavingPhoto(true); setStatus(""); try { await saveAvatar(avatarUrl); setStatus("Google profile photo selected."); } catch { setStatus("Your Google profile photo could not be selected."); } finally { setSavingPhoto(false); } }}>Use Google photo</button>}</div><small>JPG, PNG, WebP, or AVIF. Maximum 5 MB.</small></div></section>
+        <section className="profile-photo-editor" aria-labelledby="profile-photo-title"><div className="account-avatar">{profileAvatar ? <img src={profileAvatar} alt="" referrerPolicy="no-referrer" /> : <AccountIcon />}</div><div><h2 id="profile-photo-title">Profile photo</h2><p>Upload a clear photo, or use the photo from your Google account.</p><div><label className="secondary-button">{savingPhoto ? "Uploading…" : "Upload photo"}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={savingPhoto} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; void uploadAvatar(file); }} /></label>{avatarUrl && <button className="text-link" type="button" disabled={savingPhoto} onClick={async () => { setSavingPhoto(true); setPhotoStatus(""); try { await saveAvatar(avatarUrl); setPhotoStatus("Google profile photo selected."); } catch { setPhotoStatus("Your Google profile photo could not be selected."); } finally { setSavingPhoto(false); } }}>Use Google photo</button>}</div><small>JPG, PNG, WebP, or AVIF. Maximum 5 MB.</small>{photoStatus && <p className="form-message profile-photo-status" role="status">{photoStatus}</p>}</div></section>
         <form className="admin-form" onSubmit={handleSubmit(save, (formErrors) => setFocus(Object.keys(formErrors)[0] as keyof Details))} noValidate>{([
           ["full_name", t("account.fullName")], ["phone", t("account.phone")], ["line1", t("account.street")], ["city", t("account.city")], ["postal_code", t("account.postal")], ["country_code", t("account.countryCode")]
         ] as const).map(([key, label]) => { const errorId = `details-${key}-error`; return <label key={key}><span>{label}</span><input {...register(key)} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? errorId : undefined} />{errors[key] && <small id={errorId} role="alert">{errors[key]?.message}</small>}</label>; })}<button className="primary-button" disabled={isSubmitting}>{t("account.saveDetails")}</button></form>

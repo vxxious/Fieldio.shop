@@ -660,8 +660,12 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .profile-photo-editor h2 { margin-bottom: 5px; font-size: 23px; }
 .profile-photo-editor p, .profile-photo-editor small { margin-bottom: 12px; color: var(--muted); font-size: 13px; }
 .profile-photo-editor > div:last-child > div { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 8px; }
+.profile-photo-editor .secondary-button, .seller-logo-editor .secondary-button { min-height: 44px; padding: 11px 18px; display: inline-flex; align-items: center; justify-content: center; color: var(--ink); background: var(--surface); border: 1px solid var(--line-dark); font-size: 14px; cursor: pointer; transition: color 160ms ease, background-color 160ms ease; }
+.profile-photo-editor .secondary-button:hover, .seller-logo-editor .secondary-button:hover { color: var(--paper); background: var(--ink); }
+.profile-photo-editor .secondary-button:has(input:disabled), .seller-logo-editor .secondary-button:has(input:disabled) { opacity: .6; cursor: wait; }
 .profile-photo-editor label input, .seller-logo-editor label input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
 .profile-photo-editor label:has(input:focus-visible), .seller-logo-editor label:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 3px; }
+.profile-photo-editor .profile-photo-status { margin: 10px 0 0; color: var(--ink); }
 .customer-account .account-seller-card { min-height: 190px; display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; margin: 0 0 36px; padding: clamp(28px, 4vw, 46px); color: var(--inverse-ink); background: var(--inverse); }
 .account-seller-card h2 { margin-bottom: 14px; font-size: clamp(27px, 3.2vw, 41px); }
 .account-seller-card p { max-width: 48ch; margin: 0; color: var(--inverse-muted); font-size: 15px; }

@@ -56,8 +56,10 @@ describe("security invariants", () => {
 
   it("keeps profile media owner-written and store logos tied to the seller", () => {
     const sql = readFileSync(fileURLToPath(new URL("../../supabase/migrations/202609220001_profile_media_and_store_logo.sql", import.meta.url)), "utf8");
+    const upsertSql = readFileSync(fileURLToPath(new URL("../../supabase/migrations/202609220002_profile_media_upsert_policy.sql", import.meta.url)), "utf8");
     expect(sql).toMatch(/logo_path = owner_id::text \|\| '\/store-logo'/i);
     expect(sql).toMatch(/bucket_id = 'profile-media'[\s\S]+name in \(\(select auth\.uid\(\)\)::text \|\| '\/avatar', \(select auth\.uid\(\)\)::text \|\| '\/store-logo'\)/i);
+    expect(upsertSql).toMatch(/for select to authenticated[\s\S]+bucket_id = 'profile-media'[\s\S]+name in \(\(select auth\.uid\(\)\)::text \|\| '\/avatar', \(select auth\.uid\(\)\)::text \|\| '\/store-logo'\)/i);
     expect(sql).toMatch(/new\.seller_store_logo_path/i);
     expect(sql).toMatch(/after update of name, slug, logo_path/i);
   });
