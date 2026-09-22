@@ -5,11 +5,13 @@ import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { z } from "zod";
 import { AccountIcon, ArrowIcon, BagIcon, EmailIcon, HeartIcon, PlusIcon } from "./Icons";
+import { MfaSettings } from "./MfaSecurity";
 import { useLocale } from "../context/LocaleContext";
 import type { AccountRole } from "../hooks/useAccountRole";
 import { authenticatedPost } from "../lib/authenticated-api";
 import { supabase } from "../lib/supabase";
 import type { TranslationKey } from "../lib/translations";
+import { IMAGE_UPLOAD_TYPES, MAX_PROFILE_IMAGE_BYTES, validateUpload } from "../lib/uploads";
 import { createWhatsAppUrl } from "../lib/whatsapp";
 
 const detailsSchema = z.object({
@@ -46,6 +48,7 @@ export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "b
   const [showDelete, setShowDelete] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [savingPhoto, setSavingPhoto] = useState(false);
   const viewHeading = useRef<HTMLHeadingElement>(null);
   const details = useQuery({ queryKey: ["account-details", userId], queryFn: async () => {
     const [profile, address] = await Promise.all([
@@ -88,6 +91,28 @@ export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "b
     if (address.error) { setStatus(t("account.addressError")); return; }
     await cache.invalidateQueries({ queryKey: ["account-details", userId] });
     setStatus(t("account.saved"));
+  }
+
+  async function saveAvatar(avatar: string) {
+    const { error } = await supabase!.from("profiles").update({ avatar_url: avatar }).eq("id", userId);
+    if (error) throw error;
+    await cache.invalidateQueries({ queryKey: ["account-details", userId] });
+  }
+
+  async function uploadAvatar(file: File | undefined) {
+    if (!file) return;
+    const validation = validateUpload(file, IMAGE_UPLOAD_TYPES, MAX_PROFILE_IMAGE_BYTES);
+    if (validation) { setStatus(validation); return; }
+    setSavingPhoto(true); setStatus("");
+    try {
+      const path = `${userId}/avatar`;
+      const upload = await supabase!.storage.from("profile-media").upload(path, file, { contentType: file.type, upsert: true });
+      if (upload.error) throw upload.error;
+      const publicUrl = supabase!.storage.from("profile-media").getPublicUrl(path).data.publicUrl;
+      await saveAvatar(`${publicUrl}?v=${Date.now()}`);
+      setStatus("Profile photo updated.");
+    } catch (error) { setStatus(error instanceof Error ? error.message : "Your profile photo could not be updated."); }
+    finally { setSavingPhoto(false); }
   }
 
   async function copyReference(reference: string) {
@@ -164,12 +189,13 @@ export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "b
           </article>;
         }) : <div className="account-empty"><p><strong>{t("account.noRequests")}</strong><br />{t("account.noRequestsCopy")}</p><Link className="text-link" to="/collections">{t("account.explore")}</Link></div>}
       </section> : <section className="account-view-content">
+        <section className="profile-photo-editor" aria-labelledby="profile-photo-title"><div className="account-avatar">{profileAvatar ? <img src={profileAvatar} alt="" referrerPolicy="no-referrer" /> : <AccountIcon />}</div><div><h2 id="profile-photo-title">Profile photo</h2><p>Upload a clear photo, or use the photo from your Google account.</p><div><label className="secondary-button">{savingPhoto ? "Uploading…" : "Upload photo"}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={savingPhoto} onChange={(event) => void uploadAvatar(event.target.files?.[0])} /></label>{avatarUrl && <button className="text-link" type="button" disabled={savingPhoto} onClick={async () => { setSavingPhoto(true); setStatus(""); try { await saveAvatar(avatarUrl); setStatus("Google profile photo selected."); } catch { setStatus("Your Google profile photo could not be selected."); } finally { setSavingPhoto(false); } }}>Use Google photo</button>}</div><small>JPG, PNG, WebP, or AVIF. Maximum 5 MB.</small></div></section>
         <form className="admin-form" onSubmit={handleSubmit(save, (formErrors) => setFocus(Object.keys(formErrors)[0] as keyof Details))} noValidate>{([
           ["full_name", t("account.fullName")], ["phone", t("account.phone")], ["line1", t("account.street")], ["city", t("account.city")], ["postal_code", t("account.postal")], ["country_code", t("account.countryCode")]
         ] as const).map(([key, label]) => { const errorId = `details-${key}-error`; return <label key={key}><span>{label}</span><input {...register(key)} aria-invalid={!!errors[key]} aria-describedby={errors[key] ? errorId : undefined} />{errors[key] && <small id={errorId} role="alert">{errors[key]?.message}</small>}</label>; })}<button className="primary-button" disabled={isSubmitting}>{t("account.saveDetails")}</button></form>
         <div className="account-preference"><h2>{t("account.preference")}</h2><p>{t("account.preferenceCopy")}</p><div><button type="button" className={intent === "buy" ? "active" : ""} onClick={() => void selectIntent("buy")} disabled={savingIntent}>{t("account.buy")}</button><button type="button" className={intent === "sell" ? "active" : ""} onClick={() => void selectIntent("sell")} disabled={savingIntent}>{t("account.sell")}</button></div></div>
         {status && <p role="status">{status}</p>}
-        <div className="account-security"><h2>{t("account.security")}</h2><button className="text-link" type="button" onClick={async () => { const { error } = await supabase!.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/account` }); setStatus(error ? error.message : t("account.passwordEmail")); }}>{t("account.changePassword")}</button><button className="text-link" type="button" onClick={() => { setShowDelete(true); setStatus(""); }}>{t("account.delete")}</button></div>
+        <div className="account-security"><h2>{t("account.security")}</h2><MfaSettings /><div className="account-security-actions"><button className="text-link" type="button" onClick={async () => { const { error } = await supabase!.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/account` }); setStatus(error ? error.message : t("account.passwordEmail")); }}>{t("account.changePassword")}</button><button className="text-link" type="button" onClick={() => { setShowDelete(true); setStatus(""); }}>{t("account.delete")}</button></div></div>
         {showDelete && <section className="account-delete" aria-labelledby="account-delete-title"><h2 id="account-delete-title">Delete account and seller data</h2><p>This permanently removes your account, seller verification documents, listing media, and seller products. Linked order records are anonymised.</p><label htmlFor="account-delete-confirmation">Type DELETE to confirm</label><input id="account-delete-confirmation" value={deleteConfirmation} onChange={(event) => setDeleteConfirmation(event.target.value)} autoComplete="off" /><div><button className="primary-button" type="button" disabled={deletingAccount || deleteConfirmation !== "DELETE"} onClick={() => void deleteAccount()}>{deletingAccount ? "Deleting…" : "Delete permanently"}</button><button className="text-link" type="button" disabled={deletingAccount} onClick={() => { setShowDelete(false); setDeleteConfirmation(""); }}>Cancel</button></div></section>}
       </section>}
     </>}

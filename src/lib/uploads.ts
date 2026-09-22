@@ -1,6 +1,7 @@
 export const IMAGE_UPLOAD_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"] as const;
 export const DOCUMENT_UPLOAD_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"] as const;
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+export const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
 
 const extensions: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -10,9 +11,9 @@ const extensions: Record<string, string> = {
   "application/pdf": "pdf"
 };
 
-export function validateUpload(file: File, allowedTypes: readonly string[]) {
+export function validateUpload(file: File, allowedTypes: readonly string[], maxBytes = MAX_UPLOAD_BYTES) {
   if (!allowedTypes.includes(file.type)) return "Choose a supported file type.";
-  if (file.size > MAX_UPLOAD_BYTES) return "Each file must be under 10 MB.";
+  if (file.size > maxBytes) return `Each file must be under ${Math.round(maxBytes / 1024 / 1024)} MB.`;
   return "";
 }
 

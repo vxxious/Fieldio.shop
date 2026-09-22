@@ -26,6 +26,7 @@ it("lets an approved seller edit separate call and WhatsApp details", () => {
   };
   const store = {
     id: "store", name: "Ada Studio", slug: "ada-studio", description: "Independent fashion seller.", contact_email: "store@example.com",
+    logo_path: null, updated_at: "2026-09-22T00:00:00Z",
     contact_phone_country_code: "NG", contact_phone: "+2348012345678", contact_whatsapp_country_code: "US", contact_whatsapp_phone: "+12025550123",
     status: "active" as const
   };

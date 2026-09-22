@@ -11,12 +11,12 @@ import { useSession } from "../hooks/useSession";
 import { authenticatedPost } from "../lib/authenticated-api";
 import { internationalPhone, isPhoneCountryCode, nationalPhone, phoneCountryOptions } from "../lib/phone";
 import { supabase } from "../lib/supabase";
-import { DOCUMENT_UPLOAD_TYPES, IMAGE_UPLOAD_TYPES, uploadExtension, validateUpload } from "../lib/uploads";
+import { DOCUMENT_UPLOAD_TYPES, IMAGE_UPLOAD_TYPES, MAX_PROFILE_IMAGE_BYTES, uploadExtension, validateUpload } from "../lib/uploads";
 
 type ReviewStatus = "draft" | "pending" | "approved" | "rejected" | "suspended";
 type ListingStatus = ReviewStatus | "archived";
 interface SellerApplication { id: string; kind: "seller" | "vendor"; legal_name: string; business_name: string | null; country_code: string; phone_country_code: string; phone: string; whatsapp_country_code: string; whatsapp_phone: string; contact_email: string; website: string | null; identity_document_path: string; address_document_path: string; business_document_path: string | null; status: ReviewStatus; review_reason: string | null; }
-interface Store { id: string; name: string; slug: string; description: string; contact_email: string; contact_phone_country_code: string; contact_phone: string; contact_whatsapp_country_code: string; contact_whatsapp_phone: string; status: "active" | "suspended"; }
+interface Store { id: string; name: string; slug: string; description: string; logo_path: string | null; contact_email: string; contact_phone_country_code: string; contact_phone: string; contact_whatsapp_country_code: string; contact_whatsapp_phone: string; status: "active" | "suspended"; updated_at: string; }
 interface ListingImage { id: string; storage_path: string; alt_text: string; position: number; preview_url: string; }
 interface Listing { id: string; title: string; description: string; audience: ListingValues["audience"]; category_id: string; subcategory_id: string; condition: ListingValues["condition"]; condition_notes: string; materials: string; item_reference: string | null; price: number; compare_at_price: number | null; currency: string; colors: string[]; sizes: string[]; quantity: number; weight_kg: number; authenticity_confirmed: boolean; status: ListingStatus; review_reason: string | null; published_product_id: string | null; created_at: string; images: ListingImage[]; }
 interface Category { id: string; parent_id: string | null; name: string; }
@@ -273,8 +273,37 @@ function ListingForm({ userId, store, categories, currency, listing, onCancel, o
   </form></section>;
 }
 
-function SellerDashboard({ store, listings, onAdd, onEdit, onEditContacts }: { store: Store; listings: Listing[]; onAdd: () => void; onEdit: (listing: Listing) => void; onEditContacts: () => void }) {
-  return <section className="seller-dashboard"><header><div><p>{store.name}</p><h1>Seller dashboard</h1><span>{store.description}</span></div><div className="seller-dashboard-actions"><button className="secondary-button" onClick={onEditContacts}>Edit contact details</button><button className="primary-button" onClick={onAdd}><PlusIcon /> Add product</button></div></header><div className="seller-summary"><div><strong>{listings.length}</strong><span>Total listings</span></div><div><strong>{listings.filter((item) => item.status === "pending").length}</strong><span>In review</span></div><div><strong>{listings.filter((item) => item.status === "approved").length}</strong><span>Live</span></div></div><section className="seller-listings"><h2>Your products</h2>{listings.length ? listings.map((listing) => <article key={listing.id}><div><h3>{listing.title}</h3><p>{listing.currency} {(listing.price / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} · <span className={`seller-status seller-status--${listing.status}`}>{listing.status}</span></p>{listing.review_reason && <small>{listing.review_reason}</small>}</div><div className="seller-listing-actions">{listing.status === "rejected" && <button className="text-link" type="button" onClick={() => onEdit(listing)}>Edit and resubmit</button>}{listing.published_product_id && <Link className="text-link" to="/collections">View in shop <ArrowIcon /></Link>}</div></article>) : <div className="seller-empty"><StoreIcon /><h3>Your store is ready.</h3><p>Add your first product. Fieldio will review it before publication.</p><button className="text-link" onClick={onAdd}>Add a product</button></div>}</section></section>;
+function StoreLogoEditor({ userId, store, onDone }: { userId: string; store: Store; onDone: () => Promise<void> }) {
+  const [status, setStatus] = useState("");
+  const [working, setWorking] = useState(false);
+  const logoUrl = store.logo_path ? supabase!.storage.from("profile-media").getPublicUrl(store.logo_path).data.publicUrl : "";
+  async function uploadLogo(file: File | undefined) {
+    if (!file) return;
+    const validation = validateUpload(file, IMAGE_UPLOAD_TYPES, MAX_PROFILE_IMAGE_BYTES);
+    if (validation) { setStatus(validation); return; }
+    setWorking(true); setStatus("");
+    try {
+      const path = `${userId}/store-logo`;
+      const upload = await supabase!.storage.from("profile-media").upload(path, file, { contentType: file.type, upsert: true });
+      if (upload.error) throw upload.error;
+      const update = await supabase!.from("seller_stores").update({ logo_path: path }).eq("id", store.id);
+      if (update.error) throw update.error;
+      await onDone(); setStatus("Brand logo updated.");
+    } catch (error) { setStatus(error instanceof Error ? error.message : "Your brand logo could not be updated."); }
+    finally { setWorking(false); }
+  }
+  async function removeLogo() {
+    setWorking(true); setStatus("");
+    const update = await supabase!.from("seller_stores").update({ logo_path: null }).eq("id", store.id);
+    if (update.error) { setStatus(update.error.message); setWorking(false); return; }
+    if (store.logo_path) await supabase!.storage.from("profile-media").remove([store.logo_path]);
+    await onDone(); setStatus("Brand logo removed."); setWorking(false);
+  }
+  return <div className="seller-logo-editor"><div className="seller-logo-preview">{logoUrl ? <img src={`${logoUrl}?v=${encodeURIComponent(store.updated_at)}`} alt={`${store.name} logo`} /> : <StoreIcon />}</div><div><strong>Brand logo</strong><p>Shown on your public Fieldio storefront.</p><div><label className="secondary-button">{working ? "Updating…" : logoUrl ? "Replace logo" : "Upload logo"}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={working} onChange={(event) => void uploadLogo(event.target.files?.[0])} /></label>{logoUrl && <button className="text-link" type="button" disabled={working} onClick={() => void removeLogo()}>Remove</button>}</div><small>Square images work best. Maximum 5 MB.</small>{status && <p className="form-message" role="status">{status}</p>}</div></div>;
+}
+
+function SellerDashboard({ userId, store, listings, onAdd, onEdit, onEditContacts, onStoreUpdated }: { userId: string; store: Store; listings: Listing[]; onAdd: () => void; onEdit: (listing: Listing) => void; onEditContacts: () => void; onStoreUpdated: () => Promise<void> }) {
+  return <section className="seller-dashboard"><header><div><p>{store.name}</p><h1>Seller dashboard</h1><span>{store.description}</span></div><div className="seller-dashboard-actions"><button className="secondary-button" onClick={onEditContacts}>Edit contact details</button><button className="primary-button" onClick={onAdd}><PlusIcon /> Add product</button></div></header><StoreLogoEditor userId={userId} store={store} onDone={onStoreUpdated} /><div className="seller-summary"><div><strong>{listings.length}</strong><span>Total listings</span></div><div><strong>{listings.filter((item) => item.status === "pending").length}</strong><span>In review</span></div><div><strong>{listings.filter((item) => item.status === "approved").length}</strong><span>Live</span></div></div><section className="seller-listings"><h2>Your products</h2>{listings.length ? listings.map((listing) => <article key={listing.id}><div><h3>{listing.title}</h3><p>{listing.currency} {(listing.price / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} · <span className={`seller-status seller-status--${listing.status}`}>{listing.status}</span></p>{listing.review_reason && <small>{listing.review_reason}</small>}</div><div className="seller-listing-actions">{listing.status === "rejected" && <button className="text-link" type="button" onClick={() => onEdit(listing)}>Edit and resubmit</button>}{listing.published_product_id && <Link className="text-link" to="/collections">View in shop <ArrowIcon /></Link>}</div></article>) : <div className="seller-empty"><StoreIcon /><h3>Your store is ready.</h3><p>Add your first product. Fieldio will review it before publication.</p><button className="text-link" onClick={onAdd}>Add a product</button></div>}</section></section>;
 }
 
 function SubmittedState({ title, onAdd }: { title: string; onAdd: () => void }) {
@@ -321,5 +350,5 @@ export function SellerPage() {
   if (submittedTitle) return <SubmittedState title={submittedTitle} onAdd={() => { setSubmittedTitle(""); setMode("listing"); }} />;
   if (mode === "contacts") return <ContactDetailsForm application={application} store={store} onCancel={() => setMode("dashboard")} onDone={refresh} />;
   if (mode === "listing") return <ListingForm userId={session.user.id} store={store} categories={categories} currency={region.currency} listing={editingListing} onCancel={() => { setEditingListing(null); setMode("dashboard"); }} onSubmitted={async (title) => { await refresh(); setEditingListing(null); setSubmittedTitle(title); }} />;
-  return <SellerDashboard store={store} listings={listings} onAdd={() => { setEditingListing(null); setMode("listing"); }} onEdit={(listing) => { setEditingListing(listing); setMode("listing"); }} onEditContacts={() => setMode("contacts")} />;
+  return <SellerDashboard userId={session.user.id} store={store} listings={listings} onAdd={() => { setEditingListing(null); setMode("listing"); }} onEdit={(listing) => { setEditingListing(listing); setMode("listing"); }} onEditContacts={() => setMode("contacts")} onStoreUpdated={refresh} />;
 }

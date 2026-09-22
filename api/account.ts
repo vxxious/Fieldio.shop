@@ -40,7 +40,8 @@ export async function POST(request: Request): Promise<Response> {
     await Promise.all([
       removeFiles(admin, "seller-verification", [application.data?.identity_document_path, application.data?.address_document_path, application.data?.business_document_path]),
       removeFiles(admin, "seller-listing-media", (listingImages.data ?? []).map(({ storage_path }) => storage_path)),
-      removeFiles(admin, "product-images", (productImages.data ?? []).map(({ storage_path }) => storage_path))
+      removeFiles(admin, "product-images", (productImages.data ?? []).map(({ storage_path }) => storage_path)),
+      removeFiles(admin, "profile-media", [`${user.id}/avatar`, `${user.id}/store-logo`])
     ]);
 
     const anonymousEmail = `deleted+${user.id}@fieldio.invalid`;

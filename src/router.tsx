@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import { lazy } from "react";
 import { AppLayout } from "./components/AppLayout";
+import { MfaGate } from "./components/MfaSecurity";
 import { RouteErrorPage } from "./components/RouteErrorPage";
 
 const AccountPage = lazy(() => import("./pages/AccountPage").then((module) => ({ default: module.AccountPage })));
@@ -31,12 +32,12 @@ export const router = createBrowserRouter([
       { path: "/brands", element: <BrandPage /> },
       { path: "/search", element: <SearchPage /> },
       { path: "/wishlist", element: <WishlistPage /> },
-      { path: "/checkout", element: <CheckoutPage /> },
+      { path: "/checkout", element: <MfaGate><CheckoutPage /></MfaGate> },
       { path: "/personal-shopping", element: <ServicePage /> },
       { path: "/wholesale", element: <ServicePage /> },
       { path: "/contact", element: <ServicePage /> },
-      { path: "/account", element: <AccountPage /> },
-      { path: "/sell", element: <SellerPage /> },
+      { path: "/account", element: <MfaGate><AccountPage /></MfaGate> },
+      { path: "/sell", element: <MfaGate><SellerPage /></MfaGate> },
       { path: "/stores/:slug", element: <StorePage /> },
       { path: "/admin", element: <AdminPage /> },
       { path: "/about", element: <ContentPage /> },

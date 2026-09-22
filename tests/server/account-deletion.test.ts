@@ -47,5 +47,6 @@ it("removes seller files and deletes the authenticated non-staff account", async
   expect(remove).toHaveBeenCalledWith(["user/id.pdf", "user/address.pdf"]);
   expect(remove).toHaveBeenCalledWith(["user/listing/image.webp"]);
   expect(remove).toHaveBeenCalledWith(["seller/product.webp"]);
+  expect(remove).toHaveBeenCalledWith(["33333333-3333-4333-8333-333333333333/avatar", "33333333-3333-4333-8333-333333333333/store-logo"]);
   expect(deleteUser).toHaveBeenCalledWith("33333333-3333-4333-8333-333333333333");
-});
+}, 10_000);

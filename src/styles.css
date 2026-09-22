@@ -135,18 +135,18 @@
 .admin-page aside nav button[aria-current] { background: var(--ink); color: var(--surface); }
 .admin-page-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
 .admin-page-heading span { color: var(--muted); font-size: 12px; text-transform: capitalize; }
-.admin-mfa { width: min(calc(100% - 28px), 620px); min-height: 65vh; display: flex; flex-direction: column; justify-content: center; margin: 0 auto; padding: 54px 0 90px; }
-.admin-mfa h1 { max-width: 10ch; margin: 0; font-size: clamp(48px, 7vw, 76px); line-height: .96; }
-.admin-mfa > p { max-width: 50ch; margin: 20px 0 30px; color: var(--muted); }
-.admin-mfa form { display: grid; gap: 10px; margin-top: 28px; }
-.admin-mfa input { min-height: 52px; padding: 12px; color: var(--ink); background: var(--surface); border: 1px solid var(--line-dark); font-size: 20px; letter-spacing: .16em; }
-.admin-mfa form .primary-button { justify-self: start; margin-top: 8px; }
-.admin-mfa-setup { padding: 24px; background: var(--surface); border: 1px solid var(--line); }
-.admin-mfa-setup img { width: min(100%, 240px); height: auto; background: #fff; }
-.admin-mfa-setup p { max-width: 48ch; color: var(--muted); }
-.admin-mfa-setup details { margin-top: 16px; }
-.admin-mfa-setup code { display: block; margin-top: 10px; overflow-wrap: anywhere; }
-.admin-mfa-signout { align-self: flex-start; margin-top: 24px; }
+.mfa-gate { width: min(calc(100% - 28px), 620px); min-height: 65vh; display: flex; flex-direction: column; justify-content: center; margin: 0 auto; padding: 54px 0 90px; }
+.mfa-gate h1 { max-width: 11ch; margin: 0; font-size: clamp(48px, 7vw, 76px); line-height: .96; }
+.mfa-gate > p { max-width: 50ch; margin: 20px 0 30px; color: var(--muted); }
+.mfa-code-form { display: grid; gap: 10px; margin-top: 28px; }
+.mfa-code-form input { min-height: 52px; padding: 12px; color: var(--ink); background: var(--surface); border: 1px solid var(--line-dark); font-size: 20px; letter-spacing: .16em; }
+.mfa-code-form .primary-button { justify-self: start; margin-top: 8px; }
+.mfa-setup { margin-top: 22px; padding: 24px; background: var(--surface); border: 1px solid var(--line); }
+.mfa-setup img { width: min(100%, 240px); height: auto; background: #fff; }
+.mfa-setup p { max-width: 48ch; color: var(--muted); }
+.mfa-setup details { margin-top: 16px; }
+.mfa-setup code { display: block; margin-top: 10px; overflow-wrap: anywhere; }
+.mfa-signout { align-self: flex-start; margin-top: 24px; }
 .admin-mobile-navigation { display: none; }
 .admin-signout { margin: 24px 10px 0; font-size: 13px; }
 .admin-workspace { min-width: 0; }
@@ -656,6 +656,12 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .account-avatar { width: 92px; height: 92px; display: grid; place-items: center; overflow: hidden; background: var(--image-field); border-radius: 50%; }
 .account-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .account-avatar svg { width: 42px; height: 42px; color: var(--muted); }
+.profile-photo-editor { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 22px; padding-bottom: 30px; margin-bottom: 30px; border-bottom: 1px solid var(--line); }
+.profile-photo-editor h2 { margin-bottom: 5px; font-size: 23px; }
+.profile-photo-editor p, .profile-photo-editor small { margin-bottom: 12px; color: var(--muted); font-size: 13px; }
+.profile-photo-editor > div:last-child > div { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 8px; }
+.profile-photo-editor label input, .seller-logo-editor label input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+.profile-photo-editor label:has(input:focus-visible), .seller-logo-editor label:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 3px; }
 .customer-account .account-seller-card { min-height: 190px; display: flex; justify-content: space-between; align-items: flex-start; gap: 40px; margin: 0 0 36px; padding: clamp(28px, 4vw, 46px); color: var(--inverse-ink); background: var(--inverse); }
 .account-seller-card h2 { margin-bottom: 14px; font-size: clamp(27px, 3.2vw, 41px); }
 .account-seller-card p { max-width: 48ch; margin: 0; color: var(--inverse-muted); font-size: 15px; }
@@ -679,9 +685,13 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .account-preference button { min-height: 46px; border: 1px solid var(--line-dark); }
 .account-preference button + button { border-left: 0; }
 .account-preference button.active { color: var(--surface); background: var(--ink); border-color: var(--ink); }
-.account-security { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding-top: 30px; margin-top: 30px; border-top: 1px solid var(--line); }
-.account-security h2 { width: 100%; }
+.account-security { padding-top: 30px; margin-top: 30px; border-top: 1px solid var(--line); }
 .account-security .text-link { text-decoration: underline; text-underline-offset: 4px; }
+.account-security-actions { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 24px; }
+.mfa-settings { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 18px 30px; padding: 22px 0; border-bottom: 1px solid var(--line); }
+.mfa-settings h3 { margin-bottom: 5px; font-size: 17px; }
+.mfa-settings p { margin: 0; color: var(--muted); font-size: 13px; }
+.mfa-settings .mfa-setup, .mfa-settings .mfa-code-form, .mfa-settings > .form-message { grid-column: 1 / -1; }
 .account-delete { display: grid; gap: 14px; margin-top: 24px; padding: 24px; border: 1px solid var(--error); }
 .account-delete h2, .account-delete p { margin: 0; }
 .account-delete p { max-width: 62ch; color: var(--muted); }
@@ -707,8 +717,10 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 
 .store-page { width: var(--page); margin: 0 auto; padding: clamp(64px, 9vw, 130px) 0 clamp(90px, 12vw, 170px); }
 .store-page > header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 30px; padding-bottom: 38px; border-bottom: 1px solid var(--ink); }
-.store-page > header > div { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+.store-page > header > .store-verification { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
 .store-page > header svg { width: 24px; height: 24px; color: var(--ink); }
+.store-heading { min-width: 0; display: flex; align-items: center; gap: clamp(16px, 3vw, 38px); }
+.store-heading img { width: clamp(74px, 9vw, 128px); height: clamp(74px, 9vw, 128px); flex: 0 0 auto; object-fit: cover; border: 1px solid var(--line); }
 .store-page h1 { max-width: 12ch; margin: 0; font-size: clamp(58px, 8vw, 116px); line-height: .88; }
 .store-page > header > p { margin: 0; color: var(--muted); font-size: 14px; }
 .store-service-notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin-top: 24px; border: 1px solid var(--line); }
@@ -769,6 +781,13 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .seller-dashboard > header .primary-button { flex: 0 0 auto; gap: 8px; }
 .seller-dashboard > header .primary-button svg { width: 18px; height: 18px; }
 .seller-dashboard-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.seller-logo-editor { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 24px; padding: 28px 0; border-bottom: 1px solid var(--line); }
+.seller-logo-preview { width: 110px; height: 110px; display: grid; place-items: center; overflow: hidden; background: var(--image-field); border: 1px solid var(--line); }
+.seller-logo-preview img { width: 100%; height: 100%; object-fit: cover; }
+.seller-logo-preview svg { width: 42px; height: 42px; color: var(--muted); }
+.seller-logo-editor p { margin: 4px 0 12px; color: var(--muted); font-size: 13px; }
+.seller-logo-editor > div:last-child > div { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 8px; }
+.seller-logo-editor small { color: var(--muted); }
 .seller-summary { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--line-dark); }
 .seller-summary div { min-height: 132px; display: flex; flex-direction: column; justify-content: center; padding: 20px; border-right: 1px solid var(--line); }
 .seller-summary div:last-child { border-right: 0; }
@@ -1061,6 +1080,8 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .account-identity { padding-inline: 14px; }
   .account-avatar { width: 82px; height: 82px; }
   .account-identity h1 { font-size: 38px; }
+  .profile-photo-editor { grid-template-columns: 82px 1fr; gap: 16px; }
+  .mfa-settings { grid-template-columns: 1fr; }
   .customer-account .account-seller-card { min-height: 190px; margin-bottom: 20px; padding: 28px 22px; }
   .account-seller-card h2 { font-size: 29px; }
   .account-seller-card p { font-size: 14px; }
@@ -1072,7 +1093,8 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .account-view-header h1 { font-size: 49px; }
   .account-order-progress { overflow-x: auto; grid-template-columns: repeat(5, minmax(105px, 1fr)); }
   .store-page > header { display: block; }
-  .store-page > header > div { margin-bottom: 22px; }
+  .store-page > header > .store-verification { margin-bottom: 22px; }
+  .store-heading { margin-bottom: 22px; }
   .store-page h1 { font-size: 68px; }
   .store-page > header > p { margin-top: 20px; }
   .store-service-notes { grid-template-columns: 1fr; }
@@ -1089,6 +1111,8 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .seller-media-preview, .seller-review-thumbs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .seller-dashboard > header { align-items: flex-start; flex-direction: column; }
   .seller-dashboard-actions { width: 100%; align-items: stretch; flex-direction: column; }
+  .seller-logo-editor { grid-template-columns: 82px 1fr; gap: 16px; }
+  .seller-logo-preview { width: 82px; height: 82px; }
   .seller-summary div { min-height: 104px; padding: 14px; }
   .seller-summary strong { font-size: 34px; }
   .seller-listings article { align-items: flex-start; flex-direction: column; }

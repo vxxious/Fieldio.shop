@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { IMAGE_UPLOAD_TYPES, MAX_UPLOAD_BYTES, uploadExtension, validateUpload } from "./uploads";
+import { IMAGE_UPLOAD_TYPES, MAX_PROFILE_IMAGE_BYTES, MAX_UPLOAD_BYTES, uploadExtension, validateUpload } from "./uploads";
 
 it("uses the verified MIME type for upload names and rejects invalid files", () => {
   const disguisedImage = new File(["image"], "payload.html", { type: "image/jpeg" });
@@ -12,4 +12,5 @@ it("uses the verified MIME type for upload names and rejects invalid files", () 
   const oversized = new File(["image"], "large.jpg", { type: "image/jpeg" });
   Object.defineProperty(oversized, "size", { value: MAX_UPLOAD_BYTES + 1 });
   expect(validateUpload(oversized, IMAGE_UPLOAD_TYPES)).toBe("Each file must be under 10 MB.");
+  expect(validateUpload(oversized, IMAGE_UPLOAD_TYPES, MAX_PROFILE_IMAGE_BYTES)).toBe("Each file must be under 5 MB.");
 });

@@ -21,7 +21,7 @@ export function StorePage() {
   if (!store) return <div className="not-found"><h1>Store not found.</h1><p>This seller may not have any approved listings yet.</p><Link className="primary-button" to="/collections">Explore the edit</Link></div>;
 
   return <main className="store-page">
-    <header><div><CheckSealIcon /><span>Identity and listings reviewed by Fieldio</span></div><h1>{storeName}</h1><p>{location} · {products.length} approved {products.length === 1 ? "listing" : "listings"}</p></header>
+    <header><div className="store-verification"><CheckSealIcon /><span>Identity and listings reviewed by Fieldio</span></div><div className="store-heading">{store.sellerStoreLogo && <img src={store.sellerStoreLogo} alt={`${storeName} logo`} />}<h1>{storeName}</h1></div><p>{location} · {products.length} approved {products.length === 1 ? "listing" : "listings"}</p></header>
     <div className="store-service-notes"><p><strong>Response</strong><span>Timing varies by request; Fieldio replies directly.</span></p><p><strong>Policies</strong><span><Link to="/promise">Fieldio Promise</Link> · <Link to="/shipping">Delivery and returns</Link></span></p></div>
     <section className="product-grid" aria-label={`${storeName} products`}>{products.map((product) => <ProductCard key={product.id} product={product} />)}</section>
     <p className="store-disclaimer">Verification confirms that Fieldio reviewed the seller information and listing before publication. Ask for any additional product evidence you need before payment.</p>
