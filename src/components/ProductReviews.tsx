@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useFocusTrap } from "../hooks/useFocusTrap";
@@ -45,7 +46,7 @@ function ReviewLightbox({ images, index, onIndex, onClose }: { images: ReviewIma
   const closeRef = useRef<HTMLButtonElement>(null);
   useFocusTrap(dialogRef, true, onClose, undefined, undefined, closeRef);
   const image = images[index];
-  return <div className="review-lightbox" role="dialog" aria-modal="true" aria-label={`Review photo ${index + 1} of ${images.length}`} ref={dialogRef} tabIndex={-1}>
+  return createPortal(<div className="review-lightbox" role="dialog" aria-modal="true" aria-label={`Review photo ${index + 1} of ${images.length}`} ref={dialogRef} tabIndex={-1}>
     <button ref={closeRef} className="review-modal-close" type="button" onClick={onClose} aria-label="Close photo viewer"><CloseIcon /></button>
     {image && <img src={imageUrl(image.storage_path)} alt={`Customer review photo ${index + 1}`} />}
     {images.length > 1 && <div className="review-lightbox-nav">
@@ -53,7 +54,7 @@ function ReviewLightbox({ images, index, onIndex, onClose }: { images: ReviewIma
       <span>{index + 1} / {images.length}</span>
       <button type="button" onClick={() => onIndex((index + 1) % images.length)}>Next</button>
     </div>}
-  </div>;
+  </div>, document.body);
 }
 
 function ReviewEditor({ productName, eligibility, review, onClose, onSaved }: { productName: string; eligibility: Eligibility[]; review: Review | null; onClose: () => void; onSaved: () => Promise<void> }) {
@@ -130,7 +131,7 @@ function ReviewEditor({ productName, eligibility, review, onClose, onSaved }: { 
     finally { setSaving(false); setUploading(0); }
   };
 
-  return <div className="review-modal" role="presentation"><section className="review-editor" role="dialog" aria-modal="true" aria-labelledby="review-editor-title" ref={dialogRef} tabIndex={-1}>
+  return createPortal(<div className="review-modal" role="presentation"><section className="review-editor" role="dialog" aria-modal="true" aria-labelledby="review-editor-title" ref={dialogRef} tabIndex={-1}>
     <header><div><h2 id="review-editor-title">{review ? "Edit your review" : "Review your purchase"}</h2><p>{productName}</p></div><button ref={closeRef} className="review-modal-close" type="button" onClick={close} aria-label="Close review editor"><CloseIcon /></button></header>
     {!review && <label className="review-field">Delivered item<select value={orderItemId} onChange={(event) => setOrderItemId(event.target.value)}><option value="">Select your purchase</option>{eligibility.filter((item) => !item.existing_review_id).map((item) => <option key={item.order_item_id} value={item.order_item_id}>{reviewVariantLabel(item) || "Standard variant"} · {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(item.purchased_at))}</option>)}</select></label>}
     {review && <p className="review-editor-variant"><span>Purchased item</span>{reviewVariantLabel(review) || "Standard variant"}</p>}
@@ -142,7 +143,7 @@ function ReviewEditor({ productName, eligibility, review, onClose, onSaved }: { 
     {uploading > 0 && <div className="review-upload-progress" role="status"><progress value={uploading} max={files.length} />Uploading photo {uploading} of {files.length}</div>}
     {error && <p className="form-message error" role="alert">{error}</p>}
     <footer><button type="button" className="text-link" onClick={close}>Cancel</button><button type="button" className="primary-button" disabled={saving || preparing} onClick={() => void save()}>{saving ? "Saving review…" : review ? "Save changes" : "Publish review"}</button></footer>
-  </section></div>;
+  </section></div>, document.body);
 }
 
 export function ProductReviews({ productId, productName, averageRating = 0, ratingCount = 0 }: ProductReviewsProps) {
