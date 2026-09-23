@@ -32,4 +32,10 @@ it("renders the review editor at the document overlay layer", async () => {
   fireEvent.click(await screen.findByRole("button", { name: "Write a review" }));
   const dialog = screen.getByRole("dialog", { name: "Review your purchase" });
   expect(dialog.closest(".review-modal")?.parentElement).toBe(document.body);
+  for (const rating of [5, 3, 2]) {
+    const star = screen.getByRole("button", { name: `${rating} stars` });
+    fireEvent.click(star);
+    expect(star).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText(`${rating} out of 5 selected`)).toBeInTheDocument();
+  }
 });

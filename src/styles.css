@@ -554,11 +554,11 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .review-editor-variant { display: flex; justify-content: space-between; gap: 18px; padding: 16px 0; margin: 22px 0 0; border-bottom: 1px solid var(--line); font-size: 13px; }
 .review-editor-variant span { color: var(--muted); }
 .review-rating-input > div { display: flex; gap: 4px; }
-.review-rating-input label { position: relative; cursor: pointer; }
-.review-rating-input input { position: absolute; opacity: 0; }
-.review-rating-input svg { width: 37px; height: 37px; padding: 6px; }
-.review-rating-input .empty { fill: transparent; }
-.review-rating-input label:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+.review-rating-input button { width: 44px; height: 44px; display: grid; place-items: center; color: var(--line-dark); border: 1px solid transparent; }
+.review-rating-input button.is-selected { color: var(--ink); }
+.review-rating-input button[aria-pressed=true] { border-color: var(--ink); }
+.review-rating-input svg { width: 31px; height: 31px; }
+.review-rating-status { margin: 0; color: var(--muted); font-size: 12px; }
 .review-tag-input > div { display: flex; flex-wrap: wrap; gap: 7px; }
 .review-tag-input label { position: relative; cursor: pointer; }
 .review-tag-input input { position: absolute; opacity: 0; }
