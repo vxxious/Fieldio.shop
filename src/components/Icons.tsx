@@ -96,3 +96,7 @@ export function ImageIcon(props: IconProps) {
 export function CheckSealIcon(props: IconProps) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}><path {...base} d="m12 2 2.2 2 3-.2.7 2.9 2.6 1.5-1.2 2.8 1.2 2.8-2.6 1.5-.7 2.9-3-.2-2.2 2-2.2-2-3 .2-.7-2.9-2.6-1.5L3.5 11 2.3 8.2l2.6-1.5.7-2.9 3 .2L12 2Z" /><path {...base} d="m8.5 11.5 2.2 2.2 4.8-5" /></svg>;
 }
+
+export function StarIcon({ fill = "currentColor", ...props }: IconProps) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" {...props}><path {...base} fill={fill} d="m12 3 2.7 5.5 6 .9-4.4 4.2 1 6-5.3-2.8-5.3 2.8 1-6-4.4-4.2 6-.9L12 3Z" /></svg>;
+}

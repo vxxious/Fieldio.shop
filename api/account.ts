@@ -23,12 +23,13 @@ export async function POST(request: Request): Promise<Response> {
     if (staffError) throw staffError;
     if (staff) return json({ error: "Staff accounts must be removed by another account owner." }, 403);
 
-    const [application, listingImages, listings] = await Promise.all([
+    const [application, listingImages, listings, reviewImages] = await Promise.all([
       admin.from("seller_applications").select("identity_document_path,address_document_path,business_document_path").eq("owner_id", user.id).maybeSingle(),
       admin.from("seller_listing_images").select("storage_path").eq("owner_id", user.id),
-      admin.from("seller_listings").select("id").eq("owner_id", user.id)
+      admin.from("seller_listings").select("id").eq("owner_id", user.id),
+      admin.from("product_review_images").select("storage_path").eq("buyer_id", user.id)
     ]);
-    if (application.error || listingImages.error || listings.error) throw application.error || listingImages.error || listings.error;
+    if (application.error || listingImages.error || listings.error || reviewImages.error) throw application.error || listingImages.error || listings.error || reviewImages.error;
 
     const listingIds = (listings.data ?? []).map(({ id }) => id);
     const products = listingIds.length ? await admin.from("products").select("id").in("seller_listing_id", listingIds) : { data: [], error: null };
@@ -41,6 +42,7 @@ export async function POST(request: Request): Promise<Response> {
       removeFiles(admin, "seller-verification", [application.data?.identity_document_path, application.data?.address_document_path, application.data?.business_document_path]),
       removeFiles(admin, "seller-listing-media", (listingImages.data ?? []).map(({ storage_path }) => storage_path)),
       removeFiles(admin, "product-images", (productImages.data ?? []).map(({ storage_path }) => storage_path)),
+      removeFiles(admin, "review-media", (reviewImages.data ?? []).map(({ storage_path }) => storage_path)),
       removeFiles(admin, "profile-media", [`${user.id}/avatar`, `${user.id}/store-logo`])
     ]);
 

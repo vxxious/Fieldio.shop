@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { z } from "zod";
-import { ArrowIcon, CheckSealIcon, ImageIcon, PlusIcon, StoreIcon } from "../components/Icons";
+import { ArrowIcon, CheckSealIcon, ImageIcon, PlusIcon, StarIcon, StoreIcon } from "../components/Icons";
 import { useLocale } from "../context/LocaleContext";
 import { usePageMeta } from "../hooks/usePageMeta";
 import { useSession } from "../hooks/useSession";
@@ -12,6 +12,7 @@ import { authenticatedPost } from "../lib/authenticated-api";
 import { internationalPhone, isPhoneCountryCode, nationalPhone, phoneCountryOptions } from "../lib/phone";
 import { supabase } from "../lib/supabase";
 import { DOCUMENT_UPLOAD_TYPES, IMAGE_UPLOAD_TYPES, MAX_PROFILE_IMAGE_BYTES, uploadExtension, validateUpload } from "../lib/uploads";
+import { reviewVariantLabel } from "../lib/reviews";
 
 type ReviewStatus = "draft" | "pending" | "approved" | "rejected" | "suspended";
 type ListingStatus = ReviewStatus | "archived";
@@ -20,6 +21,8 @@ interface Store { id: string; name: string; slug: string; description: string; l
 interface ListingImage { id: string; storage_path: string; alt_text: string; position: number; preview_url: string; }
 interface Listing { id: string; title: string; description: string; audience: ListingValues["audience"]; category_id: string; subcategory_id: string; condition: ListingValues["condition"]; condition_notes: string; materials: string; item_reference: string | null; price: number; compare_at_price: number | null; currency: string; colors: string[]; sizes: string[]; quantity: number; weight_kg: number; authenticity_confirmed: boolean; status: ListingStatus; review_reason: string | null; published_product_id: string | null; created_at: string; images: ListingImage[]; }
 interface Category { id: string; parent_id: string | null; name: string; }
+interface VendorReview { id: string; rating: number; review_text: string; reviewer_name: string; purchased_variant: string | null; purchased_size: string | null; purchased_color: string | null; created_at: string; product: { name: string } | null; images: Array<{ id: string; storage_path: string; position: number }>; }
+interface VendorReviewSummary { averageRating: number; total: number; breakdown: Record<string, number>; }
 
 const callingCodeOptions = phoneCountryOptions();
 const phoneCountrySchema = z.string().refine(isPhoneCountryCode, "Choose a country calling code.");
@@ -306,6 +309,10 @@ function SellerDashboard({ userId, store, listings, onAdd, onEdit, onEditContact
   return <section className="seller-dashboard"><header><div><p>{store.name}</p><h1>Seller dashboard</h1><span>{store.description}</span></div><div className="seller-dashboard-actions"><button className="secondary-button" onClick={onEditContacts}>Edit contact details</button><button className="primary-button" onClick={onAdd}><PlusIcon /> Add product</button></div></header><StoreLogoEditor userId={userId} store={store} onDone={onStoreUpdated} /><div className="seller-summary"><div><strong>{listings.length}</strong><span>Total listings</span></div><div><strong>{listings.filter((item) => item.status === "pending").length}</strong><span>In review</span></div><div><strong>{listings.filter((item) => item.status === "approved").length}</strong><span>Live</span></div></div><section className="seller-listings"><h2>Your products</h2>{listings.length ? listings.map((listing) => <article key={listing.id}><div><h3>{listing.title}</h3><p>{listing.currency} {(listing.price / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} · <span className={`seller-status seller-status--${listing.status}`}>{listing.status}</span></p>{listing.review_reason && <small>{listing.review_reason}</small>}</div><div className="seller-listing-actions">{listing.status === "rejected" && <button className="text-link" type="button" onClick={() => onEdit(listing)}>Edit and resubmit</button>}{listing.published_product_id && <Link className="text-link" to="/collections">View in shop <ArrowIcon /></Link>}</div></article>) : <div className="seller-empty"><StoreIcon /><h3>Your store is ready.</h3><p>Add your first product. Fieldio will review it before publication.</p><button className="text-link" onClick={onAdd}>Add a product</button></div>}</section></section>;
 }
 
+function SellerReviews({ reviews, summary }: { reviews: VendorReview[]; summary: VendorReviewSummary }) {
+  return <section className="seller-reviews"><header><div><h2>Customer reviews</h2><p>Published feedback across your live products. Reviews are read-only.</p></div><strong>{summary.total ? Number(summary.averageRating).toFixed(1) : "—"}<span>{summary.total} {summary.total === 1 ? "review" : "reviews"}</span></strong></header>{summary.total ? <><div className="seller-rating-distribution">{[5, 4, 3, 2, 1].map((rating) => { const count = Number(summary.breakdown[String(rating)] ?? 0); return <div key={rating}><span>{rating} star</span><i><b style={{ width: `${count / summary.total * 100}%` }} /></i><span>{count}</span></div>; })}</div><div className="seller-review-feed">{reviews.slice(0, 8).map((review) => <article key={review.id}><div className="seller-review-heading"><span className="review-stars" aria-label={`${review.rating} out of 5 stars`}>{[1, 2, 3, 4, 5].map((star) => <StarIcon key={star} className={star <= review.rating ? "filled" : "empty"} />)}</span><time dateTime={review.created_at}>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(review.created_at))}</time></div><h3>{review.product?.name ?? "Product"}</h3><p className="seller-review-meta">{review.reviewer_name}{reviewVariantLabel(review) ? ` · ${reviewVariantLabel(review)}` : ""}</p><p>{review.review_text}</p>{review.images.length > 0 && <div className="seller-review-images-inline">{review.images.map((image, index) => <img key={image.id} src={supabase!.storage.from("review-media").getPublicUrl(image.storage_path).data.publicUrl} alt={`Customer review photo ${index + 1}`} loading="lazy" />)}</div>}</article>)}</div></> : <div className="seller-empty"><StarIcon /><h3>No customer reviews yet.</h3><p>Delivered buyers’ published feedback will appear here.</p></div>}</section>;
+}
+
 function SubmittedState({ title, onAdd }: { title: string; onAdd: () => void }) {
   return <section className="seller-success" aria-labelledby="seller-success-title"><CheckSealIcon /><h1 id="seller-success-title">{title} was submitted for review.</h1><p>Fieldio will check the product details, ownership, condition, and images before it goes live.</p><button className="primary-button" onClick={onAdd}>Add another product</button><button className="secondary-button" onClick={() => window.location.reload()}>View dashboard</button><Link className="secondary-button" to="/collections">Explore</Link></section>;
 }
@@ -328,11 +335,15 @@ export function SellerPage() {
     const error = application.error || store.error || listings.error || categories.error;
     if (error) throw error;
     const listingRows = listings.data as unknown as Array<Omit<Listing, "images"> & { images: Array<Omit<ListingImage, "preview_url">> }>;
+    const productIds = listingRows.flatMap((listing) => listing.published_product_id ? [listing.published_product_id] : []);
+    const reviews = productIds.length ? await supabase!.from("product_reviews").select("id,rating,review_text,reviewer_name,purchased_variant,purchased_size,purchased_color,created_at,product:products(name),images:product_review_images(id,storage_path,position)").in("product_id", productIds).eq("status", "published").order("created_at", { ascending: false }).limit(50) : { data: [], error: null };
+    const reviewSummary = await supabase!.rpc("seller_review_summary");
+    if (reviews.error || reviewSummary.error) throw reviews.error || reviewSummary.error;
     const imagePaths = listingRows.flatMap((listing) => listing.images.map(({ storage_path }) => storage_path));
     const signedImages = imagePaths.length ? await supabase!.storage.from("seller-listing-media").createSignedUrls(imagePaths, 3600) : { data: [], error: null };
     if (signedImages.error) throw signedImages.error;
     const previewByPath = new Map((signedImages.data ?? []).map((image) => [image.path, image.signedUrl]));
-    return { application: application.data as SellerApplication | null, store: store.data as Store | null, listings: listingRows.map((listing) => ({ ...listing, images: listing.images.map((image) => ({ ...image, preview_url: previewByPath.get(image.storage_path) ?? "" })) })) as Listing[], categories: categories.data as Category[] };
+    return { application: application.data as SellerApplication | null, store: store.data as Store | null, listings: listingRows.map((listing) => ({ ...listing, images: listing.images.map((image) => ({ ...image, preview_url: previewByPath.get(image.storage_path) ?? "" })) })) as Listing[], categories: categories.data as Category[], reviews: reviews.data as unknown as VendorReview[], reviewSummary: reviewSummary.data as unknown as VendorReviewSummary };
   } });
   const refresh = async () => { await cache.invalidateQueries({ queryKey: ["seller-account", session?.user.id] }); };
 
@@ -341,7 +352,7 @@ export function SellerPage() {
   if (!supabase) return <div className="seller-gate"><h1>Seller services unavailable</h1><p>Please try again later or contact Fieldio.</p><Link className="primary-button" to="/contact">Contact Fieldio</Link></div>;
   if (query.isPending) return <div className="route-loading" role="status">Loading seller account…</div>;
   if (query.error || !query.data) return <div className="seller-gate"><h1>Your seller account could not load.</h1><p>Check your connection and try again.</p><button className="primary-button" onClick={() => void query.refetch()}>Try again</button></div>;
-  const { application, store, listings, categories } = query.data;
+  const { application, store, listings, categories, reviews, reviewSummary } = query.data;
   if (!application || application.status === "draft" || application.status === "rejected") return <VerificationForm userId={session.user.id} email={session.user.email ?? ""} application={application} defaultCountryCode={region.code} onDone={refresh} />;
   if (application.status === "pending") return <div className="seller-gate"><CheckSealIcon /><h1>Verification in review</h1><p>We are checking your identity and seller details. You will be able to create your store after approval.</p><Link className="text-link" to="/account">Return to account</Link></div>;
   if (application.status === "suspended") return <div className="seller-gate"><h1>Seller access paused</h1><p>{application.review_reason || "Contact Fieldio for help with your seller account."}</p><Link className="primary-button" to="/contact">Contact Fieldio</Link></div>;
@@ -350,5 +361,5 @@ export function SellerPage() {
   if (submittedTitle) return <SubmittedState title={submittedTitle} onAdd={() => { setSubmittedTitle(""); setMode("listing"); }} />;
   if (mode === "contacts") return <ContactDetailsForm application={application} store={store} onCancel={() => setMode("dashboard")} onDone={refresh} />;
   if (mode === "listing") return <ListingForm userId={session.user.id} store={store} categories={categories} currency={region.currency} listing={editingListing} onCancel={() => { setEditingListing(null); setMode("dashboard"); }} onSubmitted={async (title) => { await refresh(); setEditingListing(null); setSubmittedTitle(title); }} />;
-  return <SellerDashboard userId={session.user.id} store={store} listings={listings} onAdd={() => { setEditingListing(null); setMode("listing"); }} onEdit={(listing) => { setEditingListing(listing); setMode("listing"); }} onEditContacts={() => setMode("contacts")} onStoreUpdated={refresh} />;
+  return <><SellerDashboard userId={session.user.id} store={store} listings={listings} onAdd={() => { setEditingListing(null); setMode("listing"); }} onEdit={(listing) => { setEditingListing(listing); setMode("listing"); }} onEditContacts={() => setMode("contacts")} onStoreUpdated={refresh} /><SellerReviews reviews={reviews} summary={reviewSummary} /></>;
 }

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { EditorialText } from "../components/EditorialText";
 import { HeartIcon, MinusIcon, PlusIcon } from "../components/Icons";
 import { RelatedProductsRail } from "../components/RelatedProductsRail";
+import { ProductReviews } from "../components/ProductReviews";
 import { emptyCatalog, useCatalogProduct } from "../hooks/useCatalog";
 import { usePageMeta } from "../hooks/usePageMeta";
 import { useLocale } from "../context/LocaleContext";
@@ -143,7 +144,8 @@ export function ProductPage() {
     sku: product.sku,
     brand: { "@type": "Brand", name: product.brand },
     image: product.images.map((image) => new URL(image.url, window.location.origin).href),
-    description: product.description
+    description: product.description,
+    ...(product.ratingCount ? { aggregateRating: { "@type": "AggregateRating", ratingValue: product.averageRating, reviewCount: product.ratingCount } } : {})
   };
 
   return (
@@ -160,6 +162,7 @@ export function ProductPage() {
         <div className="product-status"><span>{product.isNewArrival ? t("nav.new") : product.collection}</span></div>
         <p className="product-brand">{product.brand}</p>
         <h1 id="product-name"><EditorialText text={product.name} /></h1>
+        {Boolean(product.ratingCount) && <a className="product-rating-link" href="#reviews"><span aria-hidden="true">★</span>{product.averageRating?.toFixed(1)} · {product.ratingCount} {product.ratingCount === 1 ? "review" : "reviews"}</a>}
         <p className="product-price product-price-large">{formatMoney(selectedVariant?.priceOverride ?? product.price, product.currency)}</p>
         {unavailable && <p role="status">{t("product.selectionUnavailable")}</p>}
         <p className="product-short">{product.shortDescription}</p>
@@ -201,6 +204,7 @@ export function ProductPage() {
           <div><h3>{t("product.careDelivery")}</h3><p>{product.care} {t("product.worldwideDelivery")}</p></div>
         </div>
       </section>
+      <ProductReviews productId={product.id} productName={product.name} averageRating={product.averageRating} ratingCount={product.ratingCount} />
       <RelatedProductsRail products={related} />
       <p className="sr-only" aria-live="polite">Selected {selectedLabel}, quantity {quantity}. Bag contains {bagCount} {bagCount === 1 ? "item" : "items"}; total {bagTotalLabel}.</p>
       {showMobilePurchase && <div className="mobile-purchase-bar"><div><p>{product.name}</p><span>{selectedLabel} · Qty {quantity}</span><span>{t("nav.bag")} {bagCount} · {bagTotalLabel}</span></div><Button className="primary-button" type="button" disabled={!selectedVariant || unavailable} onClick={(event) => addToCart(event.currentTarget, "sticky_bar")}>{t("product.addBag")}</Button></div>}

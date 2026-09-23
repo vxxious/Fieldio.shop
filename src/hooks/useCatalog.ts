@@ -26,6 +26,8 @@ interface CatalogRow {
   seller_store_slug?: string | null;
   seller_country_code?: string | null;
   seller_store_logo_path?: string | null;
+  average_rating?: number;
+  rating_count?: number;
   tags: string[];
   seo_title: string | null;
   seo_description: string | null;
@@ -70,13 +72,15 @@ function toProduct(row: CatalogRow): Product {
     sellerStoreName: row.seller_store_name ?? null,
     sellerStoreSlug: row.seller_store_slug ?? null,
     sellerCountryCode: row.seller_country_code ?? null,
-    sellerStoreLogo: row.seller_store_logo_path ? `${supabase!.storage.from("profile-media").getPublicUrl(row.seller_store_logo_path).data.publicUrl}?v=${encodeURIComponent(row.updated_at)}` : null
+    sellerStoreLogo: row.seller_store_logo_path ? `${supabase!.storage.from("profile-media").getPublicUrl(row.seller_store_logo_path).data.publicUrl}?v=${encodeURIComponent(row.updated_at)}` : null,
+    averageRating: Number(row.average_rating ?? 0),
+    ratingCount: Number(row.rating_count ?? 0)
   };
 }
 
 const legacyCatalogSelect = "id,sku,slug,name,description,short_description,price,currency,materials,care_information,featured,is_new_arrival,is_sale,inquiry_only,tags,seo_title,seo_description,created_at,updated_at,brand:brands(name),category:categories(name),images:product_images(id,public_url,storage_path,alt_text,position),variants:product_variants(id,sku,name,size,color,price_override,is_active,inventory(quantity,reserved_quantity,allow_backorder)),collection_products(collection:collections(name,slug))";
-const catalogSelect = legacyCatalogSelect.replace("inquiry_only,tags", "inquiry_only,condition,seller_verified,seller_store_name,seller_store_slug,seller_country_code,seller_store_logo_path,tags");
-const trustColumns = ["condition", "seller_verified", "seller_store_name", "seller_store_slug", "seller_country_code", "seller_store_logo_path"];
+const catalogSelect = legacyCatalogSelect.replace("inquiry_only,tags", "inquiry_only,condition,seller_verified,seller_store_name,seller_store_slug,seller_country_code,seller_store_logo_path,average_rating,rating_count,tags");
+const trustColumns = ["condition", "seller_verified", "seller_store_name", "seller_store_slug", "seller_country_code", "seller_store_logo_path", "average_rating", "rating_count"];
 
 export function isMissingCatalogTrustColumn(error: { code?: string; message?: string }): boolean {
   return ["42703", "PGRST204"].includes(error.code ?? "") && trustColumns.some((column) => error.message?.includes(column));

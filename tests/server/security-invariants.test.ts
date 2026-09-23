@@ -63,4 +63,15 @@ describe("security invariants", () => {
     expect(sql).toMatch(/new\.seller_store_logo_path/i);
     expect(sql).toMatch(/after update of name, slug, logo_path/i);
   });
+
+  it("enforces verified-purchase reviews, unique votes, and reserved review media", () => {
+    const sql = readFileSync(fileURLToPath(new URL("../../supabase/migrations/202609230001_product_reviews.sql", import.meta.url)), "utf8");
+    expect(sql).toMatch(/v_request\.user_id <> \(select auth\.uid\(\)\) or v_request\.status <> 'delivered'/i);
+    expect(sql).toMatch(/Sellers cannot review their own products/i);
+    expect(sql).toMatch(/unique \(buyer_id, order_item_id\)/i);
+    expect(sql).toMatch(/primary key \(review_id, user_id\)/i);
+    expect(sql).toMatch(/You cannot vote on your own review/i);
+    expect(sql).toMatch(/review owners upload reserved media[\s\S]+product_review_images/i);
+    expect(sql).toMatch(/has_admin_role\(array\['owner','admin'\]\)/i);
+  });
 });

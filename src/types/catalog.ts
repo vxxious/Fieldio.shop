@@ -53,6 +53,8 @@ export interface Product {
   sellerStoreSlug?: string | null;
   sellerCountryCode?: string | null;
   sellerStoreLogo?: string | null;
+  averageRating?: number;
+  ratingCount?: number;
 }
 
 export interface CartItem {

@@ -9,7 +9,8 @@ const responses: Record<string, { data: unknown; error: null }> = {
   seller_listing_images: { data: [{ storage_path: "user/listing/image.webp" }], error: null },
   seller_listings: { data: [{ id: "11111111-1111-4111-8111-111111111111" }], error: null },
   products: { data: [{ id: "22222222-2222-4222-8222-222222222222" }], error: null },
-  product_images: { data: [{ storage_path: "seller/product.webp" }], error: null }
+  product_images: { data: [{ storage_path: "seller/product.webp" }], error: null },
+  product_review_images: { data: [{ storage_path: "buyer/review/photo.webp" }], error: null }
 };
 
 function query(table: string) {
@@ -47,6 +48,7 @@ it("removes seller files and deletes the authenticated non-staff account", async
   expect(remove).toHaveBeenCalledWith(["user/id.pdf", "user/address.pdf"]);
   expect(remove).toHaveBeenCalledWith(["user/listing/image.webp"]);
   expect(remove).toHaveBeenCalledWith(["seller/product.webp"]);
+  expect(remove).toHaveBeenCalledWith(["buyer/review/photo.webp"]);
   expect(remove).toHaveBeenCalledWith(["33333333-3333-4333-8333-333333333333/avatar", "33333333-3333-4333-8333-333333333333/store-logo"]);
   expect(deleteUser).toHaveBeenCalledWith("33333333-3333-4333-8333-333333333333");
 }, 10_000);
