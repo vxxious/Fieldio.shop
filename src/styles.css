@@ -504,7 +504,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .review-stars .empty { fill: transparent; }
 .review-overview { display: grid; grid-template-columns: minmax(260px, .58fr) 1fr; gap: clamp(35px, 6vw, 90px); padding: 40px 0; border-bottom: 1px solid var(--line); }
 .review-breakdown { display: grid; gap: 10px; }
-.review-breakdown button { display: grid; grid-template-columns: 48px 1fr 30px; align-items: center; gap: 12px; min-height: 32px; color: var(--muted); font-size: 12px; text-align: left; }
+.review-breakdown button { display: grid; grid-template-columns: 48px 1fr 30px; align-items: center; gap: 12px; min-height: 44px; color: var(--muted); font-size: 12px; text-align: left; }
 .review-breakdown button[aria-pressed=true] { color: var(--ink); }
 .review-breakdown-track { height: 3px; overflow: hidden; background: var(--line); }
 .review-breakdown-track i { display: block; height: 100%; background: var(--ink); }
@@ -524,15 +524,15 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .review-card > header p { display: flex; align-items: center; flex-wrap: wrap; gap: 13px; margin: 9px 0 0; font-size: 13px; }
 .review-card > header strong { font-weight: 600; }
 .review-card time { flex: 0 0 auto; color: var(--muted); font-size: 12px; }
-.verified-review { display: inline-flex; align-items: center; gap: 5px; color: var(--moss); font-size: 12px; }
-.verified-review svg { width: 16px; height: 16px; }
+.verified-review { display: inline-flex; align-items: center; gap: 5px; color: var(--ink); font-size: 12px; }
+.verified-review svg { width: 16px; height: 16px; color: var(--moss); }
 .review-variant { margin: 19px 0 0; color: var(--muted); font-size: 12px; }
 .review-copy { max-width: 72ch; margin: 13px 0 0; font-size: 15px; line-height: 1.7; white-space: pre-line; }
 .review-card-tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
 .review-card-tags li { padding: 7px 9px; background: var(--surface); color: var(--muted); font-size: 11px; }
 .review-card-images { margin-top: 20px; }
 .review-card > footer { display: flex; align-items: center; gap: 18px; margin-top: 22px; color: var(--muted); font-size: 12px; }
-.review-card > footer button, .review-card summary { min-height: 36px; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.review-card > footer button, .review-card summary { min-height: 44px; display: inline-flex; align-items: center; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
 .review-card > footer button[aria-pressed=true] { color: var(--ink); font-weight: 600; }
 .review-card > footer details { position: relative; }
 .review-card > footer details > div { position: absolute; z-index: 4; bottom: 40px; left: 0; display: grid; min-width: 170px; padding: 6px 12px; color: var(--ink); background: var(--surface); border: 1px solid var(--line-dark); }
@@ -540,7 +540,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .review-load-more { width: 100%; min-height: 54px; margin-top: 20px; border: 1px solid var(--line-dark); font-size: 13px; }
 .review-loading, .review-error, .review-empty { min-height: 180px; display: grid; place-content: center; justify-items: center; gap: 12px; color: var(--muted); font-size: 13px; text-align: center; }
 .review-loading span { display: none; }
-.review-modal { position: fixed; z-index: 100; inset: 0; display: grid; justify-items: end; background: rgba(8, 9, 6, .62); }
+.review-modal { position: fixed; z-index: 100; inset: 0; display: grid; justify-items: end; background: color-mix(in srgb, var(--inverse) 62%, transparent); }
 .review-editor { width: min(100%, 680px); height: 100%; overflow-y: auto; padding: clamp(24px, 5vw, 58px); color: var(--ink); background: var(--paper); outline: none; }
 .review-editor > header { display: flex; justify-content: space-between; gap: 24px; padding-bottom: 28px; border-bottom: 1px solid var(--ink); }
 .review-editor h2 { margin: 0; font-size: clamp(35px, 5vw, 52px); line-height: .95; }
@@ -570,7 +570,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .review-photo-previews { display: flex; gap: 7px; overflow-x: auto; }
 .review-photo-previews figure { position: relative; flex: 0 0 auto; width: 92px; height: 110px; margin: 0; background: var(--image-field); }
 .review-photo-previews img { width: 100%; height: 100%; object-fit: cover; }
-.review-photo-previews button { position: absolute; top: 4px; right: 4px; width: 30px; height: 30px; display: grid; place-items: center; color: #fff; background: rgba(15, 16, 13, .82); }
+.review-photo-previews button { position: absolute; top: 4px; right: 4px; width: 44px; height: 44px; display: grid; place-items: center; color: #fff; background: rgba(15, 16, 13, .82); }
 .review-photo-previews svg { width: 15px; }
 .review-photo-button { position: relative; width: fit-content; min-height: 44px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; border: 1px solid var(--line-dark); cursor: pointer; }
 .review-photo-button svg { width: 18px; }
@@ -1005,6 +1005,8 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .admin-groups button { width: 100%; display: flex; justify-content: space-between; padding: 12px 0; text-align: left; font-size: 13px; }
 .admin-groups button small { color: var(--muted); }
 .review-moderation-list > article { padding: 28px 0; border-bottom: 1px solid var(--line-dark); }
+.review-moderation-pagination { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 22px; }
+.review-moderation-pagination span { color: var(--muted); font-size: 12px; }
 .review-moderation-list > article > header { display: flex; justify-content: space-between; align-items: start; gap: 20px; }
 .review-moderation-list h3 { margin: 10px 0 3px; font-size: 22px; }
 .review-moderation-list header p { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 0; color: var(--muted); font-size: 12px; }
@@ -1323,7 +1325,9 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  ::view-transition-new(root), .product-skeleton { animation: none; }
+  .product-skeleton { background: var(--skeleton-end); }
+  .product-accordions button svg, .brand-alphabet button::after, .brand-directory-group a { transition: none; }
   .scroll-to-top { transform: none; }
 }
 

@@ -35,6 +35,25 @@ typography:
     fontSize: "32px"
     fontWeight: 500
     letterSpacing: "-0.035em"
+  review-display:
+    fontFamily: '"Schibsted Grotesk", sans-serif'
+    fontSize: "clamp(46px, 6vw, 84px)"
+    fontWeight: 500
+    lineHeight: 0.92
+  review-display-mobile:
+    fontFamily: '"Schibsted Grotesk", sans-serif'
+    fontSize: "51px"
+    fontWeight: 500
+    lineHeight: 0.92
+  review-editor-title:
+    fontFamily: '"Schibsted Grotesk", sans-serif'
+    fontSize: "clamp(35px, 5vw, 52px)"
+    fontWeight: 500
+    lineHeight: 0.95
+  review-score:
+    fontFamily: '"Schibsted Grotesk", sans-serif'
+    fontSize: "35px"
+    fontWeight: 500
   body:
     fontFamily: '"Manrope", sans-serif'
     fontSize: "15px"
@@ -234,6 +253,9 @@ The palette is a mineral-white and near-black neutral system, with muted moss an
 - **Display** (500, fluid from 62px to 120px, 0.86 line-height): Collection, service, and policy statements; narrower catalog displays use the same face and tracking at a smaller fluid range, while brand and footer statements may extend to 154px.
 - **Headline** (500, fluid from 39px to 78px, 0.96 line-height): Editorial sections, account propositions, and major supporting moments.
 - **Title** (500, 32px): Section, form, drawer, and directory headings.
+- **Review Display** (500, fluid from 46px to 84px; 51px on mobile, 0.92 line-height): The customer-review chapter heading.
+- **Review Editor Title** (500, fluid from 35px to 52px, 0.95 line-height): The focused review-writing task.
+- **Review Score** (500, 35px): The aggregate rating beside compact review metadata.
 - **Body** (400, 15px, 1.55 line-height): Explanatory copy, typically constrained to roughly 48–65 characters for reading comfort.
 - **Utility** (400, 14px): Buttons written outside the shared primitive, links, filters, notices, and supporting interface copy.
 - **Label** (400, 13px, 0.02em tracking): Product brands, field labels, prices, and compact commerce metadata.
@@ -358,6 +380,12 @@ The rail is an ordered, keyboard-focusable horizontal snap region. Desktop cards
 
 After the original purchase controls scroll above the viewport, a fixed paper bar appears at the bottom on screens up to 760px. It presents a truncated product name plus two metadata lines for selection, quantity, bag count, and total, with a 44px minimum Add to bag action and safe-area-aware bottom padding. The action stays disabled until a valid, available variant is selected.
 
+### Product Reviews
+
+Product reviews form a ruled editorial chapter beneath product details. The summary uses the display face, while ratings, verified-purchase status, purchased variants, dates, filters, and moderation controls stay in the compact commerce scale. Rating choices use five individually labelled 44px star controls with a visible selected boundary and live text confirmation. Review cards remain borderless and separate with Hairlines; photos use square media fields and open in a focus-trapped viewer. Helpful, report, edit, delete, filter, pagination, and photo-removal controls retain 44px touch targets and the global focus outline. Verified-purchase text uses Near-Black Ink for contrast while its seal may use Muted Moss. Review media remains private and is displayed only through short-lived authorized URLs; failed photo changes must preserve the existing published image set and name the recovery action clearly.
+
+**The Earned Trust Rule.** Ratings, summary tags, verified badges, and photo counts must always come from persisted eligible purchases; never fabricate social proof or expose moderated media.
+
 ### Cart Drawer
 
 The cart is a flat paper panel up to 520px wide over a translucent ink scrim. Hairline-separated rows combine a 112px by 140px image with compact details and a bordered quantity stepper. The panel enters from the right, stages its rows and summary in short sequences, traps focus, restores focus on close, kills conflicting panel or scrim tweens before exit, and removes its animation for reduced-motion users.
@@ -376,6 +404,7 @@ The cart is a flat paper panel up to 520px wide over a translucent ink scrim. Ha
 - **Do** use the Shadcn Button and Radix Accordion or Separator primitives where their behaviors apply, then preserve Fieldio's square tokens and restrained states.
 - **Do** let MotionDirector observe and bind asynchronous content while retaining one-time triggers and selector exclusions.
 - **Do** keep custom SVG icons subordinate to text and give their containing controls explicit accessible names.
+- **Do** keep review controls at least 44px, preserve the previous photo set until replacements finish, and keep moderated review media private.
 - **Do** use short, directional motion and honor `prefers-reduced-motion` everywhere.
 
 ### Don't:

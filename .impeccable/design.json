@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-21T10:09:52.5014760+01:00",
+  "generatedAt": "2026-09-23T21:20:00+01:00",
   "title": "Design System: Fieldio",
   "extensions": {
     "colorMeta": {
@@ -24,6 +24,10 @@
       "display": { "displayName": "Display", "purpose": "Opening catalog and checkout statements with short, balanced lines." },
       "headline": { "displayName": "Headline", "purpose": "Editorial section and service propositions." },
       "title": { "displayName": "Title", "purpose": "Compact section and drawer headings." },
+      "review-display": { "displayName": "Review Display", "purpose": "The customer-review chapter heading, with its compact mobile step." },
+      "review-display-mobile": { "displayName": "Review Display Mobile", "purpose": "The fixed mobile size for the customer-review chapter heading." },
+      "review-editor-title": { "displayName": "Review Editor Title", "purpose": "The focused review-writing task." },
+      "review-score": { "displayName": "Review Score", "purpose": "The aggregate rating beside compact review metadata." },
       "body": { "displayName": "Body", "purpose": "Explanatory copy and supporting content." },
       "utility": { "displayName": "Utility", "purpose": "Standalone actions, links, filters, notices, and supporting interface copy." },
       "label": { "displayName": "Label", "purpose": "Commerce metadata, prices, and form labels." },
@@ -51,7 +55,7 @@
       { "name": "cart-enter", "value": "scrim 0.22s; panel 0.28s power4.out; rows 0.22s stagger 0.04s power3.out; summary 0.2s stagger 0.035s power3.out", "purpose": "Stages the cart scrim, panel, rows, and summary in a compact sequence." },
       { "name": "cart-exit", "value": "panel 0.24s power4.inOut; scrim 0.2s", "purpose": "Closes the cart after killing conflicting panel and scrim tweens." },
       { "name": "cart-row-feedback", "value": "remove 0.24s power3.inOut; price update 0.16s power3.out", "purpose": "Explains destructive row removal and quantity-driven price changes." },
-      { "name": "reduced-motion", "value": "MotionConfig reducedMotion user; Framer entrances 0s; CSS 0.01ms and one iteration; GSAP reveals skipped; rail scrolling auto; Lenis disabled", "purpose": "Uses the operating-system preference to remove nonessential motion while preserving state and navigation." }
+      { "name": "reduced-motion", "value": "MotionConfig reducedMotion user; Framer and GSAP spatial entrances skipped; theme, skeleton, accordion, alphabet, and directory movement removed; rail scrolling auto; Lenis disabled; color and focus feedback preserved", "purpose": "Uses the operating-system preference to remove nonessential movement while retaining immediate state and navigation feedback." }
     ],
     "breakpoints": [
       { "name": "compact-desktop", "value": "1050px" },
@@ -98,6 +102,13 @@
       "description": "The image-led catalog unit; wishlist and inventory-aware quick-add controls retain minimum 44px by 44px hit areas.",
       "html": "<article class=\"ds-product-card\"><div class=\"ds-product-media\"><span>Editorial image</span><b>New</b><button aria-label=\"Add to wishlist\">♡</button></div><div class=\"ds-product-info\"><div><p>Fieldio Edit</p><h3>Tailored everyday layer</h3><span>£145</span></div><div class=\"ds-quick-add\"><button aria-expanded=\"true\">Close sizes</button><div class=\"ds-quick-sizes\" role=\"group\" aria-label=\"Quick add Tailored everyday layer by size\"><button>S</button><button>M</button><button disabled>L</button></div></div></div></article>",
       "css": ".ds-product-card { min-width: 0; color: var(--ink, #151612); font-family: var(--font-body, Manrope, sans-serif); } .ds-product-media { position: relative; aspect-ratio: 4 / 5.25; display: grid; place-items: center; overflow: hidden; background: var(--image-placeholder, #e5e5e1); color: var(--muted, #66685f); font-size: 11px; } .ds-product-media b { position: absolute; top: 10px; left: 10px; padding: 6px 9px; background: var(--paper, #f6f6f3); color: var(--ink, #151612); font-size: 10px; font-weight: 400; } .ds-product-media > button { position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; border: 0; border-radius: 50%; background: rgba(246,246,243,0.93); color: var(--ink, #151612); font-size: 18px; cursor: pointer; } .ds-product-media > button:hover { background: var(--surface, #ffffff); } .ds-product-info button:focus-visible, .ds-product-media > button:focus-visible { outline: 2px solid var(--focus, #315ee7); outline-offset: 3px; } .ds-product-info { min-height: 116px; display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 12px 1px 30px; } .ds-product-info p { margin: 0 0 5px; color: var(--muted, #66685f); font-size: 10px; letter-spacing: 0.02em; } .ds-product-info h3 { margin: 0 0 6px; font-size: 13px; font-weight: 400; letter-spacing: -0.02em; } .ds-product-info span, .ds-quick-add > button { color: var(--ink, #151612); font-size: 10px; } .ds-quick-add { align-self: end; text-align: right; } .ds-quick-add > button { padding: 0 0 2px; border: 0; background: transparent; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; } .ds-quick-sizes { max-width: 190px; margin-top: 8px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; } .ds-quick-sizes button { min-width: 44px; min-height: 44px; padding: 5px; border: 1px solid var(--line-dark, #acada6); border-radius: 0; background: var(--surface, #ffffff); color: var(--ink, #151612); font-size: 12px; cursor: pointer; } .ds-quick-sizes button:hover, .ds-quick-sizes button:focus-visible, .ds-quick-sizes button:active { background: var(--ink, #151612); color: var(--surface, #ffffff); } .ds-quick-sizes button:disabled { cursor: not-allowed; opacity: 0.42; }"
+    },
+    {
+      "name": "Verified Review Card",
+      "kind": "card",
+      "description": "A borderless, hairline-separated review with compact verified-purchase metadata and touch-safe actions.",
+      "html": "<article class=\"ds-review\"><header><span class=\"ds-stars\" aria-label=\"5 out of 5 stars\">★★★★★</span><time>23 Sep 2026</time></header><p class=\"ds-reviewer\"><strong>Ada O.</strong><span>✓ Verified purchase</span></p><p class=\"ds-variant\">Size M · Color Black</p><p class=\"ds-copy\">The finish and fit matched the listing, and the fabric feels substantial.</p><footer><button>Helpful · 3</button><button>Report</button></footer></article>",
+      "css": ".ds-review { padding: 31px 0 34px; border-bottom: 1px solid var(--line, #d9dad4); color: var(--ink, #151612); font-family: var(--font-body, Manrope, sans-serif); } .ds-review header { display: flex; align-items: flex-start; justify-content: space-between; gap: 22px; } .ds-stars { letter-spacing: 1px; font-size: 17px; } .ds-review time, .ds-variant { color: var(--muted, #66685f); font-size: 12px; } .ds-reviewer { display: flex; align-items: center; flex-wrap: wrap; gap: 13px; margin: 9px 0 0; font-size: 13px; } .ds-reviewer span { color: var(--ink, #151612); } .ds-variant { margin: 19px 0 0; } .ds-copy { max-width: 72ch; margin: 13px 0 0; font-size: 15px; line-height: 1.7; } .ds-review footer { display: flex; gap: 18px; margin-top: 22px; } .ds-review button { min-height: 44px; display: inline-flex; align-items: center; border: 0; background: transparent; color: var(--muted, #66685f); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; } .ds-review button:hover { color: var(--ink, #151612); } .ds-review button:focus-visible { outline: 2px solid var(--focus, #315ee7); outline-offset: 3px; }"
     },
     {
       "name": "Cart Drawer",
@@ -158,7 +169,8 @@
       { "name": "The No-Shadow Rule", "body": "Do not add ambient card shadows or floating-panel shadows; use tonal separation, rules, cropping, and overlay scrims.", "section": "elevation" },
       { "name": "The Motion-Explains-Depth Rule", "body": "Lateral drawer movement and image-scale response may clarify hierarchy, but resting surfaces stay visually still.", "section": "elevation" },
       { "name": "The Masked-Reveal Rule", "body": "Reveal editorial words and image fields through their own bounds; do not fade entire page sections as undifferentiated blocks.", "section": "elevation" },
-      { "name": "The Square-Field Rule", "body": "Keep commerce surfaces and image frames unrounded; reserve the full circle for compact icon-sized controls and counters.", "section": "shapes" }
+      { "name": "The Square-Field Rule", "body": "Keep commerce surfaces and image frames unrounded; reserve the full circle for compact icon-sized controls and counters.", "section": "shapes" },
+      { "name": "The Earned Trust Rule", "body": "Ratings, summary tags, verified badges, and photo counts must always come from persisted eligible purchases; never fabricate social proof or expose moderated media.", "section": "components" }
     ],
     "dos": [
       "Do lead with editorial photography, display typography, and product access in the first viewport.",
@@ -168,6 +180,7 @@
       "Do choose among split, reverse, index, and cinematic collection heroes according to the available editorial image and statement.",
       "Do preserve keyboard arrow navigation, scroll snapping, disabled endpoints, and immediate reduced-motion scrolling in horizontal rails.",
       "Do keep the Details / Fit content in an editorial ledger and preserve the sticky bar's live purchase context on mobile.",
+      "Do keep review controls at least 44px, preserve the previous photo set until replacements finish, and keep moderated review media private.",
       "Do use short, directional motion and honor `prefers-reduced-motion` everywhere."
     ],
     "donts": [

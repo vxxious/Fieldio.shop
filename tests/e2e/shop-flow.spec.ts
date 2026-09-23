@@ -82,6 +82,20 @@ test("product cards and details do not show request-only labels", async ({ page 
   await expect(page.getByText("Request only", { exact: true })).toHaveCount(0);
 });
 
+test("product reviews load without overflow and keep touch-safe controls", async ({ page }) => {
+  await openFirstProduct(page);
+  const reviews = page.locator("#reviews");
+  await reviews.scrollIntoViewIfNeeded();
+  await expect(reviews.getByRole("heading", { name: "Customer reviews" })).toBeVisible();
+  await expect(reviews.getByText(/No reviews yet|\d+ ratings?/)).toBeVisible();
+  await expect(reviews.getByText("Reviews are temporarily unavailable.")).toHaveCount(0);
+  await expect.poll(() => reviews.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  const ratingControls = reviews.locator(".review-breakdown button");
+  for (let index = 0; index < await ratingControls.count(); index += 1) {
+    expect((await ratingControls.nth(index).boundingBox())?.height).toBeGreaterThanOrEqual(44);
+  }
+});
+
 test("seller entry is clear, responsive, and returns to the protected flow after sign in", async ({ page }) => {
   await page.goto("/sell");
   await expect(page.getByRole("heading", { name: "Sell with Fieldio" })).toBeVisible();

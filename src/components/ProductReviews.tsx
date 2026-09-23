@@ -7,12 +7,12 @@ import { useFocusTrap } from "../hooks/useFocusTrap";
 import { useSession } from "../hooks/useSession";
 import { supabase } from "../lib/supabase";
 import { authenticatedPost } from "../lib/authenticated-api";
-import { optimizeReviewImage, REVIEW_MAX_IMAGES, REVIEW_TAG_LABELS, REVIEW_TAGS, reviewImageError, reviewSchema, reviewVariantLabel, type ReviewTag } from "../lib/reviews";
+import { optimizeReviewImage, REVIEW_MAX_IMAGES, REVIEW_TAG_LABELS, REVIEW_TAGS, reviewImageError, reviewSchema, reviewVariantLabel, signReviewImages, type ReviewTag } from "../lib/reviews";
 import { CheckSealIcon, CloseIcon, ImageIcon, StarIcon } from "./Icons";
 
 const PAGE_SIZE = 6;
 
-interface ReviewImage { id: string; storage_path: string; position: number; }
+interface ReviewImage { id: string; storage_path: string; position: number; url: string; }
 interface Review {
   id: string; product_id: string; buyer_id: string; order_item_id: string; rating: number; review_text: string;
   reviewer_name: string; purchased_variant: string | null; purchased_size: string | null; purchased_color: string | null;
@@ -30,10 +30,6 @@ function Stars({ rating, label }: { rating: number; label?: string }) {
   return <span className="review-stars" aria-label={label ?? `${rating} out of 5 stars`}>{[1, 2, 3, 4, 5].map((star) => <StarIcon key={star} fill={star <= Math.round(rating) ? "currentColor" : "none"} />)}</span>;
 }
 
-function imageUrl(path: string) {
-  return supabase?.storage.from("review-media").getPublicUrl(path).data.publicUrl ?? "";
-}
-
 async function fetchSummary(productId: string): Promise<Summary> {
   if (!supabase) return { averageRating: 0, total: 0, breakdown: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 }, withPhotos: 0, verified: 0, tags: [] };
   const { data, error } = await supabase.rpc("product_review_summary", { p_product_id: productId });
@@ -48,7 +44,7 @@ function ReviewLightbox({ images, index, onIndex, onClose }: { images: ReviewIma
   const image = images[index];
   return createPortal(<div className="review-lightbox" role="dialog" aria-modal="true" aria-label={`Review photo ${index + 1} of ${images.length}`} ref={dialogRef} tabIndex={-1}>
     <button ref={closeRef} className="review-modal-close" type="button" onClick={onClose} aria-label="Close photo viewer"><CloseIcon /></button>
-    {image && <img src={imageUrl(image.storage_path)} alt={`Customer review photo ${index + 1}`} />}
+    {image && <img src={image.url} alt={`Customer review photo ${index + 1}`} />}
     {images.length > 1 && <div className="review-lightbox-nav">
       <button type="button" onClick={() => onIndex((index - 1 + images.length) % images.length)}>Previous</button>
       <span>{index + 1} / {images.length}</span>
@@ -92,7 +88,8 @@ function ReviewEditor({ productName, eligibility, review, onClose, onSaved }: { 
     if (invalid) { setError(invalid); return; }
     setPreparing(true); setError("");
     try {
-      const optimized = await Promise.all(raw.map(optimizeReviewImage));
+      const optimized: File[] = [];
+      for (const file of raw) optimized.push(await optimizeReviewImage(file));
       setFiles((current) => [...current, ...optimized.map((file) => ({ file, url: URL.createObjectURL(file) }))]);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not prepare these photos."); }
     finally { setPreparing(false); }
@@ -104,30 +101,51 @@ function ReviewEditor({ productName, eligibility, review, onClose, onSaved }: { 
     if (!parsed.success) { setError(parsed.error.issues[0]?.message ?? "Check your review."); return; }
     if (!review && !orderItemId) { setError("Choose the delivered item you received."); return; }
     setSaving(true); setError("");
+    let detailsSaved = false;
+    const pendingImages: ReviewImage[] = [];
     try {
       const result = review
         ? await supabase.rpc("update_product_review", { p_review_id: review.id, p_rating: parsed.data.rating, p_review_text: parsed.data.reviewText, p_tags: parsed.data.tags })
         : await supabase.rpc("create_product_review", { p_order_item_id: orderItemId, p_rating: parsed.data.rating, p_review_text: parsed.data.reviewText, p_tags: parsed.data.tags });
       if (result.error) throw result.error;
-      const saved = result.data as unknown as Review;
+      const saved = result.data as unknown as Pick<Review, "id">;
+      detailsSaved = true;
 
-      for (const image of removedImages) await authenticatedPost("/api/account", { action: "delete-image", imageId: image.id });
       for (let index = 0; index < files.length; index += 1) {
         setUploading(index + 1);
         const path = `${session.user.id}/${saved.id}/${crypto.randomUUID()}.webp`;
         const reserved = await supabase.rpc("reserve_review_image", { p_review_id: saved.id, p_storage_path: path });
         if (reserved.error) throw reserved.error;
+        const reservation = reserved.data as unknown as ReviewImage;
+        pendingImages.push(reservation);
         const uploaded = await supabase.storage.from("review-media").upload(path, files[index]!.file, { contentType: "image/webp", upsert: false });
         if (uploaded.error) {
-          const reservation = reserved.data as unknown as ReviewImage;
-          await authenticatedPost("/api/account", { action: "delete-image", imageId: reservation.id });
           throw uploaded.error;
         }
+      }
+      if (removedImages.length || pendingImages.length) {
+        const finalized = await supabase.rpc("finalize_review_images", {
+          p_review_id: saved.id,
+          p_remove_image_ids: removedImages.map(({ id }) => id),
+          p_pending_image_ids: pendingImages.map(({ id }) => id)
+        });
+        if (finalized.error) throw finalized.error;
+        if (removedImages.length) await supabase.storage.from("review-media").remove(removedImages.map(({ storage_path }) => storage_path));
       }
       await onSaved();
       toast.success(review ? "Review updated." : "Thank you. Your review is live.");
       close();
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Could not save your review. Try again."); }
+    } catch (cause) {
+      await Promise.allSettled(pendingImages.map(({ id }) => authenticatedPost("/api/account", { action: "delete-image", imageId: id })));
+      if (detailsSaved) {
+        await onSaved();
+        toast.error("Your review was saved, but the photo changes were not. Edit it to try again.");
+        close();
+      } else {
+        const message = cause instanceof Error ? cause.message : "";
+        setError(message.includes("already has a review") ? "This purchase already has a review." : "We could not save your review. Check your connection and try again.");
+      }
+    }
     finally { setSaving(false); setUploading(0); }
   };
 
@@ -139,7 +157,7 @@ function ReviewEditor({ productName, eligibility, review, onClose, onSaved }: { 
     <fieldset className="review-rating-input"><legend>Your rating</legend><div aria-label="Choose a rating">{[1, 2, 3, 4, 5].map((star) => <button key={star} type="button" className={star <= rating ? "is-selected" : undefined} aria-label={`${star} star${star === 1 ? "" : "s"}`} aria-pressed={rating === star} onClick={() => setRating(star)}><StarIcon fill={star <= rating ? "currentColor" : "none"} /></button>)}</div><p className="review-rating-status" aria-live="polite">{rating ? `${rating} out of 5 selected` : "No rating selected"}</p></fieldset>
     <label className="review-field">Your review<textarea value={reviewText} minLength={20} maxLength={3000} rows={6} onChange={(event) => setReviewText(event.target.value)} placeholder="Describe the item you received, its fit, quality, and condition." /><span>{reviewText.length} / 3,000</span></label>
     <fieldset className="review-tag-input"><legend>What stood out? <span>Optional, choose up to 3</span></legend><div>{REVIEW_TAGS.map((tag) => <label key={tag}><input type="checkbox" checked={tags.includes(tag)} disabled={!tags.includes(tag) && tags.length >= 3} onChange={() => setTags((current) => current.includes(tag) ? current.filter((item) => item !== tag) : [...current, tag])} /><span>{REVIEW_TAG_LABELS[tag]}</span></label>)}</div></fieldset>
-    <div className="review-photo-field"><p>Photos <span>Optional · up to {REVIEW_MAX_IMAGES}</span></p><div className="review-photo-previews">{visibleExisting.map((image) => <figure key={image.id}><img src={imageUrl(image.storage_path)} alt="Existing review upload" /><button type="button" onClick={() => setRemovedImages((current) => [...current, image])} aria-label="Remove this review photo"><CloseIcon /></button></figure>)}{files.map((item, index) => <figure key={item.url}><img src={item.url} alt={`New review upload ${index + 1}`} /><button type="button" onClick={() => { URL.revokeObjectURL(item.url); setFiles((current) => current.filter((_, itemIndex) => itemIndex !== index)); }} aria-label={`Remove new review photo ${index + 1}`}><CloseIcon /></button></figure>)}</div><label className="review-photo-button"><ImageIcon />{preparing ? "Preparing photos…" : "Add photos"}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple disabled={preparing || visibleExisting.length + files.length >= REVIEW_MAX_IMAGES} onChange={(event) => void chooseFiles(event.target.files)} /></label></div>
+    <div className="review-photo-field"><p>Photos <span>Optional · up to {REVIEW_MAX_IMAGES}</span></p><div className="review-photo-previews">{visibleExisting.map((image) => <figure key={image.id}>{image.url && <img src={image.url} alt="Existing review upload" />}<button type="button" onClick={() => setRemovedImages((current) => [...current, image])} aria-label="Remove this review photo"><CloseIcon /></button></figure>)}{files.map((item, index) => <figure key={item.url}><img src={item.url} alt={`New review upload ${index + 1}`} /><button type="button" onClick={() => { URL.revokeObjectURL(item.url); setFiles((current) => current.filter((_, itemIndex) => itemIndex !== index)); }} aria-label={`Remove new review photo ${index + 1}`}><CloseIcon /></button></figure>)}</div><label className="review-photo-button"><ImageIcon />{preparing ? "Preparing photos…" : "Add photos"}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple disabled={preparing || visibleExisting.length + files.length >= REVIEW_MAX_IMAGES} onChange={(event) => void chooseFiles(event.target.files)} /></label></div>
     {uploading > 0 && <div className="review-upload-progress" role="status"><progress value={uploading} max={files.length} />Uploading photo {uploading} of {files.length}</div>}
     {error && <p className="form-message error" role="alert">{error}</p>}
     <footer><button type="button" className="text-link" onClick={close}>Cancel</button><button type="button" className="primary-button" disabled={saving || preparing} onClick={() => void save()}>{saving ? "Saving review…" : review ? "Save changes" : "Publish review"}</button></footer>
@@ -172,7 +190,9 @@ export function ProductReviews({ productId, productName, averageRating = 0, rati
       const { data, error, count } = await request.range(pageParam, pageParam + PAGE_SIZE - 1);
       if (error) throw error;
       const reviews = (data ?? []) as unknown as Review[];
-      reviews.forEach((review) => review.images.sort((a, b) => a.position - b.position));
+      const signedImages = await signReviewImages(supabase, reviews.flatMap((review) => review.images));
+      const imagesById = new Map(signedImages.map((image) => [image.id, image]));
+      reviews.forEach((review) => { review.images = review.images.map((image) => imagesById.get(image.id) ?? { ...image, url: "" }).sort((a, b) => a.position - b.position); });
       return { reviews, count: count ?? 0 };
     },
     getNextPageParam: (lastPage, pages) => pages.reduce((total, page) => total + page.reviews.length, 0) < lastPage.count ? pages.length * PAGE_SIZE : undefined
@@ -184,7 +204,7 @@ export function ProductReviews({ productId, productName, averageRating = 0, rati
     queryFn: async () => { const { data, error } = await supabase!.from("product_review_helpful").select("review_id").in("review_id", reviewIds); if (error) throw error; return new Set((data ?? []).map((vote) => vote.review_id)); }
   });
   const summary = summaryQuery.data;
-  const allPhotos = useMemo(() => reviews.flatMap((review) => review.images), [reviews]);
+  const allPhotos = useMemo(() => reviews.flatMap((review) => review.images).filter((image) => image.url), [reviews]);
   const canCreate = eligibilityQuery.data?.some((item) => !item.existing_review_id) ?? false;
   const reviewsUnavailable = summaryQuery.isError || reviewsQuery.isError;
 
@@ -225,7 +245,7 @@ export function ProductReviews({ productId, productName, averageRating = 0, rati
     </header>
     {!reviewsUnavailable && summary.total > 0 && <div className="review-overview">
       <div className="review-breakdown" aria-label="Rating distribution">{[5, 4, 3, 2, 1].map((star) => { const count = summary.breakdown[String(star)] ?? 0; const percent = summary.total ? count / summary.total * 100 : 0; return <button type="button" key={star} aria-pressed={ratingFilter === String(star)} onClick={() => setRatingFilter(ratingFilter === String(star) ? "all" : String(star) as RatingFilter)}><span>{star} star</span><span className="review-breakdown-track"><i style={{ width: `${percent}%` }} /></span><span>{count}</span></button>; })}</div>
-      {allPhotos.length > 0 && <div className="review-gallery"><h3>From customers</h3><div>{allPhotos.slice(0, 8).map((image, index) => <button key={image.id} type="button" onClick={() => setLightbox({ images: allPhotos, index })}><img src={imageUrl(image.storage_path)} alt={`Open customer photo ${index + 1}`} loading="lazy" /></button>)}</div></div>}
+      {allPhotos.length > 0 && <div className="review-gallery"><h3>From customers</h3><div>{allPhotos.slice(0, 8).map((image, index) => <button key={image.id} type="button" onClick={() => setLightbox({ images: allPhotos, index })}><img src={image.url} alt={`Open customer photo ${index + 1}`} loading="lazy" /></button>)}</div></div>}
     </div>}
     {!reviewsUnavailable && summary.tags.length > 0 && <div className="review-summary-tags" aria-label="Common review details">{summary.tags.map(({ tag, count }) => <span key={tag}>{REVIEW_TAG_LABELS[tag] ?? tag.replaceAll("_", " ")} <span>{count}</span></span>)}</div>}
     {!reviewsUnavailable && summary.total > 0 && <div className="review-filters" aria-label="Review filters"><label>Rating<select value={ratingFilter} onChange={(event) => setRatingFilter(event.target.value as RatingFilter)}><option value="all">All ratings</option>{[5, 4, 3, 2, 1].map((star) => <option value={star} key={star}>{star} stars</option>)}</select></label><label>Show<select value={detailFilter} onChange={(event) => setDetailFilter(event.target.value as DetailFilter)}><option value="all">All reviews</option><option value="photos">With photos</option><option value="verified">Verified purchases</option></select></label><label>Sort<select value={sort} onChange={(event) => setSort(event.target.value as Sort)}><option value="newest">Newest</option><option value="helpful">Most helpful</option></select></label></div>}
@@ -237,7 +257,7 @@ export function ProductReviews({ productId, productName, averageRating = 0, rati
       {reviewVariantLabel(review) && <p className="review-variant">{reviewVariantLabel(review)}</p>}
       <p className="review-copy">{review.review_text}</p>
       {review.tags.length > 0 && <ul className="review-card-tags" aria-label="Review details">{review.tags.map((tag) => <li key={tag}>{REVIEW_TAG_LABELS[tag] ?? tag}</li>)}</ul>}
-      {review.images.length > 0 && <div className="review-card-images">{review.images.map((image, index) => <button type="button" key={image.id} onClick={() => setLightbox({ images: review.images, index })}><img src={imageUrl(image.storage_path)} alt={`Customer photo ${index + 1}`} loading="lazy" /></button>)}</div>}
+      {review.images.some((image) => image.url) && <div className="review-card-images">{review.images.filter((image) => image.url).map((image, index, images) => <button type="button" key={image.id} onClick={() => setLightbox({ images, index })}><img src={image.url} alt={`Customer photo ${index + 1}`} loading="lazy" /></button>)}</div>}
       <footer><button type="button" aria-pressed={voted} disabled={own} onClick={() => void helpful(review)}>Helpful{review.helpful_count ? ` · ${review.helpful_count}` : ""}</button>{own ? <><button type="button" onClick={() => setEditorReview(review)}>Edit</button><button type="button" onClick={() => void removeReview(review)}>Delete</button></> : <details><summary>Report</summary><div><button type="button" onClick={() => void report(review.id, "spam")}>Spam</button><button type="button" onClick={() => void report(review.id, "abuse")}>Abusive</button><button type="button" onClick={() => void report(review.id, "privacy")}>Privacy</button><button type="button" onClick={() => void report(review.id, "not_about_product")}>Not about product</button></div></details>}</footer>
     </article>; })}</div>
     {reviewsQuery.hasNextPage && <button className="review-load-more" type="button" disabled={reviewsQuery.isFetchingNextPage} onClick={() => void reviewsQuery.fetchNextPage()}>{reviewsQuery.isFetchingNextPage ? "Loading…" : "Load more reviews"}</button>}

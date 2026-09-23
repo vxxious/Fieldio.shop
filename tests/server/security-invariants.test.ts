@@ -74,4 +74,14 @@ describe("security invariants", () => {
     expect(sql).toMatch(/review owners upload reserved media[\s\S]+product_review_images/i);
     expect(sql).toMatch(/has_admin_role\(array\['owner','admin'\]\)/i);
   });
+
+  it("keeps review media private until the owned upload set is finalized", () => {
+    const sql = readFileSync(fileURLToPath(new URL("../../supabase/migrations/202609230002_review_media_hardening.sql", import.meta.url)), "utf8");
+    expect(sql).toMatch(/update storage\.buckets set public = false where id = 'review-media'/i);
+    expect(sql).toMatch(/status text not null default 'ready'[\s\S]+status in \('pending', 'ready'\)/i);
+    expect(sql).toMatch(/create or replace function public\.finalize_review_images/i);
+    expect(sql).toMatch(/storage\.objects object[\s\S]+object\.bucket_id = 'review-media'/i);
+    expect(sql).toMatch(/image\.status = 'ready'[\s\S]+review\.status = 'published'/i);
+    expect(sql).toMatch(/review owners delete own media[\s\S]+storage\.foldername\(name\)/i);
+  });
 });
