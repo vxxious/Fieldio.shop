@@ -2,7 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { checkRateLimit, getAuthenticatedSupabase, handleApiError, json, readValidatedJson } from "./_lib/server.js";
 
-const schema = z.object({ action: z.literal("delete-account"), confirmation: z.literal("DELETE") });
+const schema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("delete-account"), confirmation: z.literal("DELETE") }),
+  z.object({ action: z.literal("delete-review"), reviewId: z.string().uuid() }),
+  z.object({ action: z.literal("delete-image"), imageId: z.string().uuid() })
+]);
 
 async function removeFiles(database: SupabaseClient, bucket: string, paths: Array<string | null | undefined>) {
   const files = [...new Set(paths.filter((path): path is string => Boolean(path)))];
@@ -12,10 +16,31 @@ async function removeFiles(database: SupabaseClient, bucket: string, paths: Arra
 }
 
 export async function POST(request: Request): Promise<Response> {
-  if (!await checkRateLimit(request, 3, 3_600_000)) return json({ error: "Too many deletion attempts. Wait before trying again." }, 429);
   try {
-    await readValidatedJson(request, schema);
+    const input = await readValidatedJson(request, schema);
+    const accountDeletion = input.action === "delete-account";
+    if (!await checkRateLimit(request, accountDeletion ? 3 : 30, accountDeletion ? 3_600_000 : 60_000)) {
+      return json({ error: accountDeletion ? "Too many deletion attempts. Wait before trying again." : "Too many review changes. Try again shortly." }, 429);
+    }
     const { admin, user } = await getAuthenticatedSupabase(request);
+    if (input.action === "delete-review") {
+      const review = await admin.from("product_reviews").select("id,buyer_id,images:product_review_images(storage_path)").eq("id", input.reviewId).eq("buyer_id", user.id).maybeSingle();
+      if (review.error) throw review.error;
+      if (!review.data) return json({ error: "Review not found." }, 404);
+      await removeFiles(admin, "review-media", (review.data.images as Array<{ storage_path: string }> | null)?.map(({ storage_path }) => storage_path) ?? []);
+      const deleted = await admin.from("product_reviews").delete().eq("id", input.reviewId).eq("buyer_id", user.id);
+      if (deleted.error) throw deleted.error;
+      return json({ deleted: true });
+    }
+    if (input.action === "delete-image") {
+      const image = await admin.from("product_review_images").select("id,buyer_id,storage_path").eq("id", input.imageId).eq("buyer_id", user.id).maybeSingle();
+      if (image.error) throw image.error;
+      if (!image.data) return json({ error: "Review photo not found." }, 404);
+      await removeFiles(admin, "review-media", [image.data.storage_path]);
+      const deleted = await admin.from("product_review_images").delete().eq("id", input.imageId).eq("buyer_id", user.id);
+      if (deleted.error) throw deleted.error;
+      return json({ deleted: true });
+    }
     const signedInAt = user.last_sign_in_at ? Date.parse(user.last_sign_in_at) : 0;
     if (!signedInAt || Date.now() - signedInAt > 15 * 60_000) return json({ error: "For security, sign out and sign in again before deleting your account." }, 403);
 

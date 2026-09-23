@@ -18,8 +18,8 @@ vi.mock("../../api/_lib/server", () => ({
 }));
 
 it("removes owned review media before deleting the review", async () => {
-  const { POST } = await import("../../api/reviews");
-  const response = await POST(new Request("https://fieldio.shop/api/reviews", { method: "POST" }));
+  const { POST } = await import("../../api/account");
+  const response = await POST(new Request("https://fieldio.shop/api/account", { method: "POST" }));
   expect(response.status).toBe(200);
   expect(remove).toHaveBeenCalledWith(["buyer/review/photo.webp"]);
   expect(admin.from).toHaveBeenCalledWith("product_reviews");

@@ -110,7 +110,7 @@ function ReviewEditor({ productName, eligibility, review, onClose, onSaved }: { 
       if (result.error) throw result.error;
       const saved = result.data as unknown as Review;
 
-      for (const image of removedImages) await authenticatedPost("/api/reviews", { action: "delete-image", imageId: image.id });
+      for (const image of removedImages) await authenticatedPost("/api/account", { action: "delete-image", imageId: image.id });
       for (let index = 0; index < files.length; index += 1) {
         setUploading(index + 1);
         const path = `${session.user.id}/${saved.id}/${crypto.randomUUID()}.webp`;
@@ -119,7 +119,7 @@ function ReviewEditor({ productName, eligibility, review, onClose, onSaved }: { 
         const uploaded = await supabase.storage.from("review-media").upload(path, files[index]!.file, { contentType: "image/webp", upsert: false });
         if (uploaded.error) {
           const reservation = reserved.data as unknown as ReviewImage;
-          await authenticatedPost("/api/reviews", { action: "delete-image", imageId: reservation.id });
+          await authenticatedPost("/api/account", { action: "delete-image", imageId: reservation.id });
           throw uploaded.error;
         }
       }
@@ -206,7 +206,7 @@ export function ProductReviews({ productId, productName, averageRating = 0, rati
   const removeReview = async (review: Review) => {
     if (!window.confirm("Delete your review and its photos? This cannot be undone.")) return;
     try {
-      await authenticatedPost("/api/reviews", { action: "delete-review", reviewId: review.id });
+      await authenticatedPost("/api/account", { action: "delete-review", reviewId: review.id });
       await refresh(); toast.success("Review deleted.");
     } catch (cause) { toast.error(cause instanceof Error ? cause.message : "Could not delete this review."); }
   };
