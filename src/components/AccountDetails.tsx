@@ -25,7 +25,7 @@ const detailsSchema = z.object({
 type Details = z.infer<typeof detailsSchema>;
 type AccountIntent = "buy" | "sell";
 type AccountView = "overview" | "orders" | "details";
-interface Order { id: string; public_reference: string; status: string; created_at: string; subtotal: number | null; currency: string; order_items: Array<{ id: string; product_name: string; quantity: number; size: string | null }> }
+interface Order { id: string; public_reference: string; status: string; created_at: string; updated_at: string; confirmed_at: string | null; subtotal: number | null; currency: string; order_items: Array<{ id: string; product_name: string; quantity: number; size: string | null }> }
 
 const orderStatusKeys: Record<string, TranslationKey> = {
   order_request: "account.status.request",
@@ -60,7 +60,7 @@ export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "b
     return { profile: profile.data, address: address.data };
   } });
   const orders = useQuery({ queryKey: ["account-orders", userId], enabled: view === "orders", queryFn: async () => {
-    const { data, error } = await supabase!.from("order_requests").select("id,public_reference,status,created_at,subtotal,currency,order_items(id,product_name,quantity,size)").eq("user_id", userId).order("created_at", { ascending: false });
+    const { data, error } = await supabase!.from("order_requests").select("id,public_reference,status,created_at,updated_at,confirmed_at,subtotal,currency,order_items(id,product_name,quantity,size)").eq("user_id", userId).order("created_at", { ascending: false });
     if (error) throw error;
     return data as Order[];
   } });
@@ -178,9 +178,14 @@ export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "b
         {orders.isPending ? <p role="status">{t("account.loadingRequests")}</p> : orders.error ? <p role="alert">{t("account.requestsError")} <button className="text-link" onClick={() => void orders.refetch()}>{t("account.retry")}</button></p> : orders.data?.length ? orders.data.map((order) => {
           const statusKey = orderStatusKeys[order.status];
           const stepIndex = order.status === "awaiting_confirmation" ? 0 : orderSteps.indexOf(order.status as typeof orderSteps[number]);
+          const statusDate = order.status === "order_request" ? order.created_at : order.status === "confirmed" && order.confirmed_at ? order.confirmed_at : order.updated_at;
+          const formatDate = (value: string) => new Intl.DateTimeFormat(language.locale, { dateStyle: "medium" }).format(new Date(value));
           return <article className="account-order" key={order.id}>
-            <div className="account-order-heading"><div><div className="account-order-reference"><h2>{order.public_reference}</h2><button className="text-link" type="button" aria-live="polite" onClick={() => void copyReference(order.public_reference)}>{copyStatus?.reference === order.public_reference && copyStatus.state === "copied" ? t("account.referenceCopied") : copyStatus?.reference === order.public_reference && copyStatus.state === "error" ? t("account.copyReferenceError") : t("account.copyReference")}</button></div><p>{statusKey ? t(statusKey) : order.status.replaceAll("_", " ")} · {new Intl.DateTimeFormat(language.locale, { dateStyle: "medium" }).format(new Date(order.created_at))}</p></div>{order.subtotal !== null && <strong>{formatMoney(order.subtotal, order.currency)}</strong>}</div>
-            {order.status === "cancelled" ? <p className="account-order-cancelled">{t("account.status.cancelled")}</p> : stepIndex >= 0 && <ol className="account-order-progress" aria-label={t("account.progress")}>{orderSteps.map((step, index) => <li key={step} className={index <= stepIndex ? "complete" : ""} aria-current={index === stepIndex ? "step" : undefined}><span>{t(orderStatusKeys[step]!)}</span></li>)}</ol>}
+            <div className="account-order-heading"><div><div className="account-order-reference"><h2>{order.public_reference}</h2><button className="text-link" type="button" aria-live="polite" onClick={() => void copyReference(order.public_reference)}>{copyStatus?.reference === order.public_reference && copyStatus.state === "copied" ? t("account.referenceCopied") : copyStatus?.reference === order.public_reference && copyStatus.state === "error" ? t("account.copyReferenceError") : t("account.copyReference")}</button></div><p>{statusKey ? t(statusKey) : order.status.replaceAll("_", " ")} · {formatDate(statusDate)}</p></div>{order.subtotal !== null && <strong>{formatMoney(order.subtotal, order.currency)}</strong>}</div>
+            {order.status === "cancelled" ? <p className="account-order-cancelled">{t("account.status.cancelled")}</p> : stepIndex >= 0 && <ol className="account-order-progress" aria-label={t("account.progress")}>{orderSteps.map((step, index) => {
+              const stageDate = step === "order_request" ? order.created_at : step === "confirmed" ? order.confirmed_at : index === stepIndex ? order.updated_at : null;
+              return <li key={step} className={index < stepIndex ? "complete past" : index === stepIndex ? "complete current" : "upcoming"} aria-current={index === stepIndex ? "step" : undefined}><span className="account-order-marker" aria-hidden="true" /><span className="account-order-step-label">{t(orderStatusKeys[step]!)}</span>{stageDate && index <= stepIndex && <time dateTime={stageDate}>{formatDate(stageDate)}</time>}</li>;
+            })}</ol>}
             <ul>{order.order_items.map((item) => <li key={item.id}>{item.product_name} · {item.size || t("account.variantConfirmed")} · {t("account.quantity")} {item.quantity}</li>)}</ul>
             <div className="account-order-actions">
               <a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, I would like an update on order request ${order.public_reference}.`)} target="_blank" rel="noreferrer">{t("account.continueWhatsApp")}</a>

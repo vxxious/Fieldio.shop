@@ -46,7 +46,7 @@ it("asks a new account how it will use Fieldio and saves the choice", async () =
 
 it("copies an order reference", async () => {
   account.intent = "buy";
-  account.orders = [{ id: "order-1", public_reference: "FLD-123", status: "confirmed", created_at: "2026-09-18T00:00:00Z", subtotal: null, currency: "GBP", order_items: [] }];
+  account.orders = [{ id: "order-1", public_reference: "FLD-123", status: "confirmed", created_at: "2026-09-18T00:00:00Z", updated_at: "2026-09-19T00:00:00Z", confirmed_at: "2026-09-19T00:00:00Z", subtotal: null, currency: "GBP", order_items: [] }];
   const writeText = vi.fn().mockResolvedValue(undefined);
   Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -55,6 +55,18 @@ it("copies an order reference", async () => {
   fireEvent.click(await screen.findByRole("button", { name: "Copy reference" }));
   await waitFor(() => expect(writeText).toHaveBeenCalledWith("FLD-123"));
   expect(screen.getByRole("button", { name: "Reference copied" })).toBeVisible();
+});
+
+it("shows every completed stage for a delivered order", async () => {
+  account.intent = "buy";
+  account.orders = [{ id: "order-1", public_reference: "FLD-123", status: "delivered", created_at: "2026-09-18T00:00:00Z", updated_at: "2026-09-23T00:00:00Z", confirmed_at: "2026-09-19T00:00:00Z", subtotal: null, currency: "GBP", order_items: [] }];
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<MemoryRouter><QueryClientProvider client={client}><AccountDetails userId="user-1" email="ada@example.com" /></QueryClientProvider></MemoryRouter>);
+  fireEvent.click(await screen.findByRole("button", { name: "My order requests" }));
+  const progress = await screen.findByRole("list", { name: "account.progress" });
+  expect(progress.querySelectorAll("li.complete")).toHaveLength(5);
+  expect(progress.querySelector('[aria-current="step"]')).toHaveTextContent("account.status.delivered");
+  expect(progress.querySelectorAll("time")).toHaveLength(3);
 });
 
 it("requires an exact confirmation before account deletion", async () => {
