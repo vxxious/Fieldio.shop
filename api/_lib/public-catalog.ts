@@ -1,14 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 
 export const publicPages: Record<string, [string, string]> = {
-  "/": ["Fieldio | Luxury Fashion Sourcing & Personal Shopping", "Discover designer fashion through Fieldio: personal shopping, luxury sourcing, and worldwide delivery support for women and men."],
+  "/": ["Fieldio Shop | Designer Fashion & Personal Shopping", "Fieldio is an independent designer fashion marketplace and personal shopping service for clothing, footwear, and accessories, with worldwide sourcing and delivery support."],
   "/collections": ["Designer Fashion Collections | Fieldio", "Explore Fieldio's curated edit of designer clothing, footwear, and accessories for women and men."],
   "/collections/new-arrivals": ["New Designer Fashion Arrivals | Fieldio", "Discover the latest designer fashion selected by Fieldio, with personal sourcing and worldwide delivery support."],
   "/collections/luxury": ["Luxury Fashion Sourcing | Fieldio", "Request luxury clothing, footwear, and accessories through Fieldio personal shopping and worldwide delivery support."],
   "/collections/women": ["Designer Womenswear | Fieldio", "Explore designer womenswear selected and personally sourced by Fieldio, with worldwide delivery support."],
   "/collections/men": ["Designer Menswear | Fieldio", "Explore designer menswear selected and personally sourced by Fieldio, with worldwide delivery support."],
   "/brands": ["Designer Brands | Fieldio", "Explore designer brands available through Fieldio's personal fashion sourcing service."],
-  "/about": ["About Fieldio | Personal Fashion Sourcing", "Meet Fieldio, a personal fashion sourcing service connecting clients with designer pieces and worldwide delivery support."],
+  "/about": ["About Fieldio | Designer Fashion Marketplace", "Fieldio is an independent designer fashion marketplace and personal shopping service operating at fieldio.shop."],
   "/promise": ["The Fieldio Promise | Seller & Product Standards", "Learn how Fieldio reviews sellers and listings, describes condition, and confirms sourcing, delivery, and support."],
   "/how-it-works": ["How Fieldio Works | Fashion Requests & Sourcing", "See how to browse, request, confirm, pay for, and follow a fashion order through Fieldio."],
   "/personal-shopping": ["Luxury Personal Shopping | Fieldio", "Ask Fieldio to source a specific designer piece, confirm availability, and coordinate worldwide delivery."],

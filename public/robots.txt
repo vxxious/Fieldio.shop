@@ -3,5 +3,8 @@ Allow: /
 Disallow: /admin
 Disallow: /account
 Disallow: /checkout
+Disallow: /search
+Disallow: /wishlist
+Disallow: /api/
 
 Sitemap: https://fieldio.shop/sitemap.xml

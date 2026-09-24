@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 vi.mock("@supabase/supabase-js", () => ({ createClient: () => null }));
 vi.mock("node:fs/promises", async () => ({
   ...await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises"),
-  readFile: async () => "<!doctype html><html><head><title>Fallback</title></head><body></body></html>"
+  readFile: async () => '<!doctype html><html><head><title>Fallback</title></head><body><div id="root"><div class="route-loading app-boot-loader" role="status"><span>Loading Fieldio</span></div></div><script type="module" src="/assets/app.js"></script></body></html>'
 }));
 
 import { GET as renderPage } from "../../api/render";
@@ -19,9 +19,13 @@ it("centres the boot loader before the client bundle starts", () => {
 it("serves a distinct Fieldio search identity and crawlable public sitemap", async () => {
   expect(readFileSync("index.html", "utf8")).toContain('<script id="fieldio-identity" type="application/ld+json">');
   const home = await (await renderPage(new Request("https://fieldio.shop/api/render?path=/"))).text();
-  expect(home).toContain("Fieldio | Luxury Fashion Sourcing &amp; Personal Shopping");
+  expect(home).toContain("Fieldio Shop | Designer Fashion &amp; Personal Shopping");
+  expect(home).toContain('"@type":"OnlineStore"');
   expect(home).toContain('"@type":"WebSite"');
   expect(home).toContain('<link rel="canonical" href="https://fieldio.shop/">');
+  expect(home).toContain("Fieldio is an independent designer fashion marketplace");
+  expect(home).toContain('<a href="/about">About Fieldio</a>');
+  expect(home).not.toContain("Loading Fieldio");
 
   const sitemapResponse = await renderSitemap(new Request("https://fieldio.shop/api/sitemap"));
   const sitemap = await sitemapResponse.text();
