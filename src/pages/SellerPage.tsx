@@ -23,6 +23,9 @@ interface Listing { id: string; title: string; description: string; audience: Li
 interface Category { id: string; parent_id: string | null; name: string; }
 interface VendorReview { id: string; rating: number; review_text: string; reviewer_name: string; purchased_variant: string | null; purchased_size: string | null; purchased_color: string | null; created_at: string; product: { name: string } | null; images: Array<{ id: string; storage_path: string; position: number; url: string }>; }
 interface VendorReviewSummary { averageRating: number; total: number; breakdown: Record<string, number>; }
+type FulfillmentStatus = "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled";
+interface VendorFulfillmentItem { id: string; productName: string; variantName: string | null; size: string | null; color: string | null; quantity: number; sku: string; }
+interface VendorFulfillment { id: string; order_request_id: string; public_reference: string; status: FulfillmentStatus; store_name: string; customer_name: string; customer_phone: string; shipping_address: string; carrier: string | null; tracking_reference: string | null; created_at: string; updated_at: string; items: VendorFulfillmentItem[]; }
 
 const callingCodeOptions = phoneCountryOptions();
 const phoneCountrySchema = z.string().refine(isPhoneCountryCode, "Choose a country calling code.");
@@ -309,6 +312,32 @@ function SellerDashboard({ userId, store, listings, onAdd, onEdit, onEditContact
   return <section className="seller-dashboard"><header><div><p>{store.name}</p><h1>Seller dashboard</h1><span>{store.description}</span></div><div className="seller-dashboard-actions"><button className="secondary-button" onClick={onEditContacts}>Edit contact details</button><button className="primary-button" onClick={onAdd}><PlusIcon /> Add product</button></div></header><StoreLogoEditor userId={userId} store={store} onDone={onStoreUpdated} /><div className="seller-summary"><div><strong>{listings.length}</strong><span>Total listings</span></div><div><strong>{listings.filter((item) => item.status === "pending").length}</strong><span>In review</span></div><div><strong>{listings.filter((item) => item.status === "approved").length}</strong><span>Live</span></div></div><section className="seller-listings"><h2>Your products</h2>{listings.length ? listings.map((listing) => <article key={listing.id}><div><h3>{listing.title}</h3><p>{listing.currency} {(listing.price / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} · <span className={`seller-status seller-status--${listing.status}`}>{listing.status}</span></p>{listing.review_reason && <small>{listing.review_reason}</small>}</div><div className="seller-listing-actions">{listing.status === "rejected" && <button className="text-link" type="button" onClick={() => onEdit(listing)}>Edit and resubmit</button>}{listing.published_product_id && <Link className="text-link" to="/collections">View in shop <ArrowIcon /></Link>}</div></article>) : <div className="seller-empty"><StoreIcon /><h3>Your store is ready.</h3><p>Add your first product. Fieldio will review it before publication.</p><button className="text-link" onClick={onAdd}>Add a product</button></div>}</section></section>;
 }
 
+export function SellerFulfillments({ fulfillments, onUpdated }: { fulfillments: VendorFulfillment[]; onUpdated: () => Promise<void> }) {
+  const [updating, setUpdating] = useState<string>();
+  const [status, setStatus] = useState("");
+  async function updateFulfillment(fulfillment: VendorFulfillment, nextStatus: "processing" | "shipped") {
+    setUpdating(fulfillment.id); setStatus("");
+    try {
+      await authenticatedPost("/api/vendor-fulfillment", { fulfillmentId: fulfillment.id, status: nextStatus });
+      await onUpdated();
+      setStatus(nextStatus === "shipped" ? `${fulfillment.public_reference} marked as shipped. Fieldio will update the buyer.` : `${fulfillment.public_reference} is now being prepared.`);
+    } catch (error) { setStatus(error instanceof Error ? error.message : "The fulfilment could not be updated."); }
+    finally { setUpdating(undefined); }
+  }
+  return <section className="seller-fulfillments"><header><div><h2>Orders to fulfil</h2><p>Only your store's items appear here. Fieldio confirms the order and manages buyer updates.</p></div><strong>{fulfillments.filter(({ status: value }) => !["delivered", "cancelled"].includes(value)).length}<span>open</span></strong></header>
+    {status && <p className="form-message" role="status">{status}</p>}
+    {fulfillments.length ? <div className="seller-fulfillment-list">{fulfillments.map((fulfillment) => <article key={fulfillment.id}>
+      <header><div><h3>{fulfillment.public_reference}</h3><time dateTime={fulfillment.created_at}>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(fulfillment.created_at))}</time></div><span className={`seller-status seller-status--${fulfillment.status}`}>{fulfillment.status}</span></header>
+      <ul>{fulfillment.items.map((item) => <li key={item.id}><span>{item.productName}{[item.variantName, item.size, item.color].filter(Boolean).length ? ` · ${[item.variantName, item.size, item.color].filter(Boolean).join(" · ")}` : ""}</span><strong>×{item.quantity}</strong></li>)}</ul>
+      <div className="seller-delivery-address"><span>Ship to</span><address>{fulfillment.customer_name}<br />{fulfillment.shipping_address}<br />Delivery phone: {fulfillment.customer_phone}</address><small>Use delivery details only to fulfil this Fieldio order. Buyer communication stays with Fieldio.</small></div>
+      {fulfillment.status === "pending" && <p className="seller-fulfillment-note">Waiting for Fieldio to confirm this order.</p>}
+      {fulfillment.status === "confirmed" && <button className="secondary-button" disabled={updating === fulfillment.id} onClick={() => void updateFulfillment(fulfillment, "processing")}>{updating === fulfillment.id ? "Updating…" : "Start preparing"}</button>}
+      {fulfillment.status === "processing" && <button className="primary-button" disabled={updating === fulfillment.id} onClick={() => void updateFulfillment(fulfillment, "shipped")}>{updating === fulfillment.id ? "Updating…" : "Mark as shipped"}</button>}
+      {fulfillment.status === "shipped" && <p className="seller-fulfillment-note">Shipped. Fieldio will manage delivery confirmation.</p>}
+    </article>)}</div> : <div className="seller-empty"><StoreIcon /><h3>No orders to fulfil.</h3><p>Confirmed orders containing your products will appear here.</p></div>}
+  </section>;
+}
+
 function SellerReviews({ reviews, summary }: { reviews: VendorReview[]; summary: VendorReviewSummary }) {
   return <section className="seller-reviews"><header><div><h2>Customer reviews</h2><p>Published feedback across your live products. Reviews are read-only.</p></div><strong>{summary.total ? Number(summary.averageRating).toFixed(1) : "—"}<span>{summary.total} {summary.total === 1 ? "review" : "reviews"}</span></strong></header>{summary.total ? <><div className="seller-rating-distribution">{[5, 4, 3, 2, 1].map((rating) => { const count = Number(summary.breakdown[String(rating)] ?? 0); return <div key={rating}><span>{rating} star</span><i><b style={{ width: `${count / summary.total * 100}%` }} /></i><span>{count}</span></div>; })}</div><div className="seller-review-feed">{reviews.map((review) => <article key={review.id}><div className="seller-review-heading"><span className="review-stars" aria-label={`${review.rating} out of 5 stars`}>{[1, 2, 3, 4, 5].map((star) => <StarIcon key={star} className={star <= review.rating ? "filled" : "empty"} />)}</span><time dateTime={review.created_at}>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(review.created_at))}</time></div><h3>{review.product?.name ?? "Product"}</h3><p className="seller-review-meta">{review.reviewer_name}{reviewVariantLabel(review) ? ` · ${reviewVariantLabel(review)}` : ""}</p><p>{review.review_text}</p>{review.images.some((image) => image.url) && <div className="seller-review-images-inline">{review.images.filter((image) => image.url).map((image, index) => <img key={image.id} src={image.url} alt={`Customer review photo ${index + 1}`} loading="lazy" />)}</div>}</article>)}</div></> : <div className="seller-empty"><StarIcon /><h3>No customer reviews yet.</h3><p>Delivered buyers’ published feedback will appear here.</p></div>}</section>;
 }
@@ -334,6 +363,8 @@ export function SellerPage() {
     ]);
     const error = application.error || store.error || listings.error || categories.error;
     if (error) throw error;
+    const fulfillments = application.data?.status === "approved" ? await supabase!.rpc("seller_order_fulfillments") : { data: [], error: null };
+    if (fulfillments.error) throw fulfillments.error;
     const listingRows = listings.data as unknown as Array<Omit<Listing, "images"> & { images: Array<Omit<ListingImage, "preview_url">> }>;
     const productIds = listingRows.flatMap((listing) => listing.published_product_id ? [listing.published_product_id] : []);
     const reviews = productIds.length ? await supabase!.from("product_reviews").select("id,rating,review_text,reviewer_name,purchased_variant,purchased_size,purchased_color,created_at,product:products(name),images:product_review_images(id,storage_path,position)").in("product_id", productIds).eq("status", "published").order("created_at", { ascending: false }).limit(8) : { data: [], error: null };
@@ -346,7 +377,7 @@ export function SellerPage() {
     const reviewRows = (reviews.data ?? []) as unknown as VendorReview[];
     const signedReviewImages = await signReviewImages(supabase!, reviewRows.flatMap((review) => review.images));
     const reviewImagesById = new Map(signedReviewImages.map((image) => [image.id, image]));
-    return { application: application.data as SellerApplication | null, store: store.data as Store | null, listings: listingRows.map((listing) => ({ ...listing, images: listing.images.map((image) => ({ ...image, preview_url: previewByPath.get(image.storage_path) ?? "" })) })) as Listing[], categories: categories.data as Category[], reviews: reviewRows.map((review) => ({ ...review, images: review.images.map((image) => reviewImagesById.get(image.id) ?? { ...image, url: "" }) })), reviewSummary: reviewSummary.data as unknown as VendorReviewSummary };
+    return { application: application.data as SellerApplication | null, store: store.data as Store | null, listings: listingRows.map((listing) => ({ ...listing, images: listing.images.map((image) => ({ ...image, preview_url: previewByPath.get(image.storage_path) ?? "" })) })) as Listing[], categories: categories.data as Category[], fulfillments: (fulfillments.data ?? []) as VendorFulfillment[], reviews: reviewRows.map((review) => ({ ...review, images: review.images.map((image) => reviewImagesById.get(image.id) ?? { ...image, url: "" }) })), reviewSummary: reviewSummary.data as unknown as VendorReviewSummary };
   } });
   const refresh = async () => { await cache.invalidateQueries({ queryKey: ["seller-account", session?.user.id] }); };
 
@@ -355,7 +386,7 @@ export function SellerPage() {
   if (!supabase) return <div className="seller-gate"><h1>Seller services unavailable</h1><p>Please try again later or contact Fieldio.</p><Link className="primary-button" to="/contact">Contact Fieldio</Link></div>;
   if (query.isPending) return <div className="route-loading" role="status">Loading seller account…</div>;
   if (query.error || !query.data) return <div className="seller-gate"><h1>Your seller account could not load.</h1><p>Check your connection and try again.</p><button className="primary-button" onClick={() => void query.refetch()}>Try again</button></div>;
-  const { application, store, listings, categories, reviews, reviewSummary } = query.data;
+  const { application, store, listings, categories, fulfillments, reviews, reviewSummary } = query.data;
   if (!application || application.status === "draft" || application.status === "rejected") return <VerificationForm userId={session.user.id} email={session.user.email ?? ""} application={application} defaultCountryCode={region.code} onDone={refresh} />;
   if (application.status === "pending") return <div className="seller-gate"><CheckSealIcon /><h1>Verification in review</h1><p>We are checking your identity and seller details. You will be able to create your store after approval.</p><Link className="text-link" to="/account">Return to account</Link></div>;
   if (application.status === "suspended") return <div className="seller-gate"><h1>Seller access paused</h1><p>{application.review_reason || "Contact Fieldio for help with your seller account."}</p><Link className="primary-button" to="/contact">Contact Fieldio</Link></div>;
@@ -364,5 +395,5 @@ export function SellerPage() {
   if (submittedTitle) return <SubmittedState title={submittedTitle} onAdd={() => { setSubmittedTitle(""); setMode("listing"); }} />;
   if (mode === "contacts") return <ContactDetailsForm application={application} store={store} onCancel={() => setMode("dashboard")} onDone={refresh} />;
   if (mode === "listing") return <ListingForm userId={session.user.id} store={store} categories={categories} currency={region.currency} listing={editingListing} onCancel={() => { setEditingListing(null); setMode("dashboard"); }} onSubmitted={async (title) => { await refresh(); setEditingListing(null); setSubmittedTitle(title); }} />;
-  return <><SellerDashboard userId={session.user.id} store={store} listings={listings} onAdd={() => { setEditingListing(null); setMode("listing"); }} onEdit={(listing) => { setEditingListing(listing); setMode("listing"); }} onEditContacts={() => setMode("contacts")} onStoreUpdated={refresh} /><SellerReviews reviews={reviews} summary={reviewSummary} /></>;
+  return <><SellerDashboard userId={session.user.id} store={store} listings={listings} onAdd={() => { setEditingListing(null); setMode("listing"); }} onEdit={(listing) => { setEditingListing(listing); setMode("listing"); }} onEditContacts={() => setMode("contacts")} onStoreUpdated={refresh} /><SellerFulfillments fulfillments={fulfillments} onUpdated={refresh} /><SellerReviews reviews={reviews} summary={reviewSummary} /></>;
 }

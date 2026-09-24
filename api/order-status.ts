@@ -49,6 +49,8 @@ export async function POST(request: Request): Promise<Response> {
     if (error?.message.includes("STAFF_ACCESS_REQUIRED")) return json({ error: "You are not authorised to update orders." }, 403);
     if (error?.message.includes("ORDER_REQUEST_NOT_FOUND")) return json({ error: "This order request no longer exists." }, 404);
     if (error?.message.includes("INVALID_ORDER_STATUS_TRANSITION")) return json({ error: "That order status change is not allowed. Refresh the order and try again." }, 409);
+    if (error?.message.includes("VENDOR_FULFILLMENT_PENDING")) return json({ error: "Every vendor must mark their part as shipped before the master order can be shipped." }, 409);
+    if (error?.message.includes("INSUFFICIENT_STOCK")) return json({ error: "This order can no longer be confirmed because one or more items are out of stock." }, 409);
     if (error) throw error;
 
     const order = data as { id: string; public_reference: string; customer_email: string; status: OrderStatus };

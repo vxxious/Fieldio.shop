@@ -1,13 +1,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { expect, it, vi } from "vitest";
-import { ContactDetailsForm, listingValuesFor, SellerPage } from "../pages/SellerPage";
+import { ContactDetailsForm, listingValuesFor, SellerFulfillments, SellerPage } from "../pages/SellerPage";
+
+const authenticatedPost = vi.hoisted(() => vi.fn(async () => ({ fulfillment: { status: "processing" } })));
 
 vi.mock("../hooks/useSession", () => ({ useSession: () => ({ session: null, loading: false }) }));
 vi.mock("../hooks/usePageMeta", () => ({ usePageMeta: () => undefined }));
 vi.mock("../context/LocaleContext", () => ({ useLocale: () => ({ region: { currency: "GBP" } }) }));
 vi.mock("./supabase", () => ({ supabase: null }));
+vi.mock("./authenticated-api", () => ({ authenticatedPost }));
 
 it("requires an account before a seller can apply", () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -49,4 +52,19 @@ it("converts stored listing amounts and options back into editable form values",
   }, "USD");
 
   expect(values).toMatchObject({ price: 1250, compare_at_price: 1500, currency: "GBP", colors: "Black, Cream", sizes: "S, M", quantity: 2 });
+});
+
+it("shows only the vendor fulfillment and sends guarded status updates", async () => {
+  const refreshed = vi.fn(async () => undefined);
+  render(<SellerFulfillments fulfillments={[{
+    id: "11111111-1111-4111-8111-111111111111", order_request_id: "22222222-2222-4222-8222-222222222222", public_reference: "FLD-202609-01004",
+    status: "confirmed", store_name: "Ada Studio", customer_name: "Buyer Name", customer_phone: "+447000000000", shipping_address: "10 London Road, London",
+    carrier: null, tracking_reference: null, created_at: "2026-09-24T08:00:00Z", updated_at: "2026-09-24T08:00:00Z",
+    items: [{ id: "33333333-3333-4333-8333-333333333333", productName: "Tailored coat", variantName: "Medium", size: "M", color: "Black", quantity: 1, sku: "COAT-M" }]
+  }]} onUpdated={refreshed} />);
+  expect(screen.getByRole("heading", { name: "Orders to fulfil" })).toBeVisible();
+  expect(screen.getByText("Tailored coat · Medium · M · Black")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Start preparing" }));
+  await waitFor(() => expect(authenticatedPost).toHaveBeenCalledWith("/api/vendor-fulfillment", { fulfillmentId: "11111111-1111-4111-8111-111111111111", status: "processing" }));
+  expect(refreshed).toHaveBeenCalledOnce();
 });

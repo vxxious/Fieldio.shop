@@ -84,4 +84,24 @@ describe("security invariants", () => {
     expect(sql).toMatch(/image\.status = 'ready'[\s\S]+review\.status = 'published'/i);
     expect(sql).toMatch(/review owners delete own media[\s\S]+storage\.foldername\(name\)/i);
   });
+
+  it("splits marketplace orders into server-owned vendor fulfillment groups", () => {
+    const sql = readFileSync(fileURLToPath(new URL("../../supabase/migrations/202609240001_vendor_fulfillments.sql", import.meta.url)), "utf8");
+    expect(sql).toMatch(/constraint order_fulfillments_order_group_unique unique \(order_request_id, group_key\)/i);
+    expect(sql).toMatch(/insert into public\.order_fulfillments[\s\S]+insert into public\.order_items\(fulfillment_id/i);
+    expect(sql).toMatch(/seller_owner_id = \(select auth\.uid\(\)\)[\s\S]+status = 'approved'/i);
+    expect(sql).toMatch(/create or replace function public\.seller_order_fulfillments\(\)[\s\S]+security definer[\s\S]+set search_path = ''/i);
+    expect(sql).toMatch(/create or replace function public\.update_vendor_fulfillment_status[\s\S]+seller_owner_id = \(select auth\.uid\(\)/i);
+    expect(sql).toMatch(/fulfillment\.status = 'confirmed' and p_status in \('processing', 'shipped'\)/i);
+    expect(sql).toMatch(/revoke all on function public\.update_vendor_fulfillment_status[\s\S]+from public, anon/i);
+    expect(sql).toMatch(/p_status = 'confirmed'[\s\S]+set reserved_quantity = inventory\.reserved_quantity \+ items\.quantity/i);
+    expect(sql).toMatch(/p_status = 'shipped'[\s\S]+set quantity = greatest\(0, inventory\.quantity - items\.quantity\)/i);
+    const transitions = readFileSync(fileURLToPath(new URL("../../supabase/migrations/202609240003_fulfillment_transition_integrity.sql", import.meta.url)), "utf8");
+    expect(transitions).toMatch(/seller_owner_id is not null and status not in \('shipped', 'delivered'\)[\s\S]+VENDOR_FULFILLMENT_PENDING/i);
+    expect(transitions).toMatch(/p_status = 'processing' and status in \('pending', 'confirmed'\)/i);
+    expect(transitions).toMatch(/p_status = 'cancelled'[\s\S]+status in \('shipped', 'delivered'\)/i);
+    const response = readFileSync(fileURLToPath(new URL("../../supabase/migrations/202609240004_buyer_safe_order_response.sql", import.meta.url)), "utf8");
+    expect(response).toMatch(/return jsonb_build_object\('reference', v_order\.public_reference, 'items', v_result\)/i);
+    expect(response).not.toMatch(/sellerOwnerId|fulfillments'/i);
+  });
 });
