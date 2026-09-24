@@ -1,10 +1,10 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Suspense, useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { useOutlet, useLocation, useNavigationType } from "react-router-dom";
 import { trackEvent } from "../lib/analytics";
 import { catalogPreview } from "../lib/config";
+import { useCartStore } from "../store/cart";
 import { AnalyticsConsent } from "./AnalyticsConsent";
-import { CartDrawer } from "./CartDrawer";
 import { MotionDirector } from "./MotionDirector";
 import { OfflineNotice } from "./OfflineNotice";
 import { ScrollToTop } from "./ScrollToTop";
@@ -12,6 +12,13 @@ import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
 import { SmoothScroll } from "./SmoothScroll";
 import { WishlistSync } from "./WishlistSync";
+
+const CartDrawer = lazy(() => import("./CartDrawer").then(({ CartDrawer: Drawer }) => ({ default: Drawer })));
+
+function DeferredCartDrawer() {
+  const isOpen = useCartStore((state) => state.isOpen);
+  return isOpen ? <Suspense fallback={null}><CartDrawer /></Suspense> : null;
+}
 
 export function AppLayout() {
   const location = useLocation();
@@ -77,7 +84,7 @@ export function AppLayout() {
       </AnimatePresence>
       <SiteFooter />
       <ScrollToTop />
-      <CartDrawer />
+      <DeferredCartDrawer />
       <div ref={statusRef} id="status-region" className="sr-only" role="status" aria-live="polite" />
     </div>
   );

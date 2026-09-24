@@ -126,7 +126,6 @@ export function CartDrawer() {
           <div className="empty-cart">
             <p className="empty-cart-title">{t("cart.empty")}</p>
             <p className="empty-cart-copy">{t("cart.emptyCopy")}</p>
-            <p className="empty-cart-account">{t("cart.account")} <Link to="/account" onClick={handleClose}>{t("cart.login")}</Link> {t("cart.faster")}</p>
             <Button className="primary-button" type="button" onClick={handleClose}>{t("cart.continue")}</Button>
           </div>
         )}

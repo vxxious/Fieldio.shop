@@ -1,8 +1,4 @@
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useLayoutEffect } from "react";
-
-gsap.registerPlugin(ScrollTrigger);
 
 const revealSelector = [
   ".product-editorial-details",
@@ -20,10 +16,15 @@ export function MotionDirector({ routeKey }: { routeKey: string }) {
     const root = document.getElementById("main-content");
     if (!root) return;
 
-    const animations: gsap.core.Animation[] = [];
-    let frame = 0;
+    let cancelled = false;
+    let dispose = () => undefined;
 
-    const bindMotion = () => {
+    void Promise.all([import("gsap"), import("gsap/ScrollTrigger")]).then(([{ default: gsap }, { ScrollTrigger }]) => {
+      if (cancelled) return;
+      gsap.registerPlugin(ScrollTrigger);
+      const animations: Array<{ kill: () => void }> = [];
+      let frame = 0;
+      const bindMotion = () => {
       root.querySelectorAll<HTMLElement>("h1:not(:has(.editorial-text)), h2:not(.sr-only):not(.brand-directory-letter):not(:has(.editorial-text))").forEach((heading) => {
         if (heading.dataset.motionBound) return;
         heading.dataset.motionBound = "true";
@@ -52,24 +53,29 @@ export function MotionDirector({ routeKey }: { routeKey: string }) {
           { opacity: 1, transform: "translateY(0)", duration: 0.48, stagger: 0.055, ease: "power3.out", clearProps: "transform,opacity", scrollTrigger: { trigger: grid, start: "top 90%", once: true } }
         ));
       });
-    };
+      };
 
-    const scheduleBind = () => {
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => {
-        bindMotion();
-        ScrollTrigger.refresh();
-      });
-    };
+      const scheduleBind = () => {
+        window.cancelAnimationFrame(frame);
+        frame = window.requestAnimationFrame(() => {
+          bindMotion();
+          ScrollTrigger.refresh();
+        });
+      };
 
-    scheduleBind();
-    const observer = new MutationObserver(scheduleBind);
-    observer.observe(root, { childList: true, subtree: true });
+      scheduleBind();
+      const observer = new MutationObserver(scheduleBind);
+      observer.observe(root, { childList: true, subtree: true });
+      dispose = () => {
+        observer.disconnect();
+        window.cancelAnimationFrame(frame);
+        animations.forEach((animation) => animation.kill());
+      };
+    });
 
     return () => {
-      observer.disconnect();
-      window.cancelAnimationFrame(frame);
-      animations.forEach((animation) => animation.kill());
+      cancelled = true;
+      dispose();
     };
   }, [routeKey]);
 

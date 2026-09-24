@@ -1,4 +1,56 @@
 import { expect, test, type Page } from "@playwright/test";
+import { loadEnv } from "vite";
+
+const previewEnv = loadEnv("preview", process.cwd(), "VITE_");
+const supabaseUrl = process.env.VITE_SUPABASE_URL || previewEnv.VITE_SUPABASE_URL;
+const authStorageKey = supabaseUrl ? `sb-${new URL(supabaseUrl).hostname.split(".")[0]}-auth-token` : "";
+const buyer = {
+  id: "11111111-1111-4111-8111-111111111111",
+  aud: "authenticated",
+  role: "authenticated",
+  email: "buyer@example.com",
+  app_metadata: { provider: "email", providers: ["email"] },
+  user_metadata: { display_name: "Test Buyer" },
+  created_at: "2026-09-01T00:00:00.000Z",
+  factors: []
+};
+
+test.beforeEach(async ({ page }) => {
+  const savedWishlist = new Set<string>();
+  await page.route("http://127.0.0.1:54321/rest/v1/**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/wishlist_items")) {
+      if (route.request().method() === "POST") {
+        const item = route.request().postDataJSON() as { product_id?: string };
+        if (item.product_id) savedWishlist.add(item.product_id);
+      }
+      return route.fulfill({ status: 200, contentType: "application/json", headers: { "Content-Range": "0-0/0" }, body: JSON.stringify(Array.from(savedWishlist, (product_id) => ({ product_id }))) });
+    }
+    const body = path.endsWith("/rpc/product_review_summary")
+      ? { averageRating: 0, total: 0, breakdown: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 }, withPhotos: 0, verified: 0, tags: [] }
+      : path.endsWith("/rpc/current_account_role")
+        ? "buyer"
+        : path.endsWith("/wishlists")
+          ? { id: "22222222-2222-4222-8222-222222222222" }
+          : [];
+    return route.fulfill({ status: 200, contentType: "application/json", headers: { "Content-Range": "0-0/0" }, body: JSON.stringify(body) });
+  });
+});
+
+function tokenPart(value: object) {
+  return Buffer.from(JSON.stringify(value)).toString("base64url");
+}
+
+async function signInBuyer(page: Page) {
+  if (!authStorageKey) throw new Error("Preview Supabase URL is required for authenticated browser tests.");
+  const expiresAt = Math.floor(Date.now() / 1000) + 3_600;
+  const accessToken = `${tokenPart({ alg: "none", typ: "JWT" })}.${tokenPart({ sub: buyer.id, role: buyer.role, aud: buyer.aud, email: buyer.email, aal: "aal1", exp: expiresAt })}.e2e`;
+  await page.route("**/auth/v1/user", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(buyer) }));
+  await page.addInitScript(({ key, session }) => localStorage.setItem(key, JSON.stringify(session)), {
+    key: authStorageKey,
+    session: { access_token: accessToken, refresh_token: "e2e-refresh", expires_at: expiresAt, expires_in: 3_600, token_type: "bearer", user: buyer }
+  });
+}
 
 async function openFirstProduct(page: Page) {
   await page.goto("/");
@@ -8,25 +60,34 @@ async function openFirstProduct(page: Page) {
   await expect(page).toHaveURL(/\/products\//);
 }
 
-test("boot loader is centred before the client bundle starts", async ({ page }) => {
+test("a 300px reload stays styled before and after hydration", async ({ page }) => {
+  await page.setViewportSize({ width: 300, height: 600 });
   await page.route("**/", async (route) => {
     const response = await route.fetch();
     const html = (await response.text()).replace(/<script type="module" src="\/src\/main\.tsx"><\/script>|<script type="module" crossorigin src="\/assets\/index-[^"]+"><\/script>/, "");
     await route.fulfill({ response, body: html });
   });
   await page.goto("/");
-  const loader = page.getByRole("status").filter({ hasText: "Loading Fieldio" });
-  await expect(loader).toBeVisible();
-  const box = await loader.boundingBox();
-  const viewport = page.viewportSize();
-  expect(box).not.toBeNull();
-  expect(viewport).not.toBeNull();
-  expect(Math.abs(box!.x + box!.width / 2 - viewport!.width / 2)).toBeLessThan(2);
-  expect(Math.abs(box!.y + box!.height / 2 - viewport!.height / 2)).toBeLessThan(2);
-  await expect(loader).toHaveCSS("font-family", /Manrope/);
+  const fallback = page.locator(".seo-fallback");
+  const heading = page.getByRole("heading", { name: "Fieldio Shop" });
+  await expect(fallback).toBeVisible();
+  await expect(fallback).toHaveCSS("font-family", /Manrope/);
+  await expect(heading).toBeVisible();
+  await expect(heading).toHaveCSS("font-family", /Schibsted Grotesk/);
+  await expect(page.getByRole("link", { name: "How Fieldio works" })).toHaveAttribute("href", "/how-it-works");
+  const overflow = await page.locator("body *").evaluateAll((elements) => elements.flatMap((element) => {
+    const box = element.getBoundingClientRect();
+    return box.left < -1 || box.right > document.documentElement.clientWidth + 1 ? [`${element.tagName.toLowerCase()}.${element.className}: ${box.left}-${box.right}`] : [];
+  }));
+  expect(overflow).toEqual([]);
+  await page.unroute("**/");
+  await page.reload();
+  await expect(page.locator("#main-content")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
 });
 
 test("customer can build a request from product to checkout", async ({ page }) => {
+  await signInBuyer(page);
   await openFirstProduct(page);
   const firstVariant = page.locator('input[type="radio"]:not([disabled])').first();
   await expect(firstVariant).toBeVisible();
@@ -124,6 +185,7 @@ test("mobile purchase bar appears only after the in-flow controls are passed", a
 });
 
 test("related rail supports keyboard browsing and quick request", async ({ page }) => {
+  await signInBuyer(page);
   await openFirstProduct(page);
   const rail = page.getByRole("list", { name: /Related products/ });
   await rail.scrollIntoViewIfNeeded();
@@ -168,6 +230,7 @@ test("product purchase content stops before the details section", async ({ page 
 });
 
 test("bag traps focus after quantity changes and restores its trigger", async ({ page }) => {
+  await signInBuyer(page);
   await openFirstProduct(page);
   const variant = page.locator('input[type="radio"]:not([disabled])').first();
   if (!await variant.isChecked()) await variant.check();
@@ -184,18 +247,20 @@ test("bag traps focus after quantity changes and restores its trigger", async ({
   await expect(trigger).toBeFocused();
 });
 
-test("empty bag offers account sign in", async ({ page, isMobile }) => {
+test("empty bag offers a clear route back to shopping", async ({ page, isMobile }) => {
+  await signInBuyer(page);
   await page.goto("/");
   if (isMobile) {
     await expect(page.getByRole("link", { name: "Account", exact: true })).toHaveAttribute("href", "/account");
   }
   await page.getByRole("button", { name: "Open bag, 0 items" }).click();
   const dialog = page.getByRole("dialog", { name: /Your bag/ });
-  await expect(dialog).toContainText("Have an account?");
-  await expect(dialog.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/account");
+  await expect(dialog).toContainText("Your edit is empty.");
+  await expect(dialog.getByRole("button", { name: "Continue shopping" })).toBeVisible();
 });
 
 test("collection filtering, wishlist, and search are usable", async ({ page, isMobile }) => {
+  await signInBuyer(page);
   await page.goto("/collections/men");
   await expect(page.getByRole("navigation", { name: "Men's categories" })).toBeVisible();
   await page.getByRole("navigation", { name: "Shop by gender" }).getByRole("link", { name: "Women", exact: true }).click();
@@ -214,7 +279,9 @@ test("collection filtering, wishlist, and search are usable", async ({ page, isM
   await page.getByRole("combobox", { name: "Brand", exact: true }).selectOption({ label: brand });
   if (isMobile) await page.getByRole("button", { name: /View \d+ pieces?/ }).click();
   await expect(page.getByRole("link", { name: productLabel! })).toBeVisible();
+  const wishlistSync = page.waitForRequest((request) => request.url().includes("/rest/v1/wishlist_items") && request.method() === "POST");
   await page.getByRole("button", { name: `Add ${productName} to wishlist` }).click();
+  await wishlistSync;
   await page.goto("/wishlist");
   await expect(page.getByRole("link", { name: productLabel! })).toBeVisible();
   await page.goto("/search");
@@ -318,7 +385,7 @@ test("brand directory searches and filters the available brands", async ({ page 
 test("scroll-to-top appears near the footer, rests quietly, and returns to the top", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "The Fieldio edit" })).toBeVisible();
+  await expect(page.locator(".catalog-intro h1")).toBeVisible();
   await page.waitForLoadState("networkidle");
   const control = page.locator(".scroll-to-top");
   await expect(control).not.toHaveAttribute("data-visible", "true");

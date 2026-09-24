@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+process.env.VITE_SUPABASE_URL ||= "http://127.0.0.1:54321";
+process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||= "e2e-preview-key";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,

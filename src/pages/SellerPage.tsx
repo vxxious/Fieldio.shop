@@ -316,6 +316,13 @@ export function SellerFulfillments({ fulfillments, onUpdated }: { fulfillments: 
   const [updating, setUpdating] = useState<string>();
   const [shippingFor, setShippingFor] = useState<string>();
   const [status, setStatus] = useState("");
+  const shippingInputRef = useRef<HTMLInputElement>(null);
+  const shippingTriggerRefs = useRef(new Map<string, HTMLButtonElement>());
+  useEffect(() => { if (shippingFor) shippingInputRef.current?.focus(); }, [shippingFor]);
+  function closeShippingForm(fulfillmentId: string) {
+    setShippingFor(undefined);
+    requestAnimationFrame(() => shippingTriggerRefs.current.get(fulfillmentId)?.focus());
+  }
   async function updateFulfillment(fulfillment: VendorFulfillment, nextStatus: "processing" | "shipped", shipping?: { carrier: string; trackingReference: string }) {
     setUpdating(fulfillment.id); setStatus("");
     try {
@@ -342,14 +349,14 @@ export function SellerFulfillments({ fulfillments, onUpdated }: { fulfillments: 
       <div className="seller-delivery-address"><span>Ship to</span><address>{fulfillment.customer_name}<br />{fulfillment.shipping_address}<br />Delivery phone: {fulfillment.customer_phone}</address><small>Use delivery details only to fulfil this Fieldio order. Buyer communication stays with Fieldio.</small></div>
       {fulfillment.status === "pending" && <p className="seller-fulfillment-note">Waiting for Fieldio to confirm this order.</p>}
       {fulfillment.status === "confirmed" && <button className="secondary-button" disabled={updating === fulfillment.id} onClick={() => void updateFulfillment(fulfillment, "processing")}>{updating === fulfillment.id ? "Updating…" : "Start preparing"}</button>}
-      {fulfillment.status === "processing" && shippingFor !== fulfillment.id && <button className="primary-button" disabled={Boolean(updating)} onClick={() => { setStatus(""); setShippingFor(fulfillment.id); }}>Add shipping details</button>}
-      {fulfillment.status === "processing" && shippingFor === fulfillment.id && <form className="seller-shipping-form" onSubmit={(event) => submitShipping(event, fulfillment)}>
+      {fulfillment.status === "processing" && <button ref={(node) => { if (node) shippingTriggerRefs.current.set(fulfillment.id, node); else shippingTriggerRefs.current.delete(fulfillment.id); }} className="primary-button" type="button" hidden={shippingFor === fulfillment.id} aria-expanded={shippingFor === fulfillment.id} aria-controls={`shipping-form-${fulfillment.id}`} disabled={Boolean(updating)} onClick={() => { setStatus(""); setShippingFor(fulfillment.id); }}>Add shipping details</button>}
+      {fulfillment.status === "processing" && shippingFor === fulfillment.id && <form id={`shipping-form-${fulfillment.id}`} className="seller-shipping-form" aria-label={`Shipping details for ${fulfillment.public_reference}`} onSubmit={(event) => submitShipping(event, fulfillment)}>
         <div className="seller-shipping-fields">
-          <label><span>Logistics company</span><input name="carrier" type="text" autoComplete="organization" minLength={2} maxLength={120} placeholder="DHL, Royal Mail, FedEx…" required /></label>
+          <label><span>Logistics company</span><input ref={shippingInputRef} name="carrier" type="text" autoComplete="organization" minLength={2} maxLength={120} placeholder="DHL, Royal Mail, FedEx…" required /></label>
           <label><span>Tracking or itinerary reference</span><input name="trackingReference" type="text" autoComplete="off" minLength={2} maxLength={120} placeholder="Tracking number or dispatch reference" required /></label>
         </div>
         <p>Fieldio receives these details for buyer support and delivery updates.</p>
-        <div className="seller-shipping-actions"><button className="primary-button" type="submit" disabled={updating === fulfillment.id}>{updating === fulfillment.id ? "Submitting…" : "Submit shipment"}</button><button className="secondary-button" type="button" disabled={updating === fulfillment.id} onClick={() => setShippingFor(undefined)}>Cancel</button></div>
+        <div className="seller-shipping-actions"><button className="primary-button" type="submit" disabled={updating === fulfillment.id}>{updating === fulfillment.id ? "Submitting…" : "Submit shipment"}</button><button className="secondary-button" type="button" disabled={updating === fulfillment.id} onClick={() => closeShippingForm(fulfillment.id)}>Cancel</button></div>
       </form>}
       {fulfillment.status === "shipped" && (fulfillment.carrier && fulfillment.tracking_reference ? <div className="seller-shipment-summary"><strong>Shipping details submitted</strong><dl><div><dt>Logistics company</dt><dd>{fulfillment.carrier}</dd></div><div><dt>Tracking reference</dt><dd>{fulfillment.tracking_reference}</dd></div></dl><p>Fieldio will manage buyer updates and delivery confirmation.</p></div> : <p className="seller-fulfillment-note">Shipped. No tracking details were recorded for this earlier shipment.</p>)}
     </article>)}</div> : <div className="seller-empty"><StoreIcon /><h3>No orders to fulfil.</h3><p>Confirmed orders containing your products will appear here.</p></div>}

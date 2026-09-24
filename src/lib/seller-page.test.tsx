@@ -79,8 +79,14 @@ it("requires and submits shipping details before a vendor marks an order shipped
     items: [{ id: "33333333-3333-4333-8333-333333333333", productName: "Tailored coat", variantName: "Medium", size: "M", color: "Black", quantity: 1, sku: "COAT-M" }]
   }]} onUpdated={refreshed} />);
 
-  fireEvent.click(screen.getByRole("button", { name: "Add shipping details" }));
-  const carrier = screen.getByRole("textbox", { name: "Logistics company" });
+  const trigger = screen.getByRole("button", { name: "Add shipping details" });
+  fireEvent.click(trigger);
+  let carrier = screen.getByRole("textbox", { name: "Logistics company" });
+  await waitFor(() => expect(carrier).toHaveFocus());
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  await waitFor(() => expect(trigger).toHaveFocus());
+  fireEvent.click(trigger);
+  carrier = screen.getByRole("textbox", { name: "Logistics company" });
   const tracking = screen.getByRole("textbox", { name: "Tracking or itinerary reference" });
   expect(carrier).toBeRequired();
   expect(tracking).toBeRequired();

@@ -11,7 +11,12 @@ colors:
   moss: "#727863"
   oxblood: "#5a1721"
   focus: "#315ee7"
+  success: "#28633b"
+  warning: "#7a5710"
   error: "#9f2635"
+  success-dark: "#79b98a"
+  warning-dark: "#d1ac5c"
+  error-dark: "#df7d89"
   image-placeholder: "#e5e5e1"
   inverse-muted: "#c9cabf"
   footer-muted: "#aeb0a8"
@@ -126,6 +131,13 @@ components:
     typography: "{typography.button}"
     rounded: "{rounded.square}"
     padding: "0"
+  quantity-stepper:
+    backgroundColor: "transparent"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.square}"
+    height: "44px"
+    decrementWidth: "44px"
+    incrementWidth: "44px"
   input:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
@@ -220,6 +232,8 @@ The palette is a mineral-white and near-black neutral system, with muted moss an
 
 - **Muted Moss:** A restrained confirmation accent used for the prepared-request status boundary.
 - **Deep Oxblood:** A reserved brand accent available to support editorial warmth without becoming a default control color.
+- **Semantic Success:** Approved, shipped, and delivered states use `#28633b` in light mode and `#79b98a` in dark mode.
+- **Semantic Warning:** Confirmed and processing states use `#7a5710` in light mode and `#d1ac5c` in dark mode.
 
 ### Neutral
 
@@ -232,7 +246,7 @@ The palette is a mineral-white and near-black neutral system, with muted moss an
 - **Inverse Muted and Footer Muted:** Supporting copy on dark surfaces.
 - **Footer Line:** The subdued divider used inside the inverse footer.
 - **Accessible Focus Blue:** A visible keyboard-only focus outline kept distinct from the brand palette.
-- **Error Oxblood:** Validation copy and failure messaging.
+- **Error Oxblood:** Validation copy and failure messaging use `#9f2635` in light mode and `#df7d89` in dark mode.
 - **Scrim Ink:** The translucent backdrop behind modal drawers and mobile navigation.
 
 ### Named Rules
@@ -270,7 +284,7 @@ The palette is a mineral-white and near-black neutral system, with muted moss an
 
 ## Layout
 
-The primary page container is fluid with 20px side gutters and a 1600px ceiling. At widths up to 1050px the gutters become 16px; the Brands alphabet becomes a horizontal 44px touch rail at 820px; at 760px and below the page gutters become 14px. The header uses a three-part grid with the Fieldio mark centered independently between primary navigation and utilities.
+The primary page container is fluid with 20px side gutters and a 1600px ceiling. At widths up to 1050px the gutters become 16px; the Brands alphabet becomes a horizontal 44px touch rail at 820px; at 760px and below the page gutters become 14px. Review filters use three compact columns on mobile and stack to one readable column below 380px. The header uses a three-part grid with the Fieldio mark centered independently between primary navigation and utilities.
 
 The catalog is a four-column image index with a fluid 10–18px gap, reducing to three columns below 1050px and two columns with a 9px gap on mobile. Product media uses a tall 4:5.25 proportion on larger screens and 3:4 on mobile. Collection pages begin with a white editorial hero, 520–760px tall, using one of four actual variants: a narrow-copy/wide-image split; its image-left reverse; an index with a full-width copy row above a full-width image; or a cinematic image with copy overlaid on a translucent ink block. At 760px, split, reverse, and index heroes become image-first stacks, while cinematic heroes retain the overlay composition.
 
@@ -286,9 +300,9 @@ Motion is editorial and mask-led. Display words rise from 112% below individual 
 
 Route changes use `AnimatePresence` in wait mode and key the main region by pathname. The incoming route moves from 18px below with a 3% bottom clip and zero opacity over 0.44 seconds; the outgoing route moves 8px upward and clears over 0.18 seconds. Both use the editorial cubic-bezier curve `(0.23, 1, 0.32, 1)`. On each pathname change, `AppLayout` waits for the new pathname-keyed `main` and its `h1`, focuses `main` with `preventScroll`, and announces the destination through `#status-region`. Reusable `Reveal` wrappers enter from 24px below over 0.62 seconds with the same curve, trigger once with an 8% negative viewport margin, and become static when reduced motion is active.
 
-The GSAP motion director binds once per element within the current main region. Unmasked headings enter from 24px below with opacity and a full bottom clip over 0.72 seconds using `power4.out`, starting at 90% of the viewport. Selected structural sections enter from 28px below over 0.64 seconds with `power3.out`, starting at 88%. Product-grid cards enter from 18px below over 0.48 seconds with a 0.055-second stagger and `power3.out`, starting at 90%. Elements containing `EditorialText` and screen-reader-only headings are excluded from generic heading motion so effects never stack.
+The GSAP motion director loads its animation runtime asynchronously, then binds once per element within the current main region. Unmasked headings enter from 24px below with opacity and a full bottom clip over 0.72 seconds using `power4.out`, starting at 90% of the viewport. Selected structural sections enter from 28px below over 0.64 seconds with `power3.out`, starting at 88%. Product-grid cards enter from 18px below over 0.48 seconds with a 0.055-second stagger and `power3.out`, starting at 90%. Elements containing `EditorialText` and screen-reader-only headings are excluded from generic heading motion so effects never stack.
 
-A mutation observer schedules binding through one animation frame and refreshes `ScrollTrigger`, so lazy-loaded routes, products, and asynchronous content receive the same one-time motion after insertion. A `data-motion-bound` marker prevents rebinding, and route cleanup disconnects the observer, cancels the frame, and kills registered animations. Fine-pointer, motion-permitted devices additionally use Lenis wheel smoothing at a duration of 1.05; coarse pointers and reduced-motion users retain native scrolling.
+A mutation observer schedules binding through one animation frame and refreshes `ScrollTrigger`, so lazy-loaded routes, products, and asynchronous content receive the same one-time motion after insertion. A `data-motion-bound` marker prevents rebinding, and route cleanup disconnects the observer, cancels the frame, and kills registered animations. Fine-pointer, motion-permitted devices additionally load Lenis on demand for wheel smoothing at a duration of 1.05; coarse pointers and reduced-motion users retain native scrolling without downloading that runtime.
 
 Cart motion is deliberately faster than editorial reveal motion. Opening fades the scrim over 0.22 seconds while the panel enters over 0.28 seconds with `power4.out`; rows arrive over 0.22 seconds with a 0.04-second stagger, and summary items over 0.2 seconds with a 0.035-second stagger. Closing moves the panel out over 0.24 seconds with `power4.inOut` while the scrim clears over 0.2 seconds. Row removal takes 0.24 seconds and quantity-price feedback 0.16 seconds. The root `MotionConfig` uses `reducedMotion="user"`; CSS transitions collapse to 0.01ms, Framer Motion entrances resolve immediately, GSAP reveals are skipped, rails use immediate scrolling, and smooth wheel behavior is disabled when the user requests reduced motion.
 
@@ -350,7 +364,7 @@ Use only Fieldio's small inline SVG components. The shared drawing language is a
 
 - **Style:** White square fields with a one-pixel Strong Hairline border and 13px padding. Labels are compact and inputs remain full width.
 - **Focus:** The shared two-pixel Accessible Focus Blue outline with a three-pixel offset remains visible for keyboard users.
-- **Error / Disabled:** Validation messages use Error Oxblood at 9px. Disabled controls reduce opacity without hiding their label or selected value.
+- **Error / Disabled:** Validation messages use theme-aware Error Oxblood at 12px. Disabled controls reduce opacity without hiding their label or selected value.
 
 ### Navigation
 
@@ -382,13 +396,13 @@ After the original purchase controls scroll above the viewport, a fixed paper ba
 
 ### Product Reviews
 
-Product reviews form a ruled editorial chapter beneath product details. The summary uses the display face, while ratings, verified-purchase status, purchased variants, dates, filters, and moderation controls stay in the compact commerce scale. Rating choices use five individually labelled 44px star controls with a visible selected boundary and live text confirmation. Review cards remain borderless and separate with Hairlines; photos use square media fields and open in a focus-trapped viewer. Helpful, report, edit, delete, filter, pagination, and photo-removal controls retain 44px touch targets and the global focus outline. Verified-purchase text uses Near-Black Ink for contrast while its seal may use Muted Moss. Review media remains private and is displayed only through short-lived authorized URLs; failed photo changes must preserve the existing published image set and name the recovery action clearly.
+Product reviews form a ruled editorial chapter beneath product details. The summary uses the display face, while ratings, verified-purchase status, purchased variants, dates, filters, and moderation controls stay in the compact commerce scale. Rating choices use five individually labelled 44px star controls with a visible selected boundary and live text confirmation; review summary tags also retain a 44px minimum hit area. Review cards remain borderless and separate with Hairlines; photos use square media fields and open in a focus-trapped viewer. Helpful, report, edit, delete, filter, pagination, and photo-removal controls retain 44px touch targets and the global focus outline. Filters stack to a single column on very narrow screens instead of compressing their labels. Verified-purchase text uses Near-Black Ink for contrast while its seal may use Muted Moss. Review media remains private and is displayed only through short-lived authorized URLs; failed photo changes must preserve the existing published image set and name the recovery action clearly.
 
 **The Earned Trust Rule.** Ratings, summary tags, verified badges, and photo counts must always come from persisted eligible purchases; never fabricate social proof or expose moderated media.
 
 ### Cart Drawer
 
-The cart is a flat paper panel up to 520px wide over a translucent ink scrim. Hairline-separated rows combine a 112px by 140px image with compact details and a bordered quantity stepper. The panel enters from the right, stages its rows and summary in short sequences, traps focus, restores focus on close, kills conflicting panel or scrim tweens before exit, and removes its animation for reduced-motion users.
+The cart is a flat paper panel up to 520px wide over a translucent ink scrim. It is loaded only when opened. Hairline-separated rows combine a 112px by 140px image with compact details and a bordered quantity stepper whose increment and decrement controls are 44px square. The panel enters from the right, stages its rows and summary in short sequences, traps focus, restores focus on close, kills conflicting panel or scrim tweens before exit, and removes its animation for reduced-motion users.
 
 ## Do's and Don'ts
 

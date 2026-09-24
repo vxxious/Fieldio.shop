@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-23T21:20:00+01:00",
+  "generatedAt": "2026-09-24T21:12:59+01:00",
   "title": "Design System: Fieldio",
   "extensions": {
     "colorMeta": {
@@ -13,7 +13,12 @@
       "moss": { "role": "secondary", "displayName": "Muted Moss", "canonical": "#727863" },
       "oxblood": { "role": "secondary", "displayName": "Deep Oxblood", "canonical": "#5a1721" },
       "focus": { "role": "primary", "displayName": "Accessible Focus Blue", "canonical": "#315ee7" },
+      "success": { "role": "secondary", "displayName": "Semantic Success", "canonical": "#28633b" },
+      "warning": { "role": "secondary", "displayName": "Semantic Warning", "canonical": "#7a5710" },
       "error": { "role": "secondary", "displayName": "Error Oxblood", "canonical": "#9f2635" },
+      "success-dark": { "role": "secondary", "displayName": "Semantic Success Dark", "canonical": "#79b98a" },
+      "warning-dark": { "role": "secondary", "displayName": "Semantic Warning Dark", "canonical": "#d1ac5c" },
+      "error-dark": { "role": "secondary", "displayName": "Error Oxblood Dark", "canonical": "#df7d89" },
       "image-placeholder": { "role": "neutral", "displayName": "Image Placeholder", "canonical": "#e5e5e1" },
       "inverse-muted": { "role": "neutral", "displayName": "Inverse Muted", "canonical": "#c9cabf" },
       "footer-muted": { "role": "neutral", "displayName": "Footer Muted", "canonical": "#aeb0a8" },
@@ -43,8 +48,8 @@
       { "name": "director-heading", "value": "opacity 0 to 1; translateY(24px) to 0; clip-path bottom 100% to 0; 0.72s power4.out; start top 90%; once", "purpose": "Reveals unmasked h1 and h2 elements without duplicating EditorialText motion." },
       { "name": "director-section", "value": "opacity 0 to 1; translateY(28px) to 0; 0.64s power3.out; start top 88%; once", "purpose": "Reveals selected structural sections through the route-scoped motion director." },
       { "name": "director-grid", "value": "opacity 0 to 1; translateY(18px) to 0; 0.48s, stagger 0.055s, power3.out; start top 90%; once", "purpose": "Stages direct product-card children when a product grid enters view." },
-      { "name": "director-lazy-binding", "value": "MutationObserver to requestAnimationFrame bind and ScrollTrigger.refresh; data-motion-bound guard", "purpose": "Applies one-time heading, section, and grid triggers to lazy-loaded or queried content without duplicate binding." },
-      { "name": "smooth-wheel", "value": "Lenis duration 1.05; disabled for reduced motion and coarse pointers", "purpose": "Adds restrained wheel smoothing only when device and user preferences permit it." },
+      { "name": "director-lazy-binding", "value": "dynamically imported GSAP and ScrollTrigger; MutationObserver to requestAnimationFrame bind and ScrollTrigger.refresh; data-motion-bound guard", "purpose": "Keeps the motion runtime out of the initial bundle and applies one-time triggers to asynchronous content without duplicate binding." },
+      { "name": "smooth-wheel", "value": "dynamically imported Lenis; duration 1.05; disabled for reduced motion and coarse pointers", "purpose": "Adds restrained wheel smoothing only when device and user preferences permit it, without loading Lenis for excluded users." },
       { "name": "editorial-word-reveal", "value": "translateY(112%) to translateY(0%), 0.72s, stagger 0.045s, power4.out; masked word gap 0.14em", "purpose": "Reveals masked display words once when their text reaches 88% of the viewport while preserving natural spacing." },
       { "name": "focal-heading-measures", "value": "catalog 10ch; collection and Details / Fit 8ch; brand ledger and campaign 12ch; service lead 9ch; preserve narrower mobile measures where defined", "purpose": "Protects intentional line balance before, during, and after masked word reveals." },
       { "name": "collection-image-reveal", "value": "clip-path inset(0 0 100% 0) to inset(0 0 0% 0), 0.78s, power4.inOut", "purpose": "Reveals collection hero media upward through its frame." },
@@ -61,7 +66,8 @@
       { "name": "compact-desktop", "value": "1050px" },
       { "name": "tablet-brand-rail", "value": "820px" },
       { "name": "mobile", "value": "760px" },
-      { "name": "legacy-form-mobile", "value": "700px" }
+      { "name": "legacy-form-mobile", "value": "700px" },
+      { "name": "narrow-review-controls", "value": "380px" }
     ]
   },
   "components": [
@@ -155,10 +161,12 @@
       "Square edges, flush grids, and hairline rules create rigor.",
       "Controls remain quiet, exact, and accessible.",
       "Collection heroes use four intentional compositions: split, reverse, index, and cinematic.",
-      "Motion uses masked vertical reveals with a 0.14em word gap, clipped image entrances, and short directional drawer transitions; focal heading measures preserve line balance and every effect is removable.",
+      "Motion uses asynchronously loaded masked vertical reveals with a 0.14em word gap, clipped image entrances, and short directional drawer transitions; focal heading measures preserve line balance and every effect is removable.",
       "Route handoff waits for the new pathname-keyed main and h1, focuses main without scrolling, and announces the destination in #status-region.",
       "Shadcn buttons and accordion triggers inherit the single global Fieldio focus outline and do not add component rings.",
-      "Mobile header actions and wishlist controls preserve minimum 44px by 44px hit areas."
+      "Mobile header actions, wishlist controls, review tags, and cart quantity controls preserve minimum 44px by 44px hit areas.",
+      "Review filters stack below 380px, and semantic order states use contrast-safe light and dark theme tokens.",
+      "The cart UI is deferred until opened; GSAP, ScrollTrigger, and Lenis are split from the initial application bundle."
     ],
     "rules": [
       { "name": "The Paper-and-Ink Rule", "body": "Default interfaces to Mineral Paper, Clean Surface, Near-Black Ink, and hairline neutrals; accents must remain exceptional.", "section": "colors" },
