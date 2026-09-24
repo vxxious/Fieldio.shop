@@ -2,6 +2,10 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { sendTrackedEmail } from "./_lib/email.js";
 import { checkRateLimit, getAdminSupabase, handleApiError, json, readValidatedJson } from "./_lib/server.js";
+import { POST as handleCampaigns } from "./_lib/campaigns-handler.js";
+import { POST as handleAdminInvites } from "./_lib/admin-invites-handler.js";
+import { POST as handlePayouts } from "./_lib/payouts-handler.js";
+import { POST as handleCases } from "./_lib/cases-handler.js";
 
 const schema = z.object({
   listingId: z.string().uuid(),
@@ -20,6 +24,11 @@ const imageTypes: Record<string, string> = {
 };
 
 export async function POST(request: Request): Promise<Response> {
+  const adminArea = new URL(request.url).searchParams.get("area");
+  if (adminArea === "campaigns") return handleCampaigns(request);
+  if (adminArea === "invites") return handleAdminInvites(request);
+  if (adminArea === "payouts") return handlePayouts(request);
+  if (adminArea === "cases") return handleCases(request);
   if (!await checkRateLimit(request, 10, 60_000)) return json({ error: "Review requests are temporarily limited. Wait a minute and try again." }, 429);
   try {
     const input = await readValidatedJson(request, schema);

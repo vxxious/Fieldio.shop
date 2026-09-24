@@ -7,6 +7,7 @@ import { RouteErrorPage } from "./components/RouteErrorPage";
 
 const AccountPage = lazy(() => import("./pages/AccountPage").then((module) => ({ default: module.AccountPage })));
 const AdminPage = lazy(() => import("./pages/AdminPage").then((module) => ({ default: module.AdminPage })));
+const AdminInvitePage = lazy(() => import("./pages/AdminInvitePage").then((module) => ({ default: module.AdminInvitePage })));
 const BrandPage = lazy(() => import("./pages/BrandPage").then((module) => ({ default: module.BrandPage })));
 const CheckoutPage = lazy(() => import("./pages/CheckoutPage").then((module) => ({ default: module.CheckoutPage })));
 const CollectionPage = lazy(() => import("./pages/CollectionPage").then((module) => ({ default: module.CollectionPage })));
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
       { path: "/sell", element: <MfaGate><SellerPage /></MfaGate> },
       { path: "/stores/:slug", element: <StorePage /> },
       { path: "/admin", element: <AdminPage /> },
+      { path: "/admin/invite", element: <AdminInvitePage /> },
       { path: "/about", element: <ContentPage /> },
       { path: "/promise", element: <ContentPage /> },
       { path: "/how-it-works", element: <ContentPage /> },

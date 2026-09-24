@@ -1,0 +1,20 @@
+import { escapeHtml } from "./email.js";
+
+export interface CampaignContent {
+  subject: string;
+  preheader?: string | null;
+  heading: string;
+  body: string;
+  actionLabel?: string | null;
+  actionUrl?: string | null;
+}
+
+export function renderCampaignEmail(content: CampaignContent, unsubscribeUrl: string) {
+  const paragraphs = content.body.split(/\n{2,}/).map((paragraph) => `<p class="copy" style="margin:0 0 18px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:26px;color:#55574f">${escapeHtml(paragraph).replaceAll("\n", "<br>")}</p>`).join("");
+  const action = content.actionLabel && content.actionUrl ? `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:30px"><tr><td class="action" bgcolor="#151612" style="background:#151612;border:1px solid #151612"><a class="action-link" href="${escapeHtml(content.actionUrl)}" style="display:inline-block;padding:16px 24px;font:700 15px/18px Arial,Helvetica,sans-serif;color:#fff;text-decoration:none">${escapeHtml(content.actionLabel)}</a></td></tr></table>` : "";
+  const preheader = escapeHtml(content.preheader || content.heading);
+  return {
+    html: `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark"><title>${escapeHtml(content.subject)}</title><style>:root{color-scheme:light dark;supported-color-schemes:light dark}@media(max-width:620px){.shell{width:100%!important}.pad{padding-left:24px!important;padding-right:24px!important}.title{font-size:36px!important;line-height:40px!important}.action-link{display:block!important;text-align:center!important}}@media(prefers-color-scheme:dark){.page{background:#11120f!important}.shell,.header,.content{background:#1d1e1a!important}.brand,.title{color:#f7f7f4!important}.copy,.footer-copy{color:#c9cabf!important}.rule{background:#3b3c37!important}.footer{background:#151612!important;border-color:#3b3c37!important}.footer a{color:#f7f7f4!important}.action{background:#f7f7f4!important;border-color:#f7f7f4!important}.action-link{color:#151612!important}}</style></head><body class="page" style="margin:0;background:#f3f3f0;color:#151612"><div style="display:none;max-height:0;overflow:hidden;opacity:0">${preheader}</div><table class="page" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f3f3f0"><tr><td align="center" style="padding:24px 12px"><table class="shell" role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" bgcolor="#fff" style="width:600px;max-width:600px;background:#fff"><tr><td class="pad header" style="padding:24px 36px;background:#fff"><table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td width="50"><img src="https://fieldio.shop/brand/fieldio-email-logo.png" width="40" height="40" alt="Fieldio" style="display:block;border:0;mix-blend-mode:difference"></td><td class="brand" style="font:700 23px/28px Arial,Helvetica,sans-serif;letter-spacing:-1px;color:#151612">Fieldio</td></tr></table></td></tr><tr><td class="rule" style="height:1px;background:#d9dad4;font-size:0">&nbsp;</td></tr><tr><td class="pad content" style="padding:48px 36px 42px;background:#fff"><h1 class="title" style="margin:0 0 24px;font:500 44px/48px Arial,Helvetica,sans-serif;letter-spacing:-1.8px;color:#151612">${escapeHtml(content.heading)}</h1>${paragraphs}${action}</td></tr><tr><td class="pad footer" style="padding:20px 36px;background:#f3f3f0;border-top:1px solid #d9dad4"><p class="footer-copy" style="margin:0;font:12px/19px Arial,Helvetica,sans-serif;color:#66685f">Fieldio &nbsp;&middot;&nbsp; <a href="https://fieldio.shop" style="color:#151612">fieldio.shop</a> &nbsp;&middot;&nbsp; <a href="${escapeHtml(unsubscribeUrl)}" style="color:#151612">Unsubscribe</a></p></td></tr></table></td></tr></table></body></html>`,
+    text: `Fieldio\n\n${content.heading}\n\n${content.body}${content.actionLabel && content.actionUrl ? `\n\n${content.actionLabel}: ${content.actionUrl}` : ""}\n\nUnsubscribe: ${unsubscribeUrl}`
+  };
+}

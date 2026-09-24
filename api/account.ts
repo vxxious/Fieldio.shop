@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { checkRateLimit, getAuthenticatedSupabase, handleApiError, json, readValidatedJson } from "./_lib/server.js";
+import { POST as handleOrderSupport } from "./_lib/order-support-handler.js";
 
 const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("delete-account"), confirmation: z.literal("DELETE") }),
@@ -16,6 +17,7 @@ async function removeFiles(database: SupabaseClient, bucket: string, paths: Arra
 }
 
 export async function POST(request: Request): Promise<Response> {
+  if (new URL(request.url).searchParams.get("mode") === "support") return handleOrderSupport(request);
   try {
     const input = await readValidatedJson(request, schema);
     const accountDeletion = input.action === "delete-account";

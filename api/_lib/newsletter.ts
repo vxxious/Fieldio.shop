@@ -21,7 +21,9 @@ export function readPreferenceToken(token: string) {
   return result;
 }
 
-export async function emailRequest(path: string, body: Record<string, unknown>, method = "POST") {
-  const response = await fetch(`https://api.resend.com${path}`, { method, headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
+export async function emailRequest<T = unknown>(path: string, body: unknown, method = "POST", headers: Record<string, string> = {}): Promise<T> {
+  const response = await fetch(`https://api.resend.com${path}`, { method, headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json", ...headers }, body: JSON.stringify(body), signal: AbortSignal.timeout(15000) });
   if (!response.ok) throw new Error("EMAIL_PROVIDER_UNAVAILABLE");
+  const text = typeof response.text === "function" ? await response.text() : "";
+  return (text ? JSON.parse(text) : undefined) as T;
 }

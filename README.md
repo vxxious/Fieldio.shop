@@ -37,7 +37,7 @@ The browser reads only active catalog rows permitted by RLS. Order requests are 
 
 ## Email and analytics
 
-Transactional email uses server-only `RESEND_API_KEY`, `RESEND_FROM`, and `FIELDIO_NOTIFICATION_EMAIL` variables. Newsletter confirmation additionally requires `NEWSLETTER_TOKEN_SECRET` and `APP_URL`. `VITE_ANALYTICS_ID` is a deployment placeholder for the selected consent-aware analytics provider; no personal data is sent by the included event adapter.
+Transactional email uses server-only `RESEND_API_KEY`, `RESEND_FROM`, and `FIELDIO_NOTIFICATION_EMAIL` variables. Newsletter confirmation and admin campaigns additionally require `NEWSLETTER_TOKEN_SECRET` and `APP_URL`. Set `RESEND_WEBHOOK_SECRET` from a Resend webhook pointing to `https://fieldio.shop/api/resend-webhook` to record delivery, open, click, bounce, complaint, and failure events. `VITE_ANALYTICS_ID` is a deployment placeholder for the selected consent-aware analytics provider; no personal data is sent by the included event adapter.
 
 ## Error monitoring
 

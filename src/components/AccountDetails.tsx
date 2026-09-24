@@ -25,7 +25,8 @@ const detailsSchema = z.object({
 type Details = z.infer<typeof detailsSchema>;
 type AccountIntent = "buy" | "sell";
 type AccountView = "overview" | "orders" | "details";
-interface Order { id: string; public_reference: string; status: string; created_at: string; updated_at: string; confirmed_at: string | null; subtotal: number | null; currency: string; order_items: Array<{ id: string; product_name: string; quantity: number; size: string | null }> }
+interface SupportCase { id: string; status: string; reason: string; resolution: string | null; created_at: string }
+interface Order { id: string; public_reference: string; status: string; created_at: string; updated_at: string; confirmed_at: string | null; subtotal: number | null; currency: string; order_items: Array<{ id: string; product_name: string; quantity: number; size: string | null }>; marketplace_returns: SupportCase[]; marketplace_disputes: SupportCase[] }
 
 const orderStatusKeys: Record<string, TranslationKey> = {
   order_request: "account.status.request",
@@ -37,6 +38,33 @@ const orderStatusKeys: Record<string, TranslationKey> = {
   cancelled: "account.status.cancelled"
 };
 const orderSteps = ["order_request", "confirmed", "processing", "shipped", "delivered"] as const;
+
+function OrderSupport({ order }: { order: Order }) {
+  const [mode, setMode] = useState<"return" | "dispute" | null>(null);
+  const [itemId, setItemId] = useState(order.order_items[0]?.id ?? "");
+  const [quantity, setQuantity] = useState(1);
+  const [reason, setReason] = useState("other");
+  const [details, setDetails] = useState("");
+  const [working, setWorking] = useState(false);
+  const [message, setMessage] = useState("");
+  const canDispute = !["order_request", "cancelled"].includes(order.status);
+  const cases = [...(order.marketplace_returns ?? []).map((item) => ({ ...item, type: "Return" })), ...(order.marketplace_disputes ?? []).map((item) => ({ ...item, type: "Support case" }))].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  async function submit(event: React.FormEvent) {
+    event.preventDefault(); setWorking(true); setMessage("");
+    try {
+      await authenticatedPost("/api/order-support", mode === "return" ? { action: "return", orderId: order.id, itemId, quantity, reason, details } : { action: "dispute", orderId: order.id, itemId, reason, details });
+      setMessage(mode === "return" ? "Return request submitted. Fieldio will review it before you send anything." : "Support case opened. Fieldio will contact you with the next step.");
+      setMode(null); setDetails("");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "The request could not be submitted."); }
+    finally { setWorking(false); }
+  }
+  return <div className="order-support">{cases.length > 0 && <ul className="order-support-cases" aria-label="Returns and support cases">{cases.map((item) => <li key={`${item.type}-${item.id}`}><span>{item.type}</span><strong>{item.status.replaceAll("_", " ")}</strong><small>{item.reason.replaceAll("_", " ")}{item.resolution ? ` · ${item.resolution}` : ""}</small></li>)}</ul>}<div>{order.status === "delivered" && <button className="text-link" type="button" onClick={() => { setMode(mode === "return" ? null : "return"); setReason("other"); setMessage(""); }}>Request a return</button>}{canDispute && <button className="text-link" type="button" onClick={() => { setMode(mode === "dispute" ? null : "dispute"); setReason("other"); setMessage(""); }}>Report an order issue</button>}</div>
+    {mode && <form onSubmit={(event) => void submit(event)} aria-label={mode === "return" ? `Return request for ${order.public_reference}` : `Order issue for ${order.public_reference}`}>
+      <label><span>Affected item</span><select required value={itemId} onChange={(event) => setItemId(event.target.value)}>{order.order_items.map((item) => <option key={item.id} value={item.id}>{item.product_name}</option>)}</select></label>{mode === "return" && <label><span>Quantity</span><input type="number" min="1" max={order.order_items.find((item) => item.id === itemId)?.quantity ?? 1} value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} /></label>}
+      <label><span>Reason</span><select value={reason} onChange={(event) => setReason(event.target.value)}>{mode === "return" ? <><option value="wrong_item">Wrong item</option><option value="damaged">Damaged</option><option value="not_as_described">Not as described</option><option value="fit">Fit or size</option><option value="changed_mind">Changed my mind</option><option value="other">Other</option></> : <><option value="delivery">Delivery</option><option value="item">Item received</option><option value="refund">Refund</option><option value="seller">Seller fulfilment</option><option value="other">Other</option></>}</select></label>
+      <label className="wide"><span>What happened?</span><textarea required minLength={10} maxLength={2000} rows={4} value={details} onChange={(event) => setDetails(event.target.value)} /></label><div className="wide"><button className="primary-button" disabled={working || details.trim().length < 10}>{working ? "Submitting…" : mode === "return" ? "Submit return request" : "Open support case"}</button><button className="text-link" type="button" disabled={working} onClick={() => setMode(null)}>Cancel</button></div>
+    </form>}{message && <p className="form-message" role="status">{message}</p>}</div>;
+}
 
 export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "buyer" }: { userId: string; email: string; avatarUrl?: string; accountRole?: Exclude<AccountRole, "admin"> }) {
   const { formatMoney, language, t } = useLocale();
@@ -60,7 +88,7 @@ export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "b
     return { profile: profile.data, address: address.data };
   } });
   const orders = useQuery({ queryKey: ["account-orders", userId], enabled: view === "orders", queryFn: async () => {
-    const { data, error } = await supabase!.from("order_requests").select("id,public_reference,status,created_at,updated_at,confirmed_at,subtotal,currency,order_items(id,product_name,quantity,size)").eq("user_id", userId).order("created_at", { ascending: false });
+    const { data, error } = await supabase!.from("order_requests").select("id,public_reference,status,created_at,updated_at,confirmed_at,subtotal,currency,order_items(id,product_name,quantity,size),marketplace_returns(id,status,reason,resolution,created_at),marketplace_disputes(id,status,reason,resolution,created_at)").eq("user_id", userId).order("created_at", { ascending: false });
     if (error) throw error;
     return data as Order[];
   } });
@@ -192,6 +220,7 @@ export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "b
               {!['delivered', 'cancelled'].includes(order.status) && <><a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, I would like to request a change to order request ${order.public_reference}.`)} target="_blank" rel="noreferrer">Request a change</a><a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, I would like to request cancellation of order request ${order.public_reference}.`)} target="_blank" rel="noreferrer">Request cancellation</a></>}
               {order.status === "shipped" && <a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, please share the delivery tracking for order request ${order.public_reference}.`)} target="_blank" rel="noreferrer">Ask for tracking</a>}
             </div>
+            <OrderSupport order={order} />
           </article>;
         }) : <div className="account-empty"><p><strong>{t("account.noRequests")}</strong><br />{t("account.noRequestsCopy")}</p><Link className="text-link" to="/collections">{t("account.explore")}</Link></div>}
       </section> : <section className="account-view-content">

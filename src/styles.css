@@ -1032,6 +1032,49 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .admin-page section > header { display: flex; justify-content: space-between; border-bottom: 1px solid var(--ink); }
 .admin-page section > header h2 { font-size: 49px; }
 .admin-page section > header span { color: var(--muted); font-size: 12px; }
+.admin-page section > header p { max-width: 58ch; margin: 0 0 18px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.campaign-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .72fr); gap: 30px; align-items: start; }
+.campaign-form .wide, .campaign-actions, .campaign-test { grid-column: 1 / -1; }
+.campaign-actions, .campaign-test { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+.campaign-test label { flex: 1 1 260px; }
+.campaign-preview { position: sticky; top: 22px; min-width: 0; padding: 18px; border: 1px solid var(--line); background: var(--surface); }
+.campaign-preview > div { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 14px; font-size: 12px; }
+.campaign-preview > p { color: var(--muted); font-size: 13px; line-height: 1.6; }
+.campaign-preview iframe { width: 100%; height: 620px; border: 1px solid var(--line); background: #fff; }
+.campaign-history, .admin-team > section, .admin-finance > section { margin-top: 42px; }
+.campaign-history h3, .admin-team h3, .admin-finance h3 { margin-bottom: 18px; font-size: 20px; }
+.campaign-history td:last-child, .admin-team td:last-child, .admin-finance td:last-child { white-space: nowrap; }
+.campaign-history td button + button, .admin-team td button + button, .admin-finance td button + button { margin-left: 12px; }
+.admin-invite-form { max-width: 760px; }
+.admin-invite-form > button { align-self: end; justify-self: start; }
+.admin-finance td input { min-height: 40px; width: min(220px, 100%); padding: 8px; border: 1px solid var(--line-dark); background: var(--surface); }
+.admin-invite-page { width: min(var(--page), 760px); min-height: 70vh; margin: 0 auto; padding: clamp(70px, 12vw, 150px) 0; }
+.admin-invite-page h1 { max-width: 9ch; margin: 12px 0 24px; font-size: clamp(54px, 9vw, 96px); line-height: .92; }
+.admin-invite-page > p:not(.eyebrow) { max-width: 55ch; color: var(--muted); line-height: 1.7; }
+.admin-invite-page > div { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.order-support { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.order-support-cases { display: grid; gap: 8px; margin: 0 0 14px; padding: 0; list-style: none; }
+.order-support-cases li { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; border-left: 2px solid var(--ink); padding-left: 12px; }
+.order-support-cases strong { text-align: right; text-transform: capitalize; }
+.order-support-cases small { grid-column: 1 / -1; color: var(--muted); }
+.order-support > div { display: flex; flex-wrap: wrap; gap: 12px 22px; }
+.order-support form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 18px; padding: 18px; border: 1px solid var(--line); background: var(--surface); }
+.order-support form label { display: grid; gap: 7px; font-size: 13px; }
+.order-support form .wide { grid-column: 1 / -1; }
+.order-support input, .order-support select, .order-support textarea { width: 100%; min-height: 44px; padding: 10px; border: 1px solid var(--line-dark); background: var(--surface); }
+.order-support form .wide:last-child { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.seller-operations { width: var(--page); margin: 70px auto 0; }
+.seller-operations > header { display: flex; justify-content: space-between; align-items: end; gap: 30px; padding-bottom: 22px; border-bottom: 1px solid var(--ink); }
+.seller-operations > header h2 { margin: 0; font-size: clamp(36px, 5vw, 64px); }
+.seller-operations > header p { max-width: 58ch; color: var(--muted); }
+.seller-operations > header > strong { display: grid; justify-items: end; font-size: 26px; }
+.seller-operations > header > strong span { color: var(--muted); font-size: 11px; font-weight: 400; }
+.seller-operations-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; padding-top: 28px; }
+.seller-operations-grid h3 { font-size: 20px; }
+.seller-operations-grid ul { margin: 0; padding: 0; list-style: none; }
+.seller-operations-grid li { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.seller-operations-grid li > div { display: flex; justify-content: space-between; gap: 20px; }
+.seller-operations-grid li span, .seller-operations-grid small, .seller-operations-grid p { color: var(--muted); font-size: 12px; }
 .admin-groups > div { padding: 30px 0; border-bottom: 1px solid var(--line); }
 .admin-groups h3 { font-size: 17px; margin-bottom: 15px; }
 .admin-groups button { width: 100%; display: flex; justify-content: space-between; padding: 12px 0; text-align: left; font-size: 13px; }
@@ -1340,6 +1383,15 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .admin-page section > header { align-items: flex-end; gap: 14px; }
   .admin-page section > header h2 { font-size: clamp(34px, 11vw, 42px); }
   .admin-page section > header .primary-button { min-height: 44px; }
+  .campaign-layout { grid-template-columns: 1fr; }
+  .campaign-preview { position: static; }
+  .campaign-preview iframe { height: 520px; }
+  .campaign-actions > button { flex: 1 1 100%; }
+  .order-support form { grid-template-columns: 1fr; padding: 14px; }
+  .order-support form > * { grid-column: 1 !important; }
+  .seller-operations > header { align-items: start; flex-direction: column; }
+  .seller-operations > header > strong { justify-items: start; }
+  .seller-operations-grid { grid-template-columns: 1fr; gap: 18px; }
   .admin-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; margin-top: 0; }
   .admin-toolbar .text-link { grid-column: 1 / -1; justify-self: start; }
   .admin-table-wrap { overflow: visible; }

@@ -26,6 +26,8 @@ interface VendorReviewSummary { averageRating: number; total: number; breakdown:
 type FulfillmentStatus = "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled";
 interface VendorFulfillmentItem { id: string; productName: string; variantName: string | null; size: string | null; color: string | null; quantity: number; sku: string; }
 interface VendorFulfillment { id: string; order_request_id: string; public_reference: string; status: FulfillmentStatus; store_name: string; customer_name: string; customer_phone: string; shipping_address: string; carrier: string | null; tracking_reference: string | null; created_at: string; updated_at: string; items: VendorFulfillmentItem[]; }
+interface SellerPayout { id: string; amount: number; currency: string; status: string; reference: string | null; created_at: string; paid_at: string | null }
+interface SellerCase { id: string; order_request_id: string; reason: string; details: string; status: string; created_at: string }
 
 const callingCodeOptions = phoneCountryOptions();
 const phoneCountrySchema = z.string().refine(isPhoneCountryCode, "Choose a country calling code.");
@@ -367,6 +369,14 @@ function SellerReviews({ reviews, summary }: { reviews: VendorReview[]; summary:
   return <section className="seller-reviews"><header><div><h2>Customer reviews</h2><p>Published feedback across your live products. Reviews are read-only.</p></div><strong>{summary.total ? Number(summary.averageRating).toFixed(1) : "—"}<span>{summary.total} {summary.total === 1 ? "review" : "reviews"}</span></strong></header>{summary.total ? <><div className="seller-rating-distribution">{[5, 4, 3, 2, 1].map((rating) => { const count = Number(summary.breakdown[String(rating)] ?? 0); return <div key={rating}><span>{rating} star</span><i><b style={{ width: `${count / summary.total * 100}%` }} /></i><span>{count}</span></div>; })}</div><div className="seller-review-feed">{reviews.map((review) => <article key={review.id}><div className="seller-review-heading"><span className="review-stars" aria-label={`${review.rating} out of 5 stars`}>{[1, 2, 3, 4, 5].map((star) => <StarIcon key={star} className={star <= review.rating ? "filled" : "empty"} />)}</span><time dateTime={review.created_at}>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(review.created_at))}</time></div><h3>{review.product?.name ?? "Product"}</h3><p className="seller-review-meta">{review.reviewer_name}{reviewVariantLabel(review) ? ` · ${reviewVariantLabel(review)}` : ""}</p><p>{review.review_text}</p>{review.images.some((image) => image.url) && <div className="seller-review-images-inline">{review.images.filter((image) => image.url).map((image, index) => <img key={image.id} src={image.url} alt={`Customer review photo ${index + 1}`} loading="lazy" />)}</div>}</article>)}</div></> : <div className="seller-empty"><StarIcon /><h3>No customer reviews yet.</h3><p>Delivered buyers’ published feedback will appear here.</p></div>}</section>;
 }
 
+function SellerOperations({ payouts, returns, disputes }: { payouts: SellerPayout[]; returns: SellerCase[]; disputes: SellerCase[] }) {
+  const pending = payouts.filter((payout) => !["paid", "cancelled", "failed"].includes(payout.status)).reduce((total, payout) => total + payout.amount, 0);
+  return <section className="seller-operations"><header><div><h2>Payouts & cases</h2><p>Fieldio manages customer resolutions and seller payouts. Customer contact remains private.</p></div><strong>{pending ? `£${(pending / 100).toFixed(2)}` : "—"}<span>pending payout</span></strong></header>
+    <div className="seller-operations-grid"><section><h3>Payout history</h3>{payouts.length ? <ul>{payouts.map((payout) => <li key={payout.id}><div><strong>{new Intl.NumberFormat("en-GB", { style: "currency", currency: payout.currency }).format(payout.amount / 100)}</strong><span>{payout.status}</span></div><small>{payout.reference ? `Reference ${payout.reference}` : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(payout.created_at))}</small></li>)}</ul> : <p>No payouts yet. Delivered order balances will appear after Fieldio creates a payout.</p>}</section>
+    <section><h3>Returns & disputes</h3>{returns.length || disputes.length ? <ul>{[...returns.map((item) => ({ ...item, kind: "Return" })), ...disputes.map((item) => ({ ...item, kind: "Dispute" }))].sort((a, b) => b.created_at.localeCompare(a.created_at)).map((item) => <li key={`${item.kind}-${item.id}`}><div><strong>{item.kind}</strong><span>{item.status}</span></div><small>{item.reason.replaceAll("_", " ")} · Fieldio is managing this case.</small></li>)}</ul> : <p>No returns or disputes for your products.</p>}</section></div>
+  </section>;
+}
+
 function SubmittedState({ title, onAdd }: { title: string; onAdd: () => void }) {
   return <section className="seller-success" aria-labelledby="seller-success-title"><CheckSealIcon /><h1 id="seller-success-title">{title} was submitted for review.</h1><p>Fieldio will check the product details, ownership, condition, and images before it goes live.</p><button className="primary-button" onClick={onAdd}>Add another product</button><button className="secondary-button" onClick={() => window.location.reload()}>View dashboard</button><Link className="secondary-button" to="/collections">Explore</Link></section>;
 }
@@ -394,7 +404,12 @@ export function SellerPage() {
     const productIds = listingRows.flatMap((listing) => listing.published_product_id ? [listing.published_product_id] : []);
     const reviews = productIds.length ? await supabase!.from("product_reviews").select("id,rating,review_text,reviewer_name,purchased_variant,purchased_size,purchased_color,created_at,product:products(name),images:product_review_images(id,storage_path,position)").in("product_id", productIds).eq("status", "published").order("created_at", { ascending: false }).limit(8) : { data: [], error: null };
     const reviewSummary = await supabase!.rpc("seller_review_summary");
-    if (reviews.error || reviewSummary.error) throw reviews.error || reviewSummary.error;
+    const [payouts, returns, disputes] = await Promise.all([
+      supabase!.from("seller_payouts").select("id,amount,currency,status,reference,created_at,paid_at").order("created_at", { ascending: false }).limit(30),
+      supabase!.from("marketplace_returns").select("id,order_request_id,reason,details,status,created_at").order("created_at", { ascending: false }).limit(30),
+      supabase!.from("marketplace_disputes").select("id,order_request_id,reason,details,status,created_at").order("created_at", { ascending: false }).limit(30)
+    ]);
+    if (reviews.error || reviewSummary.error || payouts.error || returns.error || disputes.error) throw reviews.error || reviewSummary.error || payouts.error || returns.error || disputes.error;
     const imagePaths = listingRows.flatMap((listing) => listing.images.map(({ storage_path }) => storage_path));
     const signedImages = imagePaths.length ? await supabase!.storage.from("seller-listing-media").createSignedUrls(imagePaths, 3600) : { data: [], error: null };
     if (signedImages.error) throw signedImages.error;
@@ -402,7 +417,7 @@ export function SellerPage() {
     const reviewRows = (reviews.data ?? []) as unknown as VendorReview[];
     const signedReviewImages = await signReviewImages(supabase!, reviewRows.flatMap((review) => review.images));
     const reviewImagesById = new Map(signedReviewImages.map((image) => [image.id, image]));
-    return { application: application.data as SellerApplication | null, store: store.data as Store | null, listings: listingRows.map((listing) => ({ ...listing, images: listing.images.map((image) => ({ ...image, preview_url: previewByPath.get(image.storage_path) ?? "" })) })) as Listing[], categories: categories.data as Category[], fulfillments: (fulfillments.data ?? []) as VendorFulfillment[], reviews: reviewRows.map((review) => ({ ...review, images: review.images.map((image) => reviewImagesById.get(image.id) ?? { ...image, url: "" }) })), reviewSummary: reviewSummary.data as unknown as VendorReviewSummary };
+    return { application: application.data as SellerApplication | null, store: store.data as Store | null, listings: listingRows.map((listing) => ({ ...listing, images: listing.images.map((image) => ({ ...image, preview_url: previewByPath.get(image.storage_path) ?? "" })) })) as Listing[], categories: categories.data as Category[], fulfillments: (fulfillments.data ?? []) as VendorFulfillment[], reviews: reviewRows.map((review) => ({ ...review, images: review.images.map((image) => reviewImagesById.get(image.id) ?? { ...image, url: "" }) })), reviewSummary: reviewSummary.data as unknown as VendorReviewSummary, payouts: (payouts.data ?? []) as SellerPayout[], returns: (returns.data ?? []) as SellerCase[], disputes: (disputes.data ?? []) as SellerCase[] };
   } });
   const refresh = async () => { await cache.invalidateQueries({ queryKey: ["seller-account", session?.user.id] }); };
 
@@ -411,7 +426,7 @@ export function SellerPage() {
   if (!supabase) return <div className="seller-gate"><h1>Seller services unavailable</h1><p>Please try again later or contact Fieldio.</p><Link className="primary-button" to="/contact">Contact Fieldio</Link></div>;
   if (query.isPending) return <div className="route-loading" role="status">Loading seller account…</div>;
   if (query.error || !query.data) return <div className="seller-gate"><h1>Your seller account could not load.</h1><p>Check your connection and try again.</p><button className="primary-button" onClick={() => void query.refetch()}>Try again</button></div>;
-  const { application, store, listings, categories, fulfillments, reviews, reviewSummary } = query.data;
+  const { application, store, listings, categories, fulfillments, reviews, reviewSummary, payouts, returns, disputes } = query.data;
   if (!application || application.status === "draft" || application.status === "rejected") return <VerificationForm userId={session.user.id} email={session.user.email ?? ""} application={application} defaultCountryCode={region.code} onDone={refresh} />;
   if (application.status === "pending") return <div className="seller-gate"><CheckSealIcon /><h1>Verification in review</h1><p>We are checking your identity and seller details. You will be able to create your store after approval.</p><Link className="text-link" to="/account">Return to account</Link></div>;
   if (application.status === "suspended") return <div className="seller-gate"><h1>Seller access paused</h1><p>{application.review_reason || "Contact Fieldio for help with your seller account."}</p><Link className="primary-button" to="/contact">Contact Fieldio</Link></div>;
@@ -420,5 +435,5 @@ export function SellerPage() {
   if (submittedTitle) return <SubmittedState title={submittedTitle} onAdd={() => { setSubmittedTitle(""); setMode("listing"); }} />;
   if (mode === "contacts") return <ContactDetailsForm application={application} store={store} onCancel={() => setMode("dashboard")} onDone={refresh} />;
   if (mode === "listing") return <ListingForm userId={session.user.id} store={store} categories={categories} currency={region.currency} listing={editingListing} onCancel={() => { setEditingListing(null); setMode("dashboard"); }} onSubmitted={async (title) => { await refresh(); setEditingListing(null); setSubmittedTitle(title); }} />;
-  return <><SellerDashboard userId={session.user.id} store={store} listings={listings} onAdd={() => { setEditingListing(null); setMode("listing"); }} onEdit={(listing) => { setEditingListing(listing); setMode("listing"); }} onEditContacts={() => setMode("contacts")} onStoreUpdated={refresh} /><SellerFulfillments fulfillments={fulfillments} onUpdated={refresh} /><SellerReviews reviews={reviews} summary={reviewSummary} /></>;
+  return <><SellerDashboard userId={session.user.id} store={store} listings={listings} onAdd={() => { setEditingListing(null); setMode("listing"); }} onEdit={(listing) => { setEditingListing(listing); setMode("listing"); }} onEditContacts={() => setMode("contacts")} onStoreUpdated={refresh} /><SellerFulfillments fulfillments={fulfillments} onUpdated={refresh} /><SellerOperations payouts={payouts} returns={returns} disputes={disputes} /><SellerReviews reviews={reviews} summary={reviewSummary} /></>;
 }

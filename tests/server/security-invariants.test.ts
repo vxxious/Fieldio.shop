@@ -128,4 +128,22 @@ describe("security invariants", () => {
     expect(source).toContain("p_user_id: user.id");
     expect(source).not.toMatch(/let userId: string \| null|p_user_id: null/);
   });
+
+  it("keeps campaigns, admin invitations, payouts, returns, and disputes server-enforced", () => {
+    const sql = readFileSync(fileURLToPath(new URL("../../supabase/migrations/202609240006_admin_campaigns_and_operations.sql", import.meta.url)), "utf8");
+    expect(sql).toMatch(/token_hash text not null unique/i);
+    expect(sql).not.toMatch(/admin_invitations[\s\S]{0,500}\btoken\s+text/i);
+    expect(sql).toMatch(/lower\(invitation\.email\) <> user_email/i);
+    expect(sql).toMatch(/expires_at <= now\(\)/i);
+    expect(sql).toMatch(/alter table public\.email_campaigns enable row level security/i);
+    expect(sql).toMatch(/marketing staff read campaigns[\s\S]+has_admin_role\(array\['owner','admin'\]\)/i);
+    expect(sql).toMatch(/create_seller_payout[\s\S]+for update of fulfillments/i);
+    expect(sql).toMatch(/buyers and operations read returns[\s\S]+buyer_id = \(select auth\.uid\(\)\)/i);
+    expect(sql).toMatch(/buyers and operations read disputes[\s\S]+opened_by = \(select auth\.uid\(\)\)/i);
+    const campaigns = readFileSync(fileURLToPath(new URL("../../api/_lib/campaigns-handler.ts", import.meta.url)), "utf8");
+    const staff = readFileSync(fileURLToPath(new URL("../../api/_lib/admin.ts", import.meta.url)), "utf8");
+    expect(staff).toContain('rpc("has_admin_role", { p_roles: roles })');
+    expect(campaigns).toContain('emailRequest<{ data?: Array<{ id?: string }> }>("/emails/batch"');
+    expect(campaigns).toContain('"Idempotency-Key": `campaign/${campaign.id}/${chunk[0]!.id}/${attempt}`');
+  });
 });

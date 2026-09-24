@@ -104,6 +104,8 @@ export function AdminWorkspace({ resource, onDirtyChange }: { resource: AdminRes
       if (id && resource.table === "order_requests") {
         const result = await authenticatedPost<{ emailDelivered: boolean }>("/api/order-status", { orderId: id, status: payload.status });
         if (!result.emailDelivered) savedStatus = "Order updated, but the customer email could not be sent.";
+      } else if (id && ["marketplace_returns", "marketplace_disputes"].includes(resource.table)) {
+        await authenticatedPost("/api/admin/cases", { caseType: resource.table === "marketplace_returns" ? "return" : "dispute", id, status: payload.status, resolution: payload.resolution });
       } else if (id) {
         let mutation = supabase!.from(resource.table).update(payload).eq(key, id);
         if (resource.table === "collection_products") mutation = mutation.eq("collection_id", editing?.collection_id);

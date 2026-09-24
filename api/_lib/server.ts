@@ -82,6 +82,7 @@ export async function getAuthenticatedSupabase(request: Request): Promise<{ admi
 
 export function handleApiError(error: unknown): Response {
   if (error instanceof Error && error.message === "AUTH_REQUIRED") return json({ error: "Your session has expired. Sign in again." }, 401);
+  if (error instanceof Error && error.message === "STAFF_ACCESS_REQUIRED") return json({ error: "You are not authorised to perform this action." }, 403);
   if (error instanceof Error && error.message === "SERVER_UNCONFIGURED") return json({ error: "This service is temporarily unavailable." }, 503);
   if (error instanceof Error && error.message === "CROSS_SITE_REQUEST") return json({ error: "Cross-site requests are not allowed." }, 403);
   if (error instanceof SyntaxError) return json({ error: "Invalid JSON body." }, 400);

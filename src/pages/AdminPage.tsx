@@ -3,6 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { AdminWorkspace } from "../components/admin/AdminWorkspace";
 import { SellerModeration } from "../components/admin/SellerModeration";
 import { ReviewModeration } from "../components/admin/ReviewModeration";
+import { EmailCampaigns } from "../components/admin/EmailCampaigns";
+import { AdminTeam } from "../components/admin/AdminTeam";
+import { AdminFinance } from "../components/admin/AdminFinance";
 import { MfaGate } from "../components/MfaSecurity";
 import { adminResourcesFor } from "../lib/admin-resources";
 import { useAdminRole } from "../hooks/useAdminRole";
@@ -27,6 +30,9 @@ export function AdminPage() {
   const canReviewSellers = access.data === "owner" || access.data === "admin";
   const sellerReviewSelected = section === "seller_review" && canReviewSellers;
   const reviewModerationSelected = section === "review_moderation" && canReviewSellers;
+  const campaignsSelected = section === "email_campaigns" && canReviewSellers;
+  const teamSelected = section === "admin_team" && access.data === "owner";
+  const financeSelected = section === "admin_finance" && canReviewSellers;
   const selectSection = (nextSection: string) => {
     if (nextSection === section || !hasUnsavedChanges || window.confirm("Discard unsaved changes?")) setSection(nextSection);
   };
@@ -35,6 +41,7 @@ export function AdminPage() {
     if (error) { setSignOutError("Sign out failed. Please try again."); return; }
     navigate("/", { replace: true });
   };
-  const selectedValue = sellerReviewSelected ? "seller_review" : reviewModerationSelected ? "review_moderation" : resource.table;
-  return <MfaGate required admin><div className="admin-page"><aside><div className="admin-page-heading"><h1>Fieldio Admin</h1><span>{access.data}</span></div><label className="admin-mobile-navigation"><span>Manage</span><select value={selectedValue} onChange={(event) => selectSection(event.target.value)}>{canReviewSellers && <><option value="seller_review">Seller review</option><option value="review_moderation">Review moderation</option></>}{resources.map((item) => <option key={item.table} value={item.table}>{item.title}</option>)}</select></label><nav aria-label="Administration">{canReviewSellers && <><button aria-current={sellerReviewSelected ? "page" : undefined} onClick={() => selectSection("seller_review")}>Seller review</button><button aria-current={reviewModerationSelected ? "page" : undefined} onClick={() => selectSection("review_moderation")}>Review moderation</button></>}{resources.map((item) => <button key={item.table} aria-current={!sellerReviewSelected && !reviewModerationSelected && resource.table === item.table ? "page" : undefined} onClick={() => selectSection(item.table)}>{item.title}</button>)}</nav><button className="admin-signout text-link" onClick={() => void signOut()}>Sign out</button>{signOutError && <p className="field-error" role="alert">{signOutError}</p>}</aside>{sellerReviewSelected ? <SellerModeration /> : reviewModerationSelected ? <ReviewModeration /> : <AdminWorkspace key={resource.table} resource={resource} onDirtyChange={handleDirtyChange} />}</div></MfaGate>;
+  const selectedValue = sellerReviewSelected ? "seller_review" : reviewModerationSelected ? "review_moderation" : campaignsSelected ? "email_campaigns" : financeSelected ? "admin_finance" : teamSelected ? "admin_team" : resource.table;
+  const specialOptions = <>{canReviewSellers && <><option value="seller_review">Seller review</option><option value="review_moderation">Review moderation</option><option value="email_campaigns">Email campaigns</option><option value="admin_finance">Commission & payouts</option></>}{access.data === "owner" && <option value="admin_team">Admin team</option>}</>;
+  return <MfaGate required admin><div className="admin-page"><aside><div className="admin-page-heading"><h1>Fieldio Admin</h1><span>{access.data === "owner" ? "Super admin" : access.data}</span></div><label className="admin-mobile-navigation"><span>Manage</span><select value={selectedValue} onChange={(event) => selectSection(event.target.value)}>{specialOptions}{resources.map((item) => <option key={item.table} value={item.table}>{item.title}</option>)}</select></label><nav aria-label="Administration">{canReviewSellers && <><button aria-current={sellerReviewSelected ? "page" : undefined} onClick={() => selectSection("seller_review")}>Seller review</button><button aria-current={reviewModerationSelected ? "page" : undefined} onClick={() => selectSection("review_moderation")}>Review moderation</button><button aria-current={campaignsSelected ? "page" : undefined} onClick={() => selectSection("email_campaigns")}>Email campaigns</button><button aria-current={financeSelected ? "page" : undefined} onClick={() => selectSection("admin_finance")}>Commission & payouts</button></>}{access.data === "owner" && <button aria-current={teamSelected ? "page" : undefined} onClick={() => selectSection("admin_team")}>Admin team</button>}{resources.map((item) => <button key={item.table} aria-current={!sellerReviewSelected && !reviewModerationSelected && !campaignsSelected && !financeSelected && !teamSelected && resource.table === item.table ? "page" : undefined} onClick={() => selectSection(item.table)}>{item.title}</button>)}</nav><button className="admin-signout text-link" onClick={() => void signOut()}>Sign out</button>{signOutError && <p className="field-error" role="alert">{signOutError}</p>}</aside>{sellerReviewSelected ? <SellerModeration /> : reviewModerationSelected ? <ReviewModeration /> : campaignsSelected ? <EmailCampaigns /> : financeSelected ? <AdminFinance /> : teamSelected ? <AdminTeam /> : <AdminWorkspace key={resource.table} resource={resource} onDirtyChange={handleDirtyChange} />}</div></MfaGate>;
 }

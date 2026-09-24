@@ -2,6 +2,7 @@ import { escapeHtml, sendTransactionalEmail } from "./_lib/email.js";
 import { preferenceToken, readPreferenceToken } from "./_lib/newsletter.js";
 import { captureServerException } from "./_lib/monitoring.js";
 import { checkRateLimit, getAdminSupabase } from "./_lib/server.js";
+import { POST as handleResendWebhook } from "./_lib/resend-webhook-handler.js";
 
 interface PreferencePage {
   title: string;
@@ -109,6 +110,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (new URL(request.url).searchParams.get("mode") === "webhook") return handleResendWebhook(request);
   if (!await checkRateLimit(request)) return page({ title: "Please wait a moment.", message: "Too many requests were made from this connection. Try the link again in one minute." }, 429);
 
   let preference: ReturnType<typeof readPreferenceToken>;
@@ -127,6 +129,13 @@ export async function POST(request: Request) {
     const unsubscribed = action === "unsubscribe";
     const { error: updateError } = await db.from("newsletter_subscribers").update({ status: unsubscribed ? "unsubscribed" : "subscribed", unsubscribed_at: unsubscribed ? new Date().toISOString() : null }).eq("id", id);
     if (updateError) throw updateError;
+    if (unsubscribed) {
+      const { data: recipients } = await db.from("email_campaign_recipients").update({ status: "unsubscribed" }).eq("subscriber_id", id).select("campaign_id");
+      for (const campaignId of new Set((recipients ?? []).map(({ campaign_id }) => campaign_id))) {
+        const { count } = await db.from("email_campaign_recipients").select("id", { count: "exact", head: true }).eq("campaign_id", campaignId).eq("status", "unsubscribed");
+        await db.from("email_campaigns").update({ unsubscribed_count: count ?? 0 }).eq("id", campaignId);
+      }
+    }
 
     if (!unsubscribed && data.status !== "subscribed") {
       const url = new URL("/api/newsletter-preferences", process.env.APP_URL);
