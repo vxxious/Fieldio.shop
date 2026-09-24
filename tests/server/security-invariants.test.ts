@@ -17,6 +17,10 @@ const readTree = (relativePath: string) => {
 };
 
 describe("security invariants", () => {
+  it("stays within the Vercel Hobby serverless function limit", () => {
+    expect(readDirectory("../../api/").filter(({ name }) => name.endsWith(".ts"))).toHaveLength(12);
+  });
+
   it("rate limits every API route", () => {
     const missing = readDirectory("../../api/").filter(({ name }) => name.endsWith(".ts")).filter(({ source }) => !source.includes("checkRateLimit")).map(({ name }) => name);
     expect(missing).toEqual([]);

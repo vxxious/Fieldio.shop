@@ -318,7 +318,7 @@ export function SellerFulfillments({ fulfillments, onUpdated }: { fulfillments: 
   async function updateFulfillment(fulfillment: VendorFulfillment, nextStatus: "processing" | "shipped") {
     setUpdating(fulfillment.id); setStatus("");
     try {
-      await authenticatedPost("/api/vendor-fulfillment", { fulfillmentId: fulfillment.id, status: nextStatus });
+      await authenticatedPost("/api/vendor-fulfillment", { action: "update-fulfillment", fulfillmentId: fulfillment.id, status: nextStatus });
       await onUpdated();
       setStatus(nextStatus === "shipped" ? `${fulfillment.public_reference} marked as shipped. Fieldio will update the buyer.` : `${fulfillment.public_reference} is now being prepared.`);
     } catch (error) { setStatus(error instanceof Error ? error.message : "The fulfilment could not be updated."); }

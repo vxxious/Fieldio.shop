@@ -6,6 +6,7 @@ const countryCode = z.string().regex(/^[A-Z]{2}$/);
 const internationalPhone = z.string().regex(/^\+[1-9][0-9]{6,14}$/);
 const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("submit-application") }),
+  z.object({ action: z.literal("update-fulfillment"), fulfillmentId: z.string().uuid(), status: z.enum(["processing", "shipped"]) }),
   z.object({ action: z.literal("review-application"), applicationId: z.string().uuid(), decision: z.enum(["approved", "rejected", "suspended"]), reason: z.string().trim().max(1000).nullable().optional() }).superRefine((value, context) => {
     if (value.decision !== "approved" && !value.reason) context.addIssue({ code: "custom", path: ["reason"], message: "A reason is required." });
   }),
@@ -29,6 +30,26 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const input = await readValidatedJson(request, schema);
     const { admin, client, user } = await getAuthenticatedSupabase(request);
+
+    if (input.action === "update-fulfillment") {
+      const { data, error } = await client.rpc("update_vendor_fulfillment_status", { p_fulfillment_id: input.fulfillmentId, p_status: input.status });
+      if (error?.message.includes("SELLER_ACCESS_REQUIRED")) return json({ error: "Approved seller access is required." }, 403);
+      if (error?.message.includes("FULFILLMENT_NOT_FOUND")) return json({ error: "This fulfilment is unavailable." }, 404);
+      if (error?.message.includes("INVALID_FULFILLMENT_STATUS_TRANSITION")) return json({ error: "That fulfilment update is not allowed. Refresh and try again." }, 409);
+      if (error) throw error;
+      const fulfillment = data as { id: string; order_request_id: string; store_name: string; status: "processing" | "shipped" };
+      const order = await admin.from("order_requests").select("public_reference").eq("id", fulfillment.order_request_id).single();
+      if (order.error) throw order.error;
+      await sendTrackedEmail(admin, `vendor-fulfillment:${fulfillment.id}:${fulfillment.status}`, "vendor-fulfillment-status", {
+        to: notificationEmail(),
+        subject: `${fulfillment.store_name} marked ${order.data.public_reference} ${fulfillment.status}`,
+        heading: `Vendor fulfilment ${fulfillment.status}`,
+        message: "A vendor updated its part of a marketplace order. Review the master order before updating the customer-facing status.",
+        details: [{ label: "Reference", value: order.data.public_reference }, { label: "Store", value: fulfillment.store_name }, { label: "Status", value: fulfillment.status }],
+        action: { label: "Open admin orders", url: "https://fieldio.shop/admin" }
+      });
+      return json({ fulfillment });
+    }
 
     if (input.action === "create-store") {
       const slug = `${slugify(input.name) || "store"}-${user.id.slice(0, 6)}`;

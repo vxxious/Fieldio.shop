@@ -1,6 +1,7 @@
 {
   "functions": { "api/render.ts": { "includeFiles": "dist/index.html" } },
   "rewrites": [
+    { "source": "/api/vendor-fulfillment", "destination": "/api/seller" },
     { "source": "/api/rates", "destination": "/api/locale?mode=rates" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/", "destination": "/api/render?path=/" },

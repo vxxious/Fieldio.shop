@@ -65,6 +65,6 @@ it("shows only the vendor fulfillment and sends guarded status updates", async (
   expect(screen.getByRole("heading", { name: "Orders to fulfil" })).toBeVisible();
   expect(screen.getByText("Tailored coat · Medium · M · Black")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Start preparing" }));
-  await waitFor(() => expect(authenticatedPost).toHaveBeenCalledWith("/api/vendor-fulfillment", { fulfillmentId: "11111111-1111-4111-8111-111111111111", status: "processing" }));
+  await waitFor(() => expect(authenticatedPost).toHaveBeenCalledWith("/api/vendor-fulfillment", { action: "update-fulfillment", fulfillmentId: "11111111-1111-4111-8111-111111111111", status: "processing" }));
   expect(refreshed).toHaveBeenCalledOnce();
 });
