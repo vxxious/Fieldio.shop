@@ -4,16 +4,17 @@ import { readFileSync } from "node:fs";
 vi.mock("@supabase/supabase-js", () => ({ createClient: () => null }));
 vi.mock("node:fs/promises", async () => ({
   ...await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises"),
-  readFile: async () => '<!doctype html><html><head><title>Fallback</title></head><body><div id="root"><div class="route-loading app-boot-loader" role="status"><span>Loading Fieldio</span></div></div><script type="module" src="/assets/app.js"></script></body></html>'
+  readFile: async () => '<!doctype html><html><head><title>Fallback</title><script type="module" src="/assets/app.js"></script></head><body><div id="root"><main><h1>Fieldio Shop</h1></main></div></body></html>'
 }));
 
 import { GET as renderPage } from "../../api/render";
 import { GET as renderSitemap } from "../../api/sitemap";
 
-it("centres the boot loader before the client bundle starts", () => {
+it("ships crawlable Fieldio content before the client bundle starts", () => {
   const html = readFileSync("index.html", "utf8");
-  expect(html.indexOf(".app-boot-loader")).toBeLessThan(html.indexOf('<div id="root">'));
-  expect(html).toContain("min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center");
+  expect(html).toContain("<h1>Fieldio Shop</h1>");
+  expect(html).toContain('<a href="/about">About Fieldio</a>');
+  expect(html).not.toContain("<span>Loading Fieldio</span>");
 });
 
 it("serves a distinct Fieldio search identity and crawlable public sitemap", async () => {
@@ -26,6 +27,10 @@ it("serves a distinct Fieldio search identity and crawlable public sitemap", asy
   expect(home).toContain("Fieldio is an independent designer fashion marketplace");
   expect(home).toContain('<a href="/about">About Fieldio</a>');
   expect(home).not.toContain("Loading Fieldio");
+
+  const account = await (await renderPage(new Request("https://fieldio.shop/api/render?path=/account"))).text();
+  expect(account).toContain('<meta name="robots" content="noindex,nofollow">');
+  expect(account).toContain("Loading Fieldio");
 
   const sitemapResponse = await renderSitemap(new Request("https://fieldio.shop/api/sitemap"));
   const sitemap = await sitemapResponse.text();
