@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import { lazy } from "react";
 import { AppLayout } from "./components/AppLayout";
+import { AccountGate } from "./components/AccountGate";
 import { MfaGate } from "./components/MfaSecurity";
 import { RouteErrorPage } from "./components/RouteErrorPage";
 
@@ -31,8 +32,8 @@ export const router = createBrowserRouter([
       { path: "/brands/:slug", element: <BrandPage /> },
       { path: "/brands", element: <BrandPage /> },
       { path: "/search", element: <SearchPage /> },
-      { path: "/wishlist", element: <WishlistPage /> },
-      { path: "/checkout", element: <MfaGate><CheckoutPage /></MfaGate> },
+      { path: "/wishlist", element: <AccountGate><WishlistPage /></AccountGate> },
+      { path: "/checkout", element: <AccountGate><MfaGate><CheckoutPage /></MfaGate></AccountGate> },
       { path: "/personal-shopping", element: <ServicePage /> },
       { path: "/wholesale", element: <ServicePage /> },
       { path: "/contact", element: <ServicePage /> },

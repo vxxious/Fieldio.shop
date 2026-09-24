@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useLocale } from "../context/LocaleContext";
+import { useRequireAccount } from "../hooks/useRequireAccount";
 import { selectCartCount, useCartStore } from "../store/cart";
 import { useWishlistStore } from "../store/wishlist";
 import { AccountIcon, BagIcon, MenuIcon, SearchIcon } from "./Icons";
@@ -18,6 +19,7 @@ export function SiteHeader() {
   const count = useCartStore(selectCartCount);
   const openCart = useCartStore((state) => state.openCart);
   const wishlistCount = useWishlistStore((state) => state.productIds.length);
+  const { requireAccount } = useRequireAccount();
 
   const openRegionFromMenu = () => {
     setMenuOpen(false);
@@ -62,7 +64,7 @@ export function SiteHeader() {
           <ThemeToggle />
           <Link to="/search" className="icon-button desktop-only" aria-label={t("nav.search")}><SearchIcon /></Link>
           <Link to="/account" className="icon-button mobile-only mobile-account-button" aria-label={t("nav.account")}><AccountIcon /></Link>
-          <button className="bag-button" type="button" onClick={(event) => openCart(event.currentTarget)} aria-label={`${t("nav.openBag")}, ${count} ${t("nav.items")}`} aria-haspopup="dialog">
+          <button className="bag-button" type="button" onClick={async (event) => { if (await requireAccount()) openCart(event.currentTarget); }} aria-label={`${t("nav.openBag")}, ${count} ${t("nav.items")}`} aria-haspopup="dialog">
             <BagIcon /><span className="desktop-only">{t("nav.bag")}</span>{count > 0 && <span>({count})</span>}
           </button>
         </nav>

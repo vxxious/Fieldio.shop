@@ -3,18 +3,20 @@ import { toast } from "sonner";
 import { useSession } from "../hooks/useSession";
 import { supabase } from "../lib/supabase";
 import { useWishlistStore } from "../store/wishlist";
+import { useCartStore } from "../store/cart";
 
 export function WishlistSync() {
   const { session, loading } = useSession();
   const userId = session?.user.id;
   useEffect(() => {
-    if (loading || !supabase) return;
+    if (loading) return;
     const previous = useWishlistStore.getState();
     if (!userId) {
-      if (previous.ownerId) useWishlistStore.setState({ ownerId: null, productIds: [] });
+      if (previous.ownerId || previous.productIds.length) useWishlistStore.setState({ ownerId: null, productIds: [] });
+      if (useCartStore.getState().items.length) useCartStore.getState().clearCart();
       return;
     }
-    const guestIds = previous.ownerId ? [] : previous.productIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+    if (!supabase) return;
     if (previous.ownerId !== userId) useWishlistStore.setState({ ownerId: userId, productIds: [] });
     let active = true;
     let unsubscribe = () => {};
@@ -23,13 +25,6 @@ export function WishlistSync() {
       const { data: wishlist, error } = await supabase!.from("wishlists").upsert({ user_id: userId }, { onConflict: "user_id" }).select("id").single();
       if (error || !wishlist) throw new Error("Wishlist unavailable");
       if (!active) return;
-      if (guestIds.length) {
-        const { data: valid } = await supabase!.from("products").select("id").in("id", guestIds.slice(0, 100));
-        if (valid?.length) {
-          const { error: mergeError } = await supabase!.from("wishlist_items").upsert(valid.map(({ id }) => ({ wishlist_id: wishlist.id, product_id: id })), { onConflict: "wishlist_id,product_id" });
-          if (mergeError) throw mergeError;
-        }
-      }
       const { data, error: readError } = await supabase!.from("wishlist_items").select("product_id").eq("wishlist_id", wishlist.id);
       if (readError) throw readError;
       if (!active) return;

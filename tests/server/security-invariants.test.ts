@@ -104,4 +104,11 @@ describe("security invariants", () => {
     expect(response).toMatch(/return jsonb_build_object\('reference', v_order\.public_reference, 'items', v_result\)/i);
     expect(response).not.toMatch(/sellerOwnerId|fulfillments'/i);
   });
+
+  it("requires an authenticated buyer before creating an order", () => {
+    const source = readFileSync(fileURLToPath(new URL("../../api/order-requests.ts", import.meta.url)), "utf8");
+    expect(source).toContain("getAuthenticatedSupabase(request)");
+    expect(source).toContain("p_user_id: user.id");
+    expect(source).not.toMatch(/let userId: string \| null|p_user_id: null/);
+  });
 });

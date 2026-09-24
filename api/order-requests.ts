@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { notificationEmail, sendTrackedEmail } from "./_lib/email.js";
-import { checkRateLimit, getAdminSupabase, handleApiError, json, readValidatedJson } from "./_lib/server.js";
+import { checkRateLimit, getAuthenticatedSupabase, handleApiError, json, readValidatedJson } from "./_lib/server.js";
 
 const schema = z.object({
   requestKey: z.string().uuid(),
@@ -22,19 +22,11 @@ export async function POST(request: Request): Promise<Response> {
   if (!await checkRateLimit(request, 5, 60_000)) return json({ error: "Requests are temporarily limited. Wait a minute and try again." }, 429);
   try {
     const input = await readValidatedJson(request, schema);
-    const supabase = getAdminSupabase();
-    if (!supabase) return json({ error: "Order requests are temporarily unavailable. Contact Fieldio for assistance." }, 503);
-    let userId: string | null = null;
-    const token = request.headers.get("authorization")?.replace(/^Bearer /i, "");
-    if (token) {
-      const { data, error } = await supabase.auth.getUser(token);
-      if (error || !data.user) return json({ error: "Your session has expired. Sign in again." }, 401);
-      userId = data.user.id;
-    }
+    const { admin: supabase, user } = await getAuthenticatedSupabase(request);
     const { data, error } = await supabase.rpc("create_order_request", {
       p_customer: input.customer,
       p_items: input.items,
-      p_user_id: userId,
+      p_user_id: user.id,
       p_request_key: input.requestKey
     });
     if (error) {

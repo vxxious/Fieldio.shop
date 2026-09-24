@@ -9,6 +9,7 @@ import { RelatedProductsRail } from "../components/RelatedProductsRail";
 import { ProductReviews } from "../components/ProductReviews";
 import { emptyCatalog, useCatalogProduct } from "../hooks/useCatalog";
 import { usePageMeta } from "../hooks/usePageMeta";
+import { useRequireAccount } from "../hooks/useRequireAccount";
 import { useLocale } from "../context/LocaleContext";
 import { trackEvent } from "../lib/analytics";
 import { responsiveImage } from "../lib/images";
@@ -43,6 +44,7 @@ export function ProductPage() {
   const bagSubtotal = useCartStore(selectCartSubtotal);
   const toggleWishlist = useWishlistStore((state) => state.toggle);
   const wished = useWishlistStore((state) => product ? state.productIds.includes(product.id) : false);
+  const { requireAccount } = useRequireAccount();
   const reduceMotion = useReducedMotion();
   const effectiveVariantId = product?.variants.some((variant) => variant.id === variantId) ? variantId : product?.variants.length === 1 ? product.variants[0]!.id : "";
   const selectedVariant = product?.variants.find((variant) => variant.id === effectiveVariantId);
@@ -120,11 +122,12 @@ export function ProductPage() {
     trackEvent("quantity_change", { product_id: product.id, quantity: nextQuantity, source: "product_page" });
   };
 
-  const addToCart = (trigger: HTMLElement, source: "product_page" | "sticky_bar" = "product_page") => {
+  const addToCart = async (trigger: HTMLElement, source: "product_page" | "sticky_bar" = "product_page") => {
     if (!selectedVariant || unavailable) {
       toast.error(t("product.selectSize"));
       return;
     }
+    if (!await requireAccount()) return;
     addItem(product, selectedVariant, quantity);
     useCartStore.getState().openCart(trigger);
     trackEvent("add_to_cart", { product_id: product.id, variant_id: selectedVariant.id, quantity, source });
@@ -174,8 +177,8 @@ export function ProductPage() {
         </fieldset>
         <div className="purchase-controls" ref={purchaseControlsRef}>
           <div className="quantity-stepper"><button type="button" disabled={quantity <= 1} onClick={() => changeQuantity(quantity - 1)} aria-label={`Decrease quantity for ${product.name}`}><MinusIcon /></button><output aria-label={`Quantity ${quantity}`}>{String(quantity).padStart(2, "0")}</output><button type="button" disabled={quantity >= 10} onClick={() => changeQuantity(quantity + 1)} aria-label={`Increase quantity for ${product.name}`}><PlusIcon /></button></div>
-          <Button className="primary-button add-button" type="button" disabled={unavailable || !product.variants.length} onClick={(event) => addToCart(event.currentTarget)}>{t("product.addBag")}</Button>
-          <button className="icon-button wishlist-product" type="button" aria-label={t(wished ? "product.removeWishlist" : "product.addWishlist")} aria-pressed={wished} onClick={() => toggleWishlist(product.id)}><HeartIcon fill={wished ? "currentColor" : "none"} /></button>
+          <Button className="primary-button add-button" type="button" disabled={unavailable || !product.variants.length} onClick={(event) => void addToCart(event.currentTarget)}>{t("product.addBag")}</Button>
+          <button className="icon-button wishlist-product" type="button" aria-label={t(wished ? "product.removeWishlist" : "product.addWishlist")} aria-pressed={wished} onClick={async () => { if (await requireAccount()) toggleWishlist(product.id); }}><HeartIcon fill={wished ? "currentColor" : "none"} /></button>
         </div>
         <a className="whatsapp-enquiry" target="_blank" rel="noreferrer" href={createProductEnquiryUrl(product.name, product.sku, window.location.href)}>{t("product.askWhatsApp")}</a>
         <div className="stock-request-actions"><span>Need another size?</span><a target="_blank" rel="noreferrer" href={createWhatsAppUrl(`Hello Fieldio, please notify me when ${product.name}${unavailableSizes.length ? ` in ${unavailableSizes.join(", ")}` : " in my preferred size"} is available. Product: ${window.location.href}`)}>Request on WhatsApp</a><Link to={`/contact?subject=${encodeURIComponent(`Availability alert · ${product.name}`)}&message=${encodeURIComponent(`Please notify me when ${product.name} is available in my preferred size. Product: ${window.location.href}`)}`}>Request by email</Link></div>
@@ -207,7 +210,7 @@ export function ProductPage() {
       <ProductReviews productId={product.id} productName={product.name} averageRating={product.averageRating} ratingCount={product.ratingCount} />
       <RelatedProductsRail products={related} />
       <p className="sr-only" aria-live="polite">Selected {selectedLabel}, quantity {quantity}. Bag contains {bagCount} {bagCount === 1 ? "item" : "items"}; total {bagTotalLabel}.</p>
-      {showMobilePurchase && <div className="mobile-purchase-bar"><div><p>{product.name}</p><span>{selectedLabel} · Qty {quantity}</span><span>{t("nav.bag")} {bagCount} · {bagTotalLabel}</span></div><Button className="primary-button" type="button" disabled={!selectedVariant || unavailable} onClick={(event) => addToCart(event.currentTarget, "sticky_bar")}>{t("product.addBag")}</Button></div>}
+      {showMobilePurchase && <div className="mobile-purchase-bar"><div><p>{product.name}</p><span>{selectedLabel} · Qty {quantity}</span><span>{t("nav.bag")} {bagCount} · {bagTotalLabel}</span></div><Button className="primary-button" type="button" disabled={!selectedVariant || unavailable} onClick={(event) => void addToCart(event.currentTarget, "sticky_bar")}>{t("product.addBag")}</Button></div>}
     </article>
   );
 }
