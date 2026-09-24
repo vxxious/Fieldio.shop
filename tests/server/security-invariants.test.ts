@@ -17,6 +17,13 @@ const readTree = (relativePath: string) => {
 };
 
 describe("security invariants", () => {
+  it("sets clickjacking protection and exact production CORS origin", () => {
+    const config = readFileSync(fileURLToPath(new URL("../../vercel.json", import.meta.url)), "utf8");
+    expect(config).toMatch(/"X-Frame-Options", "value": "DENY"/);
+    expect(config).toMatch(/"Access-Control-Allow-Origin", "value": "https:\/\/fieldio\.shop"/);
+    expect(config).not.toMatch(/"Access-Control-Allow-Origin", "value": "\*"/);
+  });
+
   it("stays within the Vercel Hobby serverless function limit", () => {
     expect(readDirectory("../../api/").filter(({ name }) => name.endsWith(".ts"))).toHaveLength(12);
   });
