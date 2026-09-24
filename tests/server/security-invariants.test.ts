@@ -107,6 +107,12 @@ describe("security invariants", () => {
     const response = readFileSync(fileURLToPath(new URL("../../supabase/migrations/202609240004_buyer_safe_order_response.sql", import.meta.url)), "utf8");
     expect(response).toMatch(/return jsonb_build_object\('reference', v_order\.public_reference, 'items', v_result\)/i);
     expect(response).not.toMatch(/sellerOwnerId|fulfillments'/i);
+    const shipping = readFileSync(fileURLToPath(new URL("../../supabase/migrations/202609240005_vendor_shipping_details.sql", import.meta.url)), "utf8");
+    expect(shipping).toMatch(/p_status = 'shipped'[\s\S]+SHIPPING_DETAILS_REQUIRED/i);
+    expect(shipping).toMatch(/carrier = case when p_status = 'shipped' then btrim\(p_carrier\)/i);
+    expect(shipping).toMatch(/tracking_reference = case when p_status = 'shipped' then btrim\(p_tracking_reference\)/i);
+    expect(shipping).toMatch(/seller_owner_id = \(select auth\.uid\(\)\)[\s\S]+seller_store_id is not null/i);
+    expect(shipping).toMatch(/revoke all on function public\.update_vendor_fulfillment_status\(uuid, public\.fulfillment_status, text, text\) from public, anon/i);
   });
 
   it("requires an authenticated buyer before creating an order", () => {

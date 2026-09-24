@@ -928,6 +928,17 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .seller-delivery-address { padding: 18px; background: var(--image-field); }
 .seller-delivery-address address { margin: 8px 0; font-style: normal; line-height: 1.55; white-space: pre-line; }
 .seller-fulfillment-list .primary-button, .seller-fulfillment-list .secondary-button { width: fit-content; min-width: 190px; }
+.seller-shipping-form { display: grid; gap: 16px; padding: 20px; background: var(--surface); border: 1px solid var(--line-dark); }
+.seller-shipping-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.seller-shipping-fields label { display: grid; gap: 8px; font-size: 13px; }
+.seller-shipping-fields input { width: 100%; min-height: 48px; padding: 12px; color: var(--ink); background: var(--surface); border: 1px solid var(--line-dark); border-radius: 0; }
+.seller-shipping-form > p, .seller-shipment-summary > p { margin: 0; color: var(--muted); font-size: 12px; }
+.seller-shipping-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.seller-shipment-summary { display: grid; gap: 13px; padding: 18px; background: var(--image-field); }
+.seller-shipment-summary dl { display: grid; gap: 8px; margin: 0; }
+.seller-shipment-summary dl > div { display: grid; grid-template-columns: minmax(130px, .4fr) 1fr; gap: 18px; }
+.seller-shipment-summary dt { color: var(--muted); font-size: 12px; }
+.seller-shipment-summary dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
 .seller-status--confirmed, .seller-status--processing { color: #7a5710; border-color: #a97a17; }
 .seller-status--shipped, .seller-status--delivered { color: #28633b; border-color: #28633b; }
 .seller-reviews { width: min(calc(100% - 40px), 980px); margin: calc(clamp(90px, 12vw, 160px) * -0.55) auto clamp(90px, 12vw, 160px); border-top: 1px solid var(--ink); }
@@ -1296,6 +1307,8 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .seller-fulfillments header > strong, .seller-reviews header > strong { justify-items: start; }
   .seller-fulfillment-list article > header { align-items: flex-start; }
   .seller-fulfillment-list .primary-button, .seller-fulfillment-list .secondary-button { width: 100%; }
+  .seller-shipping-fields { grid-template-columns: 1fr; }
+  .seller-shipment-summary dl > div { grid-template-columns: 1fr; gap: 3px; }
   .seller-review-feed { grid-template-columns: 1fr; }
   .seller-review-feed > article, .seller-review-feed > article:nth-child(even) { padding: 24px 0; border-left: 0; }
   .seller-logo-editor { grid-template-columns: 82px 1fr; gap: 16px; }

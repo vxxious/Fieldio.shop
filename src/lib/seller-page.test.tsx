@@ -68,3 +68,29 @@ it("shows only the vendor fulfillment and sends guarded status updates", async (
   await waitFor(() => expect(authenticatedPost).toHaveBeenCalledWith("/api/vendor-fulfillment", { action: "update-fulfillment", fulfillmentId: "11111111-1111-4111-8111-111111111111", status: "processing" }));
   expect(refreshed).toHaveBeenCalledOnce();
 });
+
+it("requires and submits shipping details before a vendor marks an order shipped", async () => {
+  authenticatedPost.mockClear();
+  const refreshed = vi.fn(async () => undefined);
+  render(<SellerFulfillments fulfillments={[{
+    id: "11111111-1111-4111-8111-111111111111", order_request_id: "22222222-2222-4222-8222-222222222222", public_reference: "FLD-202609-01004",
+    status: "processing", store_name: "Ada Studio", customer_name: "Buyer Name", customer_phone: "+447000000000", shipping_address: "10 London Road, London",
+    carrier: null, tracking_reference: null, created_at: "2026-09-24T08:00:00Z", updated_at: "2026-09-24T08:00:00Z",
+    items: [{ id: "33333333-3333-4333-8333-333333333333", productName: "Tailored coat", variantName: "Medium", size: "M", color: "Black", quantity: 1, sku: "COAT-M" }]
+  }]} onUpdated={refreshed} />);
+
+  fireEvent.click(screen.getByRole("button", { name: "Add shipping details" }));
+  const carrier = screen.getByRole("textbox", { name: "Logistics company" });
+  const tracking = screen.getByRole("textbox", { name: "Tracking or itinerary reference" });
+  expect(carrier).toBeRequired();
+  expect(tracking).toBeRequired();
+  fireEvent.change(carrier, { target: { value: "DHL Express" } });
+  fireEvent.change(tracking, { target: { value: "DHL-123456" } });
+  fireEvent.click(screen.getByRole("button", { name: "Submit shipment" }));
+
+  await waitFor(() => expect(authenticatedPost).toHaveBeenCalledWith("/api/vendor-fulfillment", {
+    action: "update-fulfillment", fulfillmentId: "11111111-1111-4111-8111-111111111111", status: "shipped",
+    carrier: "DHL Express", trackingReference: "DHL-123456"
+  }));
+  expect(refreshed).toHaveBeenCalledOnce();
+});

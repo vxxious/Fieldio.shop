@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { z } from "zod";
@@ -314,15 +314,25 @@ function SellerDashboard({ userId, store, listings, onAdd, onEdit, onEditContact
 
 export function SellerFulfillments({ fulfillments, onUpdated }: { fulfillments: VendorFulfillment[]; onUpdated: () => Promise<void> }) {
   const [updating, setUpdating] = useState<string>();
+  const [shippingFor, setShippingFor] = useState<string>();
   const [status, setStatus] = useState("");
-  async function updateFulfillment(fulfillment: VendorFulfillment, nextStatus: "processing" | "shipped") {
+  async function updateFulfillment(fulfillment: VendorFulfillment, nextStatus: "processing" | "shipped", shipping?: { carrier: string; trackingReference: string }) {
     setUpdating(fulfillment.id); setStatus("");
     try {
-      await authenticatedPost("/api/vendor-fulfillment", { action: "update-fulfillment", fulfillmentId: fulfillment.id, status: nextStatus });
+      await authenticatedPost("/api/vendor-fulfillment", { action: "update-fulfillment", fulfillmentId: fulfillment.id, status: nextStatus, ...shipping });
       await onUpdated();
+      if (nextStatus === "shipped") setShippingFor(undefined);
       setStatus(nextStatus === "shipped" ? `${fulfillment.public_reference} marked as shipped. Fieldio will update the buyer.` : `${fulfillment.public_reference} is now being prepared.`);
     } catch (error) { setStatus(error instanceof Error ? error.message : "The fulfilment could not be updated."); }
     finally { setUpdating(undefined); }
+  }
+  function submitShipping(event: FormEvent<HTMLFormElement>, fulfillment: VendorFulfillment) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    void updateFulfillment(fulfillment, "shipped", {
+      carrier: String(form.get("carrier") ?? "").trim(),
+      trackingReference: String(form.get("trackingReference") ?? "").trim()
+    });
   }
   return <section className="seller-fulfillments"><header><div><h2>Orders to fulfil</h2><p>Only your store's items appear here. Fieldio confirms the order and manages buyer updates.</p></div><strong>{fulfillments.filter(({ status: value }) => !["delivered", "cancelled"].includes(value)).length}<span>open</span></strong></header>
     {status && <p className="form-message" role="status">{status}</p>}
@@ -332,8 +342,16 @@ export function SellerFulfillments({ fulfillments, onUpdated }: { fulfillments: 
       <div className="seller-delivery-address"><span>Ship to</span><address>{fulfillment.customer_name}<br />{fulfillment.shipping_address}<br />Delivery phone: {fulfillment.customer_phone}</address><small>Use delivery details only to fulfil this Fieldio order. Buyer communication stays with Fieldio.</small></div>
       {fulfillment.status === "pending" && <p className="seller-fulfillment-note">Waiting for Fieldio to confirm this order.</p>}
       {fulfillment.status === "confirmed" && <button className="secondary-button" disabled={updating === fulfillment.id} onClick={() => void updateFulfillment(fulfillment, "processing")}>{updating === fulfillment.id ? "Updating…" : "Start preparing"}</button>}
-      {fulfillment.status === "processing" && <button className="primary-button" disabled={updating === fulfillment.id} onClick={() => void updateFulfillment(fulfillment, "shipped")}>{updating === fulfillment.id ? "Updating…" : "Mark as shipped"}</button>}
-      {fulfillment.status === "shipped" && <p className="seller-fulfillment-note">Shipped. Fieldio will manage delivery confirmation.</p>}
+      {fulfillment.status === "processing" && shippingFor !== fulfillment.id && <button className="primary-button" disabled={Boolean(updating)} onClick={() => { setStatus(""); setShippingFor(fulfillment.id); }}>Add shipping details</button>}
+      {fulfillment.status === "processing" && shippingFor === fulfillment.id && <form className="seller-shipping-form" onSubmit={(event) => submitShipping(event, fulfillment)}>
+        <div className="seller-shipping-fields">
+          <label><span>Logistics company</span><input name="carrier" type="text" autoComplete="organization" minLength={2} maxLength={120} placeholder="DHL, Royal Mail, FedEx…" required /></label>
+          <label><span>Tracking or itinerary reference</span><input name="trackingReference" type="text" autoComplete="off" minLength={2} maxLength={120} placeholder="Tracking number or dispatch reference" required /></label>
+        </div>
+        <p>Fieldio receives these details for buyer support and delivery updates.</p>
+        <div className="seller-shipping-actions"><button className="primary-button" type="submit" disabled={updating === fulfillment.id}>{updating === fulfillment.id ? "Submitting…" : "Submit shipment"}</button><button className="secondary-button" type="button" disabled={updating === fulfillment.id} onClick={() => setShippingFor(undefined)}>Cancel</button></div>
+      </form>}
+      {fulfillment.status === "shipped" && (fulfillment.carrier && fulfillment.tracking_reference ? <div className="seller-shipment-summary"><strong>Shipping details submitted</strong><dl><div><dt>Logistics company</dt><dd>{fulfillment.carrier}</dd></div><div><dt>Tracking reference</dt><dd>{fulfillment.tracking_reference}</dd></div></dl><p>Fieldio will manage buyer updates and delivery confirmation.</p></div> : <p className="seller-fulfillment-note">Shipped. No tracking details were recorded for this earlier shipment.</p>)}
     </article>)}</div> : <div className="seller-empty"><StoreIcon /><h3>No orders to fulfil.</h3><p>Confirmed orders containing your products will appear here.</p></div>}
   </section>;
 }
