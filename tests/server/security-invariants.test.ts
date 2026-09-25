@@ -146,4 +146,17 @@ describe("security invariants", () => {
     expect(campaigns).toContain('emailRequest<{ data?: Array<{ id?: string }> }>("/emails/batch"');
     expect(campaigns).toContain('"Idempotency-Key": `campaign/${campaign.id}/${chunk[0]!.id}/${attempt}`');
   });
+
+  it("keeps vendor storefront product linkage exclusive to seller approval", () => {
+    const boundary = readFileSync(fileURLToPath(new URL("../../supabase/migrations/202609250002_vendor_storefront_product_boundary.sql", import.meta.url)), "utf8");
+    const sellerFlow = readFileSync(fileURLToPath(new URL("../../supabase/migrations/202609170001_seller_marketplace.sql", import.meta.url)), "utf8");
+    const adminResources = readFileSync(fileURLToPath(new URL("../../src/lib/admin-resources.ts", import.meta.url)), "utf8");
+    const columnGrants = [...boundary.matchAll(/grant (?:insert|update) \(([\s\S]*?)\) on public\.products to authenticated/gi)];
+
+    expect(boundary).toMatch(/revoke insert, update on public\.products from anon, authenticated/i);
+    expect(columnGrants).toHaveLength(2);
+    for (const grant of columnGrants) expect(grant[1]).not.toMatch(/seller_listing_id|seller_verified|seller_store_/i);
+    expect(adminResources).not.toMatch(/seller_listing_id|seller_verified|seller_store_/i);
+    expect(sellerFlow).toMatch(/security definer[\s\S]+insert into public\.products[\s\S]+seller_listing_id/i);
+  });
 });
