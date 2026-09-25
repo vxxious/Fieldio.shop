@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderCampaignEmail } from "./campaign.js";
+import { campaignContentSchema } from "./campaigns-handler.js";
 
 describe("campaign email renderer", () => {
   it("escapes campaign content and keeps the approved responsive dark-mode shell", () => {
@@ -21,5 +22,17 @@ describe("campaign email renderer", () => {
     expect(email.html).toContain("Unsubscribe");
     expect(email.html).not.toContain("<script>alert(1)</script>");
     expect(email.text).toContain("Unsubscribe: https://fieldio.shop/api/newsletter-preferences?token=safe");
+  });
+});
+
+describe("campaign content validation", () => {
+  const campaign = { name: "Friday offer", subject: "A Fieldio offer", preheader: "", heading: "Selected for you", body: "A considered edit.", actionLabel: "", actionUrl: "", audience: "subscribers" };
+
+  it("accepts empty optional fields from the campaign form", () => {
+    expect(campaignContentSchema.parse(campaign)).toMatchObject({ preheader: null, actionLabel: null, actionUrl: null });
+  });
+
+  it("requires a button label and URL as a pair", () => {
+    expect(campaignContentSchema.safeParse({ ...campaign, actionUrl: "https://fieldio.shop" }).success).toBe(false);
   });
 });

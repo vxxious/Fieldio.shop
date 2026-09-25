@@ -6,23 +6,28 @@ import { emailRequest, preferenceToken } from "./newsletter.js";
 import { captureServerException } from "./monitoring.js";
 import { checkRateLimit, handleApiError, json, readValidatedJson } from "./server.js";
 
-const contentSchema = z.object({
+const optionalText = (schema: z.ZodString) => z.preprocess(
+  (value) => typeof value === "string" && !value.trim() ? null : value,
+  schema.nullable().optional()
+);
+
+export const campaignContentSchema = z.object({
   name: z.string().trim().min(2).max(120),
   subject: z.string().trim().min(2).max(160),
-  preheader: z.string().trim().max(180).optional().nullable(),
+  preheader: optionalText(z.string().trim().max(180)),
   heading: z.string().trim().min(2).max(160),
   body: z.string().trim().min(2).max(10000),
-  actionLabel: z.string().trim().min(2).max(80).optional().nullable(),
-  actionUrl: z.string().url().refine((value) => value.startsWith("https://"), "Use an HTTPS URL.").optional().nullable(),
+  actionLabel: optionalText(z.string().trim().min(2).max(80)),
+  actionUrl: optionalText(z.string().trim().url().refine((value) => value.startsWith("https://"), "Use an HTTPS URL.")),
   audience: z.enum(["subscribers", "customers", "sellers"])
 }).superRefine((value, context) => {
   if (Boolean(value.actionLabel) !== Boolean(value.actionUrl)) context.addIssue({ code: "custom", path: [value.actionLabel ? "actionUrl" : "actionLabel"], message: "Add both a button label and URL, or leave both blank." });
 });
 
 const schema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("preview"), campaign: contentSchema }),
-  z.object({ action: z.literal("save"), campaignId: z.string().uuid().optional(), campaign: contentSchema }),
-  z.object({ action: z.literal("test"), campaign: contentSchema, email: z.string().trim().email().max(254) }),
+  z.object({ action: z.literal("preview"), campaign: campaignContentSchema }),
+  z.object({ action: z.literal("save"), campaignId: z.string().uuid().optional(), campaign: campaignContentSchema }),
+  z.object({ action: z.literal("test"), campaign: campaignContentSchema, email: z.string().trim().email().max(254) }),
   z.object({ action: z.literal("send"), campaignId: z.string().uuid() }),
   z.object({ action: z.literal("retry"), campaignId: z.string().uuid() })
 ]);
