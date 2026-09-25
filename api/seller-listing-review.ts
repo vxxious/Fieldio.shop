@@ -64,9 +64,12 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const userClient = createClient(url, key, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false, autoRefreshToken: false } });
-    const { data, error } = await userClient.rpc("review_seller_listing", { p_listing_id: input.listingId, p_decision: input.decision, p_reason: input.reason || null, p_public_images: published });
+    const { data, error } = input.decision === "suspended"
+      ? await userClient.rpc("suspend_seller_listing", { p_listing_id: input.listingId, p_reason: input.reason })
+      : await userClient.rpc("review_seller_listing", { p_listing_id: input.listingId, p_decision: input.decision, p_reason: input.reason || null, p_public_images: published });
     if (error) {
       if (error.message.includes("not pending")) return json({ error: "This listing has already been reviewed. Refresh the queue." }, 409);
+      if (error.message.includes("not approved")) return json({ error: "This listing is no longer live. Refresh the queue." }, 409);
       if (error.message.includes("Not authorised")) return json({ error: "You are not authorised to review listings." }, 403);
       throw error;
     }

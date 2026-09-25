@@ -5,17 +5,19 @@ import { AdminWorkspace } from "../components/admin/AdminWorkspace";
 import { adminResources } from "./admin-resources";
 
 const authenticatedPost = vi.hoisted(() => vi.fn(async () => ({ emailDelivered: true })));
+const deleteBrand = vi.hoisted(() => vi.fn());
 
 vi.mock("./authenticated-api", () => ({ authenticatedPost }));
 
 vi.mock("./supabase", () => ({
   supabase: {
     from: (table: string) => ({
-      select: () => ({
-        order: () => ["products", "order_requests"].includes(table)
-          ? { range: async () => ({ data: table === "order_requests" ? [{ id: "33333333-3333-4333-8333-333333333333", public_reference: "FLD-1001", customer_name: "Ada", customer_email: "ada@example.com", status: "order_request", created_at: "2026-09-12" }] : [], count: table === "order_requests" ? 1 : 0, error: null }) }
+      select: (columns: string) => ({
+        order: () => columns === "*"
+          ? { range: async () => ({ data: table === "order_requests" ? [{ id: "33333333-3333-4333-8333-333333333333", public_reference: "FLD-1001", customer_name: "Ada", customer_email: "ada@example.com", status: "order_request", created_at: "2026-09-12" }] : table === "brands" ? [{ id: "11111111-1111-4111-8111-111111111111", name: "Louis Vuitton", slug: "louis-vuitton", is_active: true }] : [], count: ["order_requests", "brands"].includes(table) ? 1 : 0, error: null }) }
           : { limit: async () => ({ data: table === "brands" ? [{ id: "11111111-1111-4111-8111-111111111111", name: "Louis Vuitton" }] : [{ id: "22222222-2222-4222-8222-222222222222", name: "Bags" }], error: null }) }
-      })
+      }),
+      delete: () => ({ eq: (_key: string, id: unknown) => ({ select: () => ({ maybeSingle: async () => { deleteBrand(id); return { data: { id }, error: null }; } }) }) })
     })
   }
 }));
@@ -59,5 +61,19 @@ it("keeps unsaved admin edits when record replacement is cancelled", async () =>
   expect(confirm).toHaveBeenCalledWith("Discard unsaved changes?");
   expect(workspace.getByLabelText("Name")).toHaveValue("Unsaved coat");
   view.unmount();
+  confirm.mockRestore();
+});
+
+it("lets a Super admin delete a brand after confirmation", async () => {
+  deleteBrand.mockClear();
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const brands = adminResources.find((resource) => resource.table === "brands")!;
+  const view = render(<QueryClientProvider client={client}><AdminWorkspace resource={brands} canDelete /></QueryClientProvider>);
+  const workspace = within(view.container);
+  await workspace.findByText("Louis Vuitton");
+  fireEvent.click(workspace.getByRole("button", { name: "Edit" }));
+  fireEvent.click(workspace.getByRole("button", { name: "Delete brand" }));
+  await waitFor(() => expect(deleteBrand).toHaveBeenCalledWith("11111111-1111-4111-8111-111111111111"));
   confirm.mockRestore();
 });

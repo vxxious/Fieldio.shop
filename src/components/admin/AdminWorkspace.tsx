@@ -34,7 +34,7 @@ function editorialImage(value: unknown): string {
   } catch { return ""; }
 }
 
-export function AdminWorkspace({ resource, onDirtyChange }: { resource: AdminResource; onDirtyChange?: (dirty: boolean) => void }) {
+export function AdminWorkspace({ resource, canDelete = false, onDirtyChange }: { resource: AdminResource; canDelete?: boolean; onDirtyChange?: (dirty: boolean) => void }) {
   const cache = useQueryClient();
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<Row | null>(null);
@@ -152,6 +152,18 @@ export function AdminWorkspace({ resource, onDirtyChange }: { resource: AdminRes
     finally { setUploading(false); }
   }
 
+  async function deleteBrand() {
+    const id = editing?.id;
+    const name = typeof editing?.name === "string" ? editing.name : "this brand";
+    if (!id || resource.table !== "brands" || !window.confirm(`Delete ${name}? Products will remain, but the brand will be removed.`)) return;
+    setStatus("");
+    const { data, error } = await supabase!.from("brands").delete().eq("id", id).select("id").maybeSingle();
+    if (error) { setStatus(error.message); return; }
+    if (!data) { setStatus("The brand could not be deleted. Refresh your access and try again."); return; }
+    await Promise.all([cache.invalidateQueries({ queryKey: ["admin", "brands"] }), cache.invalidateQueries({ queryKey: ["catalog"] })]);
+    setEditing(null); setStatus("Brand deleted.");
+  }
+
   const closeEditor = () => { if (!isDirty || window.confirm("Discard unsaved changes?")) setEditing(null); };
   const searchColumn = searchColumns[resource.table];
 
@@ -179,6 +191,7 @@ export function AdminWorkspace({ resource, onDirtyChange }: { resource: AdminRes
         })}
         <button className="primary-button" disabled={isSubmitting || uploading}>{isSubmitting ? "Saving…" : "Save record"}</button>
       </form>}
+      {canDelete && resource.table === "brands" && editing.id != null && <button className="text-link" type="button" onClick={() => void deleteBrand()}>Delete brand</button>}
       <button className="text-link" onClick={closeEditor}>Close editor</button>
     </section>}
   </section>;

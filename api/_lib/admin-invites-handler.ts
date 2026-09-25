@@ -7,6 +7,7 @@ import { checkRateLimit, getAuthenticatedSupabase, handleApiError, json, readVal
 const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("invite"), email: z.string().trim().email().max(254), role: z.enum(["admin", "editor", "fulfilment"]) }),
   z.object({ action: z.enum(["resend", "revoke"]), invitationId: z.string().uuid() }),
+  z.object({ action: z.literal("remove"), memberId: z.string().uuid() }),
   z.object({ action: z.literal("accept"), token: z.string().min(40).max(500) })
 ]);
 
@@ -38,7 +39,17 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     const { admin, user } = await requireStaff(request, ["owner"]);
-    if (!process.env.APP_URL || !process.env.RESEND_API_KEY || !process.env.RESEND_FROM) return json({ error: "Admin invitations are not configured." }, 503);
+    if (input.action === "remove") {
+      if (input.memberId === user.id) return json({ error: "You cannot remove your own Super admin access." }, 400);
+      const { data: member, error: memberError } = await admin.from("admin_users").select("user_id,email,role").eq("user_id", input.memberId).maybeSingle();
+      if (memberError) throw memberError;
+      if (!member) return json({ error: "This admin no longer exists." }, 404);
+      const { data, error } = await admin.from("admin_users").delete().eq("user_id", input.memberId).select("user_id").maybeSingle();
+      if (error) throw error;
+      if (!data) return json({ error: "This admin could not be removed." }, 409);
+      await admin.from("audit_logs").insert({ actor_id: user.id, action: "REMOVE", entity_type: "admin_user", entity_id: input.memberId, metadata: { email: member.email, role: member.role } });
+      return json({ removed: true });
+    }
     if (input.action === "revoke") {
       const { data, error } = await admin.from("admin_invitations").update({ status: "revoked" }).eq("id", input.invitationId).eq("status", "pending").select("id").maybeSingle();
       if (error) throw error;
@@ -46,6 +57,8 @@ export async function POST(request: Request): Promise<Response> {
       await admin.from("audit_logs").insert({ actor_id: user.id, action: "REVOKE", entity_type: "admin_invitation", entity_id: input.invitationId });
       return json({ revoked: true });
     }
+
+    if (!process.env.APP_URL || !process.env.RESEND_API_KEY || !process.env.RESEND_FROM) return json({ error: "Admin invitations are not configured." }, 503);
 
     const token = randomBytes(32).toString("base64url");
     const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
