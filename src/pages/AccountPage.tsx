@@ -9,6 +9,7 @@ import { EmailIcon, EyeIcon } from "../components/Icons";
 import { useLocale } from "../context/LocaleContext";
 import { useAccountRole } from "../hooks/useAccountRole";
 import { usePageMeta } from "../hooks/usePageMeta";
+import { safeReturnTo } from "../hooks/useRequireAccount";
 import { useSession } from "../hooks/useSession";
 import { supabase } from "../lib/supabase";
 
@@ -23,8 +24,7 @@ export function AccountPage() {
   const [confirmationEmail, setConfirmationEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const requestedReturnTo = searchParams.get("returnTo");
-  const returnTo = requestedReturnTo?.startsWith("/") && !requestedReturnTo.startsWith("//") ? requestedReturnTo : "";
+  const returnTo = safeReturnTo(searchParams.get("returnTo"), "");
   const { session, loading } = useSession();
   const accountRole = useAccountRole(session?.user.id);
   const schema = z.object({

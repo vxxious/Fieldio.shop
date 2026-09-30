@@ -364,6 +364,17 @@ test("homepage account invitation opens account creation directly", async ({ pag
   await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
 });
 
+test("guest protected routes redirect once and preserve their original destination", async ({ page }) => {
+  for (const path of ["/wishlist", "/checkout"]) {
+    const expected = `/account?mode=signup&returnTo=${encodeURIComponent(path)}`;
+    await page.goto(path);
+    await expect(page).toHaveURL(new RegExp(`${expected.replace(/[?]/g, "\\?")}$`));
+    await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
+    await page.waitForTimeout(400);
+    expect(`${new URL(page.url()).pathname}${new URL(page.url()).search}`).toBe(expected);
+  }
+});
+
 test("brand directory searches and filters the available brands", async ({ page }) => {
   await page.goto("/brands");
   const search = page.getByRole("searchbox", { name: "Search brands" });

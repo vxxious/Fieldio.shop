@@ -28,9 +28,9 @@ vi.mock("./supabase", () => ({
   }
 }));
 
-function renderWithApp(ui: ReactNode) {
+function renderWithApp(ui: ReactNode, initialEntries = ["/"]) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={client}><MemoryRouter>{ui}</MemoryRouter></QueryClientProvider>);
+  return render(<QueryClientProvider client={client}><MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter></QueryClientProvider>);
 }
 
 beforeEach(() => { state.adminRole = "owner"; state.accountRole = "admin"; state.mfaLevel = "aal2"; });
@@ -45,6 +45,12 @@ it("keeps an approved seller in the seller account experience", async () => {
   state.accountRole = "seller";
   renderWithApp(<AccountPage />);
   expect(await screen.findByText("seller account")).toBeVisible();
+});
+
+it("returns a signed-in buyer to the requested internal route", async () => {
+  state.accountRole = "buyer";
+  renderWithApp(<Routes><Route path="/account" element={<AccountPage />} /><Route path="/wishlist" element={<div>Saved pieces</div>} /></Routes>, ["/account?mode=signup&returnTo=%2Fwishlist"]);
+  expect(await screen.findByText("Saved pieces")).toBeVisible();
 });
 
 it("provides one compact section selector for the admin workspace", async () => {
