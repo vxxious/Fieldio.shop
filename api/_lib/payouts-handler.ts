@@ -21,6 +21,8 @@ export async function POST(request: Request): Promise<Response> {
     }
     const { data, error } = await client.rpc("update_seller_payout", { p_payout_id: input.payoutId, p_status: input.status, p_reference: input.reference || null });
     if (error?.message.includes("PAYOUT_REFERENCE_REQUIRED")) return json({ error: "Enter the payment reference before marking this payout paid." }, 400);
+    if (error?.message.includes("ORDER_PAYMENT_NOT_CONFIRMED")) return json({ error: "Confirm the customer payment for every included order before approving this payout." }, 409);
+    if (error?.message.includes("PAYOUT_NOT_ELIGIBLE") || error?.message.includes("PAYOUT_ON_HOLD")) return json({ error: "This payout contains a fulfilment held by an active return or dispute. Resolve the case before paying that balance." }, 409);
     if (error?.message.includes("INVALID_PAYOUT_TRANSITION")) return json({ error: "That payout status change is not allowed. Refresh and try again." }, 409);
     if (error) throw error;
     const payout = data as { id: string; seller_owner_id: string; status: string; amount: number; currency: string; reference: string | null };

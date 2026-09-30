@@ -14,9 +14,7 @@ const validListing = {
   price: 250,
   compare_at_price: 400,
   currency: "GBP",
-  colors: "Black",
-  sizes: "M",
-  quantity: 1,
+  variants: [{ color: "Black", size: "M", quantity: 1 }],
   weight_kg: 1.2,
   authenticity_confirmed: true
 };
@@ -25,6 +23,11 @@ describe("seller listing details", () => {
   it("requires complete classification and verification details", () => {
     expect(listingSchema.safeParse(validListing).success).toBe(true);
     expect(listingSchema.safeParse({ ...validListing, subcategory_id: "", materials: "", authenticity_confirmed: false }).success).toBe(false);
+  });
+
+  it("rejects duplicate or entirely sold-out inventory combinations", () => {
+    expect(listingSchema.safeParse({ ...validListing, variants: [{ color: "Black", size: "M", quantity: 0 }] }).success).toBe(false);
+    expect(listingSchema.safeParse({ ...validListing, variants: [{ color: "Black", size: "M", quantity: 1 }, { color: "black", size: "m", quantity: 2 }] }).success).toBe(false);
   });
 
   it("returns only subcategories belonging to the selected category", () => {

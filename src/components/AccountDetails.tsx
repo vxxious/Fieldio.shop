@@ -26,7 +26,10 @@ type Details = z.infer<typeof detailsSchema>;
 type AccountIntent = "buy" | "sell";
 type AccountView = "overview" | "orders" | "details";
 interface SupportCase { id: string; status: string; reason: string; resolution: string | null; created_at: string }
-interface Order { id: string; public_reference: string; status: string; created_at: string; updated_at: string; confirmed_at: string | null; subtotal: number | null; currency: string; order_items: Array<{ id: string; product_name: string; quantity: number; size: string | null }>; marketplace_returns: SupportCase[]; marketplace_disputes: SupportCase[] }
+type FulfillmentSummaryStatus = "pending" | "awaiting_vendor" | "partially_accepted" | "accepted" | "preparing" | "partially_fulfilled" | "shipped" | "partially_delivered" | "delivered" | "partially_rejected" | "rejected" | "cancelled";
+interface BuyerFulfillment { order_request_id: string; store_name: string; status: string; carrier: string | null; tracking_reference: string | null; accepted_at: string | null; preparing_at: string | null; shipped_at: string | null; delivered_at: string | null; rejected_at: string | null; updated_at: string; items: Array<{ id: string; productId: string | null; productSlug: string | null; productName: string; quantity: number; reviewId: string | null }> }
+interface OrderEvent { id: number; order_request_id: string; fulfillment_id: string | null; event_type: string; store_name: string | null; from_status: string | null; to_status: string | null; carrier: string | null; tracking_reference: string | null; occurred_at: string }
+interface Order { id: string; public_reference: string; status: string; fulfillment_status?: FulfillmentSummaryStatus; created_at: string; updated_at: string; confirmed_at: string | null; subtotal: number | null; currency: string; payment_status: "pending" | "confirmed"; payment_amount: number | null; payment_method: string | null; payment_reference: string | null; payment_confirmed_at: string | null; order_items: Array<{ id: string; product_name: string; quantity: number; size: string | null }>; marketplace_returns: SupportCase[]; marketplace_disputes: SupportCase[]; fulfillments: BuyerFulfillment[]; events: OrderEvent[] }
 
 const orderStatusKeys: Record<string, TranslationKey> = {
   order_request: "account.status.request",
@@ -38,6 +41,29 @@ const orderStatusKeys: Record<string, TranslationKey> = {
   cancelled: "account.status.cancelled"
 };
 const orderSteps = ["order_request", "confirmed", "processing", "shipped", "delivered"] as const;
+const fulfillmentLabels: Record<FulfillmentSummaryStatus, string> = {
+  pending: "Confirmed", awaiting_vendor: "Awaiting vendor response", partially_accepted: "Partially accepted", accepted: "Accepted", preparing: "Preparing", partially_fulfilled: "Partially fulfilled", shipped: "Shipped", partially_delivered: "Partially delivered", delivered: "Delivered", partially_rejected: "Partially rejected", rejected: "Unable to fulfil", cancelled: "Cancelled"
+};
+const vendorStatusLabels: Record<string, string> = { pending: "Awaiting Fieldio", confirmed: "Awaiting response", accepted: "Accepted", processing: "Preparing", shipped: "Shipped", delivered: "Delivered", rejected: "Unable to fulfil", cancelled: "Cancelled" };
+const fulfillmentSteps = [{ status: "accepted", label: "Accepted", date: "accepted_at" }, { status: "processing", label: "Preparing", date: "preparing_at" }, { status: "shipped", label: "Shipped", date: "shipped_at" }, { status: "delivered", label: "Delivered", date: "delivered_at" }] as const;
+
+function fulfillmentStep(status: FulfillmentSummaryStatus): number {
+  if (["pending", "awaiting_vendor", "partially_accepted", "accepted"].includes(status)) return 1;
+  if (["preparing", "partially_rejected"].includes(status)) return 2;
+  if (["partially_fulfilled", "shipped"].includes(status)) return 3;
+  if (["partially_delivered", "delivered"].includes(status)) return 4;
+  return -1;
+}
+
+function orderEventLabel(event: OrderEvent): string {
+  if (event.event_type === "order_created") return "Order requested";
+  if (event.event_type === "confirmation_started") return "Fieldio started confirming your order";
+  if (event.event_type === "order_confirmed") return "Order confirmed";
+  if (event.event_type === "payment_confirmed") return "Payment confirmed";
+  if (event.event_type === "order_cancelled") return "Order cancelled";
+  const store = event.store_name ?? "Store";
+  return ({ confirmed: `${store} was notified`, accepted: `${store} accepted your order`, processing: `${store} is preparing your items`, shipped: `${store} shipped your items`, delivered: `${store} delivery confirmed`, rejected: `${store} could not fulfil these items`, cancelled: `${store} fulfilment cancelled` } as Record<string, string>)[event.to_status ?? ""] ?? `${store} updated your fulfilment`;
+}
 
 function OrderSupport({ order }: { order: Order }) {
   const [mode, setMode] = useState<"return" | "dispute" | null>(null);
@@ -88,9 +114,15 @@ export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "b
     return { profile: profile.data, address: address.data };
   } });
   const orders = useQuery({ queryKey: ["account-orders", userId], enabled: view === "orders", queryFn: async () => {
-    const { data, error } = await supabase!.from("order_requests").select("id,public_reference,status,created_at,updated_at,confirmed_at,subtotal,currency,order_items(id,product_name,quantity,size),marketplace_returns(id,status,reason,resolution,created_at),marketplace_disputes(id,status,reason,resolution,created_at)").eq("user_id", userId).order("created_at", { ascending: false });
-    if (error) throw error;
-    return data as Order[];
+    const [ordersResult, fulfillmentsResult, eventsResult] = await Promise.all([
+      supabase!.from("order_requests").select("id,public_reference,status,fulfillment_status,created_at,updated_at,confirmed_at,subtotal,currency,payment_status,payment_amount,payment_method,payment_reference,payment_confirmed_at,order_items(id,product_name,quantity,size),marketplace_returns(id,status,reason,resolution,created_at),marketplace_disputes(id,status,reason,resolution,created_at)").eq("user_id", userId).order("created_at", { ascending: false }),
+      supabase!.rpc("buyer_order_fulfillments"),
+      supabase!.rpc("buyer_order_timeline")
+    ]);
+    if (ordersResult.error || fulfillmentsResult.error || eventsResult.error) throw ordersResult.error || fulfillmentsResult.error || eventsResult.error;
+    const fulfillments = (fulfillmentsResult.data ?? []) as BuyerFulfillment[];
+    const events = (eventsResult.data ?? []) as OrderEvent[];
+    return (ordersResult.data as Omit<Order, "fulfillments" | "events">[]).map((order) => ({ ...order, fulfillments: fulfillments.filter((group) => group.order_request_id === order.id), events: events.filter((event) => event.order_request_id === order.id) }));
   } });
   const { register, handleSubmit, setFocus, formState: { errors, isSubmitting } } = useForm<Details>({ resolver: zodResolver(detailsSchema), values: {
     full_name: details.data?.profile?.full_name || "",
@@ -205,20 +237,34 @@ export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "b
       {view === "orders" ? <section className="account-view-content">
         {orders.isPending ? <p role="status">{t("account.loadingRequests")}</p> : orders.error ? <p role="alert">{t("account.requestsError")} <button className="text-link" onClick={() => void orders.refetch()}>{t("account.retry")}</button></p> : orders.data?.length ? orders.data.map((order) => {
           const statusKey = orderStatusKeys[order.status];
-          const stepIndex = order.status === "awaiting_confirmation" ? 0 : orderSteps.indexOf(order.status as typeof orderSteps[number]);
+          const fulfillmentStatus = order.fulfillment_status ?? (["processing", "shipped", "delivered"].includes(order.status) ? order.status as FulfillmentSummaryStatus : "pending");
+          const isEarlyStatus = ["order_request", "awaiting_confirmation", "cancelled"].includes(order.status);
+          const statusLabel = isEarlyStatus ? (statusKey ? t(statusKey) : order.status.replaceAll("_", " ")) : fulfillmentLabels[fulfillmentStatus];
+          const stepIndex = order.status === "order_request" || order.status === "awaiting_confirmation" ? 0 : fulfillmentStep(fulfillmentStatus);
           const statusDate = order.status === "order_request" ? order.created_at : order.status === "confirmed" && order.confirmed_at ? order.confirmed_at : order.updated_at;
           const formatDate = (value: string) => new Intl.DateTimeFormat(language.locale, { dateStyle: "medium" }).format(new Date(value));
+          const lockedActions = ["partially_fulfilled", "shipped", "partially_delivered", "delivered", "rejected", "cancelled"].includes(fulfillmentStatus) || order.status === "cancelled";
+          const canAskForTracking = ["partially_fulfilled", "shipped", "partially_delivered"].includes(fulfillmentStatus);
           return <article className="account-order" key={order.id}>
-            <div className="account-order-heading"><div><div className="account-order-reference"><h2>{order.public_reference}</h2><button className="text-link" type="button" aria-live="polite" onClick={() => void copyReference(order.public_reference)}>{copyStatus?.reference === order.public_reference && copyStatus.state === "copied" ? t("account.referenceCopied") : copyStatus?.reference === order.public_reference && copyStatus.state === "error" ? t("account.copyReferenceError") : t("account.copyReference")}</button></div><p>{statusKey ? t(statusKey) : order.status.replaceAll("_", " ")} · {formatDate(statusDate)}</p></div>{order.subtotal !== null && <strong>{formatMoney(order.subtotal, order.currency)}</strong>}</div>
+            <div className="account-order-heading"><div><div className="account-order-reference"><h2>{order.public_reference}</h2><button className="text-link" type="button" aria-live="polite" onClick={() => void copyReference(order.public_reference)}>{copyStatus?.reference === order.public_reference && copyStatus.state === "copied" ? t("account.referenceCopied") : copyStatus?.reference === order.public_reference && copyStatus.state === "error" ? t("account.copyReferenceError") : t("account.copyReference")}</button></div><p>{statusLabel} · {formatDate(statusDate)}</p></div>{order.subtotal !== null && <strong>{formatMoney(order.subtotal, order.currency)}</strong>}</div>
+            <div className={`account-order-payment ${order.payment_status}`}><strong>{order.payment_status === "confirmed" ? "Payment confirmed" : ["confirmed", "processing", "shipped", "delivered"].includes(order.status) ? "Payment awaiting confirmation" : "Payment arranged after confirmation"}</strong>{order.payment_status === "confirmed" && order.payment_amount !== null && <span>{formatMoney(order.payment_amount, order.currency)} · {order.payment_method?.replaceAll("_", " ")} · Reference {order.payment_reference}</span>}</div>
             {order.status === "cancelled" ? <p className="account-order-cancelled">{t("account.status.cancelled")}</p> : stepIndex >= 0 && <ol className="account-order-progress" aria-label={t("account.progress")}>{orderSteps.map((step, index) => {
               const stageDate = step === "order_request" ? order.created_at : step === "confirmed" ? order.confirmed_at : index === stepIndex ? order.updated_at : null;
               return <li key={step} className={index < stepIndex ? "complete past" : index === stepIndex ? "complete current" : "upcoming"} aria-current={index === stepIndex ? "step" : undefined}><span className="account-order-marker" aria-hidden="true" /><span className="account-order-step-label">{t(orderStatusKeys[step]!)}</span>{stageDate && index <= stepIndex && <time dateTime={stageDate}>{formatDate(stageDate)}</time>}</li>;
             })}</ol>}
+            {order.fulfillments.length > 0 && <section className="account-order-fulfillments" aria-label="Fulfilment by store"><h3>Fulfilment by store</h3><ul>{order.fulfillments.map((group) => {
+              const activeStep = fulfillmentSteps.findIndex((step) => step.status === group.status);
+              return <li key={`${group.order_request_id}-${group.store_name}`}><div className="account-fulfillment-heading"><div><strong>{group.store_name}</strong><span>{group.items.map((item) => `${item.productName} × ${item.quantity}`).join(", ")}</span></div><span className={`seller-status seller-status--${group.status}`}>{vendorStatusLabels[group.status] ?? group.status.replaceAll("_", " ")}</span></div>{group.carrier && group.tracking_reference && <p className="account-fulfillment-tracking"><span>{group.carrier}</span><strong>{group.tracking_reference}</strong></p>}{["rejected", "cancelled"].includes(group.status) ? <p className="account-fulfillment-terminal">{vendorStatusLabels[group.status]}</p> : <ol className="account-fulfillment-progress" aria-label={`${group.store_name} delivery progress`}>{fulfillmentSteps.map((step, index) => {
+                const stageDate = group[step.date];
+                return <li key={step.status} className={index <= activeStep ? "complete" : "upcoming"}><span aria-hidden="true" /><strong>{step.label}</strong>{stageDate && <time dateTime={stageDate}>{formatDate(stageDate)}</time>}</li>;
+              })}</ol>}{group.status === "delivered" && <ul className="account-fulfillment-review-actions" aria-label={`${group.store_name} delivered item reviews`}>{group.items.map((item) => <li key={item.id}><span>{item.productName}</span>{item.productSlug && (item.reviewId ? <Link className="text-link" to={`/products/${item.productSlug}#reviews`}>View your review</Link> : <Link className="text-link" to={`/products/${item.productSlug}?reviewItem=${item.id}#reviews`}>Review this item</Link>)}</li>)}</ul>}</li>;
+            })}</ul></section>}
             <ul>{order.order_items.map((item) => <li key={item.id}>{item.product_name} · {item.size || t("account.variantConfirmed")} · {t("account.quantity")} {item.quantity}</li>)}</ul>
+            {order.events.length > 0 && <section className="account-order-events" aria-label="Order activity"><h3>Order activity</h3><ol>{order.events.map((event) => <li key={event.id}><span aria-hidden="true" /><div><strong>{orderEventLabel(event)}</strong>{event.carrier && event.tracking_reference && <small>{event.carrier} · {event.tracking_reference}</small>}<time dateTime={event.occurred_at}>{formatDate(event.occurred_at)}</time></div></li>)}</ol></section>}
             <div className="account-order-actions">
               <a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, I would like an update on order request ${order.public_reference}.`)} target="_blank" rel="noreferrer">{t("account.continueWhatsApp")}</a>
-              {!['delivered', 'cancelled'].includes(order.status) && <><a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, I would like to request a change to order request ${order.public_reference}.`)} target="_blank" rel="noreferrer">Request a change</a><a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, I would like to request cancellation of order request ${order.public_reference}.`)} target="_blank" rel="noreferrer">Request cancellation</a></>}
-              {order.status === "shipped" && <a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, please share the delivery tracking for order request ${order.public_reference}.`)} target="_blank" rel="noreferrer">Ask for tracking</a>}
+              {!lockedActions && <><a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, I would like to request a change to order request ${order.public_reference}.`)} target="_blank" rel="noreferrer">Request a change</a><a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, I would like to request cancellation of order request ${order.public_reference}.`)} target="_blank" rel="noreferrer">Request cancellation</a></>}
+              {canAskForTracking && <a className="text-link" href={createWhatsAppUrl(`Hello Fieldio, please share the delivery tracking for order request ${order.public_reference}.`)} target="_blank" rel="noreferrer">Ask for tracking</a>}
             </div>
             <OrderSupport order={order} />
           </article>;

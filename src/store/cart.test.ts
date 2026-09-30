@@ -22,4 +22,14 @@ describe("cart store", () => {
     useCartStore.getState().updateQuantity(key, 100);
     expect(useCartStore.getState().items[0]!.quantity).toBe(10);
   });
+
+  it("does not exceed the selected variant's available stock", () => {
+    const product = products[0]!;
+    const variant = { ...product.variants[0]!, inventory: 2 };
+    useCartStore.getState().addItem(product, variant, 10);
+    const item = useCartStore.getState().items[0]!;
+    expect(item.quantity).toBe(2);
+    useCartStore.getState().updateQuantity(item.key, 8);
+    expect(useCartStore.getState().items[0]!.quantity).toBe(2);
+  });
 });

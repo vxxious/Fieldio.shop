@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { z } from "zod";
 import { ArrowIcon, CheckSealIcon, ImageIcon, PlusIcon, StarIcon, StoreIcon } from "../components/Icons";
@@ -19,13 +19,14 @@ type ListingStatus = ReviewStatus | "archived";
 interface SellerApplication { id: string; kind: "seller" | "vendor"; legal_name: string; business_name: string | null; country_code: string; phone_country_code: string; phone: string; whatsapp_country_code: string; whatsapp_phone: string; contact_email: string; website: string | null; identity_document_path: string; address_document_path: string; business_document_path: string | null; status: ReviewStatus; review_reason: string | null; }
 interface Store { id: string; name: string; slug: string; description: string; logo_path: string | null; contact_email: string; contact_phone_country_code: string; contact_phone: string; contact_whatsapp_country_code: string; contact_whatsapp_phone: string; status: "active" | "suspended"; updated_at: string; }
 interface ListingImage { id: string; storage_path: string; alt_text: string; position: number; preview_url: string; }
-interface Listing { id: string; title: string; description: string; audience: ListingValues["audience"]; category_id: string; subcategory_id: string; condition: ListingValues["condition"]; condition_notes: string; materials: string; item_reference: string | null; price: number; compare_at_price: number | null; currency: string; colors: string[]; sizes: string[]; quantity: number; weight_kg: number; authenticity_confirmed: boolean; status: ListingStatus; review_reason: string | null; published_product_id: string | null; created_at: string; images: ListingImage[]; }
+interface ListingVariant { id?: string; color: string; size: string; quantity: number; published_variant_id?: string | null; }
+interface Listing { id: string; title: string; description: string; audience: ListingValues["audience"]; category_id: string; subcategory_id: string; condition: ListingValues["condition"]; condition_notes: string; materials: string; item_reference: string | null; price: number; compare_at_price: number | null; currency: string; colors: string[]; sizes: string[]; quantity: number; weight_kg: number; authenticity_confirmed: boolean; status: ListingStatus; review_reason: string | null; published_product_id: string | null; created_at: string; images: ListingImage[]; variants: ListingVariant[]; }
 interface Category { id: string; parent_id: string | null; name: string; }
 interface VendorReview { id: string; rating: number; review_text: string; reviewer_name: string; purchased_variant: string | null; purchased_size: string | null; purchased_color: string | null; created_at: string; product: { name: string } | null; images: Array<{ id: string; storage_path: string; position: number; url: string }>; }
 interface VendorReviewSummary { averageRating: number; total: number; breakdown: Record<string, number>; }
-type FulfillmentStatus = "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled";
+type FulfillmentStatus = "pending" | "confirmed" | "accepted" | "rejected" | "processing" | "shipped" | "delivered" | "cancelled";
 interface VendorFulfillmentItem { id: string; productName: string; variantName: string | null; size: string | null; color: string | null; quantity: number; sku: string; }
-interface VendorFulfillment { id: string; order_request_id: string; public_reference: string; status: FulfillmentStatus; store_name: string; customer_name: string; customer_phone: string; shipping_address: string; carrier: string | null; tracking_reference: string | null; created_at: string; updated_at: string; items: VendorFulfillmentItem[]; }
+interface VendorFulfillment { id: string; order_request_id: string; public_reference: string; status: FulfillmentStatus; payment_status: "pending" | "confirmed"; store_name: string; customer_name: string | null; customer_phone: string | null; shipping_address: string | null; carrier: string | null; tracking_reference: string | null; rejection_reason: string | null; accepted_at: string | null; rejected_at: string | null; preparing_at: string | null; shipped_at: string | null; delivered_at: string | null; created_at: string; updated_at: string; items: VendorFulfillmentItem[]; }
 interface SellerPayout { id: string; amount: number; currency: string; status: string; reference: string | null; created_at: string; paid_at: string | null }
 interface SellerCase { id: string; order_request_id: string; reason: string; details: string; status: string; created_at: string }
 
@@ -50,26 +51,41 @@ type StoreValues = z.infer<typeof storeSchema>;
 const contactSchema = z.object(contactFields);
 type ContactValues = z.infer<typeof contactSchema>;
 
+const listingVariantSchema = z.object({
+  id: z.string().uuid().optional(), color: z.string().trim().min(1, "Add a colour.").max(80),
+  size: z.string().trim().min(1, "Add a size or enter One size.").max(80), quantity: z.number().int().min(0).max(10000)
+});
+
 export const listingSchema = z.object({
   title: z.string().trim().min(2, "Enter a product name.").max(160), description: z.string().trim().min(20, "Add at least 20 characters.").max(5000),
   audience: z.enum(["women", "men", "unisex"], { message: "Choose who this product is for." }),
   category_id: z.string().uuid("Choose a category."), subcategory_id: z.string().uuid("Choose a subcategory."), condition: z.enum(["new_with_tags", "new_without_tags", "excellent", "very_good", "good", "fair"]),
   condition_notes: z.string().trim().min(10, "Describe the product's condition in at least 10 characters.").max(1000), materials: z.string().trim().min(2, "Add the material or composition.").max(500), item_reference: z.string().trim().max(120),
   price: z.number().positive("Enter a price."), compare_at_price: z.union([z.literal(""), z.number().positive()]), currency: z.string().trim().length(3).transform((value) => value.toUpperCase()),
-  colors: z.string().trim().min(1, "Add at least one colour.").max(300), sizes: z.string().trim().min(1, "Add at least one size or enter One size.").max(300), quantity: z.number().int().min(1).max(10000), weight_kg: z.number().positive().max(1000),
+  variants: z.array(listingVariantSchema).min(1, "Add at least one size and colour.").max(100), weight_kg: z.number().positive().max(1000),
   authenticity_confirmed: z.boolean().refine(Boolean, "Confirm authenticity and your authority to sell this product.")
-}).superRefine((values, context) => { if (values.compare_at_price !== "" && values.compare_at_price <= values.price) context.addIssue({ code: "custom", path: ["compare_at_price"], message: "The original price must be higher than the selling price." }); });
+}).superRefine((values, context) => {
+  if (values.compare_at_price !== "" && values.compare_at_price <= values.price) context.addIssue({ code: "custom", path: ["compare_at_price"], message: "The original price must be higher than the selling price." });
+  const seen = new Set<string>();
+  values.variants.forEach((variant, index) => {
+    const key = `${variant.color.trim().toLocaleLowerCase()}\u0000${variant.size.trim().toLocaleLowerCase()}`;
+    if (seen.has(key)) context.addIssue({ code: "custom", path: ["variants", index, "color"], message: "This colour and size already exists." });
+    seen.add(key);
+  });
+  const total = values.variants.reduce((sum, variant) => sum + variant.quantity, 0);
+  if (total < 1) context.addIssue({ code: "custom", path: ["variants"], message: "At least one variant must be in stock." });
+});
 type ListingValues = z.infer<typeof listingSchema>;
 
-const splitOptions = (value: string) => value.split(",").map((item) => item.trim()).filter(Boolean);
 export const subcategoriesFor = (categories: Category[], categoryId: string | undefined) => categories.filter((item) => item.parent_id === categoryId);
 export const requiresDefectEvidence = (condition: ListingValues["condition"]) => condition === "good" || condition === "fair";
 export const listingValuesFor = (listing: Listing | null, currency: string): Partial<ListingValues> => listing ? {
   title: listing.title, description: listing.description, audience: listing.audience, category_id: listing.category_id, subcategory_id: listing.subcategory_id,
   condition: listing.condition, condition_notes: listing.condition_notes, materials: listing.materials, item_reference: listing.item_reference ?? "",
   price: listing.price / 100, compare_at_price: listing.compare_at_price === null ? "" : listing.compare_at_price / 100, currency: listing.currency,
-  colors: listing.colors.join(", "), sizes: listing.sizes.join(", "), quantity: listing.quantity, weight_kg: listing.weight_kg, authenticity_confirmed: listing.authenticity_confirmed
-} : { audience: "women", condition: "excellent", currency, quantity: 1, colors: "", sizes: "", compare_at_price: "", condition_notes: "", materials: "", item_reference: "", authenticity_confirmed: false };
+  variants: listing.variants.length ? listing.variants.map(({ id, color, size, quantity }) => ({ id, color, size, quantity })) : [{ color: listing.colors.join(" / ") || "Default", size: listing.sizes[0] || "One size", quantity: listing.quantity }],
+  weight_kg: listing.weight_kg, authenticity_confirmed: listing.authenticity_confirmed
+} : { audience: "women", condition: "excellent", currency, variants: [{ color: "", size: "", quantity: 1 }], compare_at_price: "", condition_notes: "", materials: "", item_reference: "", authenticity_confirmed: false };
 
 async function uploadFile(bucket: string, path: string, file: File) {
   const { error } = await supabase!.storage.from(bucket).upload(path, file, { contentType: file.type, upsert: false });
@@ -79,6 +95,10 @@ async function uploadFile(bucket: string, path: string, file: File) {
 
 function FieldError({ id, message }: { id: string; message: string | undefined }) {
   return message ? <small id={id} role="alert">{message}</small> : null;
+}
+
+function InventoryMatrix({ rows }: { rows: Array<Pick<ListingVariant, "color" | "size" | "quantity">> }) {
+  return <ul className="seller-inventory-summary">{rows.map((row, index) => <li key={`${row.color}-${row.size}-${index}`}><span>{row.color} · {row.size}</span><strong>{row.quantity}</strong></li>)}</ul>;
 }
 
 function VerificationForm({ userId, email, application, defaultCountryCode, onDone }: { userId: string; email: string; application: SellerApplication | null; defaultCountryCode: string; onDone: () => Promise<void> }) {
@@ -195,6 +215,7 @@ function ListingForm({ userId, store, categories, currency, listing, onCancel, o
   const [status, setStatus] = useState("");
   const roots = categories.filter((item) => !item.parent_id);
   const { control, register, handleSubmit, getValues, setFocus, setValue, formState: { errors, isSubmitting } } = useForm<ListingValues>({ resolver: zodResolver(listingSchema), defaultValues: listingValuesFor(listing, currency) });
+  const { fields: variants, append: addVariant, remove: removeVariant } = useFieldArray({ control, name: "variants" });
   const selectedCategory = useWatch({ control, name: "category_id" });
   const selectedCondition = useWatch({ control, name: "condition" });
   const previousCategory = useRef(selectedCategory);
@@ -226,12 +247,17 @@ function ListingForm({ userId, store, categories, currency, listing, onCancel, o
     setStatus("");
     try {
       for (const file of images) { const path = `${userId}/${listingId}/${crypto.randomUUID()}.${uploadExtension(file)}`; uploaded.push(await uploadFile("seller-listing-media", path, file)); }
-      const details = { title: values.title, description: values.description, audience: values.audience, category_id: values.category_id, subcategory_id: values.subcategory_id, condition: values.condition, condition_notes: values.condition_notes, materials: values.materials, item_reference: values.item_reference || null, price: Math.round(values.price * 100), compare_at_price: values.compare_at_price === "" ? null : Math.round(values.compare_at_price * 100), currency: values.currency, colors: splitOptions(values.colors), sizes: splitOptions(values.sizes), quantity: values.quantity, weight_kg: values.weight_kg, authenticity_confirmed: values.authenticity_confirmed };
+      const colors = [...new Set(values.variants.map((variant) => variant.color.trim()))];
+      const sizes = [...new Set(values.variants.map((variant) => variant.size.trim()))];
+      const quantity = values.variants.reduce((total, variant) => total + variant.quantity, 0);
+      const details = { title: values.title, description: values.description, audience: values.audience, category_id: values.category_id, subcategory_id: values.subcategory_id, condition: values.condition, condition_notes: values.condition_notes, materials: values.materials, item_reference: values.item_reference || null, price: Math.round(values.price * 100), compare_at_price: values.compare_at_price === "" ? null : Math.round(values.compare_at_price * 100), currency: values.currency, colors, sizes, quantity, weight_kg: values.weight_kg, authenticity_confirmed: values.authenticity_confirmed };
       const listingResult = listing
         ? await supabase!.from("seller_listings").update(details).eq("id", listingId)
         : await supabase!.from("seller_listings").insert({ id: listingId, owner_id: userId, store_id: store.id, ...details });
       const listingError = listingResult.error;
       if (listingError) throw listingError;
+      const inventoryResult = await supabase!.rpc("save_seller_listing_inventory", { p_listing_id: listingId, p_variants: values.variants.map(({ color, size, quantity: variantQuantity }) => ({ color: color.trim(), size: size.trim(), quantity: variantQuantity })) });
+      if (inventoryResult.error) throw inventoryResult.error;
       if (listing) {
         const removed = listing.images.filter(({ id }) => !existingImages.some((image) => image.id === id));
         if (removed.length) {
@@ -262,7 +288,7 @@ function ListingForm({ userId, store, categories, currency, listing, onCancel, o
   const values = getValues();
   const categoryName = categories.find((item) => item.id === values.category_id)?.name;
   const subcategoryName = categories.find((item) => item.id === values.subcategory_id)?.name;
-  if (reviewing) return <section className="seller-panel seller-review"><header><button type="button" className="text-link" onClick={() => setReviewing(false)}>← Edit listing</button><h1>Review listing</h1><p>Confirm every detail before sending it to Fieldio for approval.</p></header><div className="seller-review-grid"><div className="seller-review-images">{previews.map((url, index) => <img key={`${url}-${index}`} src={url} alt={`Product preview ${index + 1}`} />)}</div><dl><div><dt>Product</dt><dd>{values.title}</dd></div><div><dt>Store</dt><dd>{store.name}</dd></div><div><dt>For</dt><dd>{values.audience}</dd></div><div><dt>Category</dt><dd>{categoryName} · {subcategoryName}</dd></div><div><dt>Price</dt><dd>{values.currency} {Number(values.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}{values.compare_at_price !== "" && <> <s>{values.currency} {Number(values.compare_at_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</s></>}</dd></div><div><dt>Condition</dt><dd>{values.condition.replaceAll("_", " ")} · {values.condition_notes}</dd></div><div><dt>Materials</dt><dd>{values.materials}</dd></div>{values.item_reference && <div><dt>Reference</dt><dd>{values.item_reference}</dd></div>}<div><dt>Options</dt><dd>{values.colors} · {values.sizes}</dd></div><div><dt>Quantity / weight</dt><dd>{values.quantity} per size · {values.weight_kg} kg</dd></div></dl></div><p className="seller-review-copy">{values.description}</p>{status && <p className="form-message" role="alert">{status}</p>}<button type="button" className="primary-button" disabled={isSubmitting} onClick={() => void handleSubmit(submit)()}>{isSubmitting ? "Submitting…" : "Submit listing for review"}</button></section>;
+  if (reviewing) return <section className="seller-panel seller-review"><header><button type="button" className="text-link" onClick={() => setReviewing(false)}>← Edit listing</button><h1>Review listing</h1><p>Confirm every detail before sending it to Fieldio for approval.</p></header><div className="seller-review-grid"><div className="seller-review-images">{previews.map((url, index) => <img key={`${url}-${index}`} src={url} alt={`Product preview ${index + 1}`} />)}</div><dl><div><dt>Product</dt><dd>{values.title}</dd></div><div><dt>Store</dt><dd>{store.name}</dd></div><div><dt>For</dt><dd>{values.audience}</dd></div><div><dt>Category</dt><dd>{categoryName} · {subcategoryName}</dd></div><div><dt>Price</dt><dd>{values.currency} {Number(values.price).toLocaleString(undefined, { minimumFractionDigits: 2 })}{values.compare_at_price !== "" && <> <s>{values.currency} {Number(values.compare_at_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</s></>}</dd></div><div><dt>Condition</dt><dd>{values.condition.replaceAll("_", " ")} · {values.condition_notes}</dd></div><div><dt>Materials</dt><dd>{values.materials}</dd></div>{values.item_reference && <div><dt>Reference</dt><dd>{values.item_reference}</dd></div>}<div><dt>Inventory</dt><dd><InventoryMatrix rows={values.variants} /></dd></div><div><dt>Weight</dt><dd>{values.weight_kg} kg</dd></div></dl></div><p className="seller-review-copy">{values.description}</p>{status && <p className="form-message" role="alert">{status}</p>}<button type="button" className="primary-button" disabled={isSubmitting} onClick={() => void handleSubmit(submit)()}>{isSubmitting ? "Submitting…" : "Submit listing for review"}</button></section>;
 
   return <section className="seller-panel"><header><button type="button" className="text-link" onClick={onCancel}>← Seller dashboard</button><h1>{listing ? "Edit your listing" : "Add a product"}</h1><p>{listing ? "Make the requested changes, review everything, then resubmit for approval." : "Listings are checked for authenticity, ownership, condition, and image quality before they appear in the shop."}</p></header><form className="seller-form" onSubmit={handleSubmit(() => { if (!existingImages.length && !images.length) { setStatus("Add at least one clear product image."); return; } setReviewing(true); }, (formErrors) => setFocus(Object.keys(formErrors)[0] as keyof ListingValues))} noValidate>
     <fieldset className="seller-media"><legend>Product images</legend><div className="seller-media-actions"><label><ImageIcon /><span>Choose from gallery</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onChange={(event) => addImages(event.target.files)} /></label><label><ImageIcon /><span>Take a photo</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" capture="environment" onChange={(event) => addImages(event.target.files)} /></label></div>{previews.length > 0 && <div className="seller-media-preview">{previews.map((url, index) => <figure key={`${url}-${index}`}><img src={url} alt={`Product preview ${index + 1}`} /><button type="button" onClick={() => index < existingImages.length ? setExistingImages((current) => current.filter((_, imageIndex) => imageIndex !== index)) : setImages((current) => current.filter((_, imageIndex) => imageIndex !== index - existingImages.length))}>Remove</button></figure>)}</div>}<small>1–8 JPG, PNG, WebP, or AVIF images. Maximum 10 MB each.</small></fieldset>
@@ -274,8 +300,8 @@ function ListingForm({ userId, store, categories, currency, listing, onCancel, o
     <label><span>Condition details</span><textarea rows={3} placeholder="Mention wear, marks, repairs, or missing packaging." {...register("condition_notes")} aria-invalid={!!errors.condition_notes} aria-describedby={errors.condition_notes ? "listing-condition-notes-error" : undefined} /><FieldError id="listing-condition-notes-error" message={errors.condition_notes?.message} /></label>
     <div className="seller-form-row"><label><span>Materials or composition</span><input placeholder="100% cotton" {...register("materials")} aria-invalid={!!errors.materials} aria-describedby={errors.materials ? "listing-materials-error" : undefined} /><FieldError id="listing-materials-error" message={errors.materials?.message} /></label><label><span>Item or style reference <small>Optional</small></span><input placeholder="Style code or model" {...register("item_reference")} /></label></div>
     <div className="seller-form-row seller-price-row"><label><span>Selling price</span><input type="number" min="0.01" step="0.01" {...register("price", { valueAsNumber: true })} aria-invalid={!!errors.price} aria-describedby={errors.price ? "listing-price-error" : undefined} /><FieldError id="listing-price-error" message={errors.price?.message} /></label><label><span>Original price <small>Optional slash price</small></span><input type="number" min="0.01" step="0.01" {...register("compare_at_price", { setValueAs: (value) => value === "" ? "" : Number(value) })} aria-invalid={!!errors.compare_at_price} aria-describedby={errors.compare_at_price ? "listing-compare-error" : undefined} /><FieldError id="listing-compare-error" message={errors.compare_at_price?.message} /></label></div>
-    <div className="seller-form-row"><label><span>Colours <small>Comma separated</small></span><input placeholder="Black, Ivory" {...register("colors")} aria-invalid={!!errors.colors} aria-describedby={errors.colors ? "listing-colours-error" : undefined} /><FieldError id="listing-colours-error" message={errors.colors?.message} /></label><label><span>Sizes <small>Comma separated</small></span><input placeholder="S, M, L or One size" {...register("sizes")} aria-invalid={!!errors.sizes} aria-describedby={errors.sizes ? "listing-sizes-error" : undefined} /><FieldError id="listing-sizes-error" message={errors.sizes?.message} /></label></div>
-    <div className="seller-form-row"><label><span>Quantity available per size</span><input type="number" min="1" {...register("quantity", { valueAsNumber: true })} aria-invalid={!!errors.quantity} aria-describedby={errors.quantity ? "listing-quantity-error" : undefined} /><FieldError id="listing-quantity-error" message={errors.quantity?.message} /></label><label><span>Weight (kg)</span><input type="number" min="0.001" step="0.001" {...register("weight_kg", { valueAsNumber: true })} aria-invalid={!!errors.weight_kg} aria-describedby={errors.weight_kg ? "listing-weight-error" : undefined} /><FieldError id="listing-weight-error" message={errors.weight_kg?.message} /></label></div>
+    <fieldset className="seller-inventory-editor"><legend>Size, colour and inventory</legend><p>Each row is one exact purchasable option. Use 0 for a sold-out combination.</p><div className="seller-inventory-head" aria-hidden="true"><span>Colour</span><span>Size</span><span>Quantity</span><span /></div>{variants.map((variant, index) => <div className="seller-inventory-row" key={variant.id}><label><span className="sr-only">Colour for variant {index + 1}</span><input placeholder="Black" {...register(`variants.${index}.color`)} aria-invalid={!!errors.variants?.[index]?.color} /></label><label><span className="sr-only">Size for variant {index + 1}</span><input placeholder="M or One size" {...register(`variants.${index}.size`)} aria-invalid={!!errors.variants?.[index]?.size} /></label><label><span className="sr-only">Quantity for variant {index + 1}</span><input type="number" min="0" max="10000" {...register(`variants.${index}.quantity`, { valueAsNumber: true })} aria-invalid={!!errors.variants?.[index]?.quantity} /></label><button type="button" className="text-link" disabled={variants.length === 1} onClick={() => removeVariant(index)} aria-label={`Remove variant ${index + 1}`}>Remove</button>{(errors.variants?.[index]?.color?.message || errors.variants?.[index]?.size?.message || errors.variants?.[index]?.quantity?.message) && <small role="alert">{errors.variants[index]?.color?.message || errors.variants[index]?.size?.message || errors.variants[index]?.quantity?.message}</small>}</div>)}<button type="button" className="secondary-button" onClick={() => addVariant({ color: "", size: "", quantity: 0 })}><PlusIcon /> Add variant</button><FieldError id="listing-variants-error" message={errors.variants?.root?.message ?? errors.variants?.message} /></fieldset>
+    <label><span>Weight (kg)</span><input type="number" min="0.001" step="0.001" {...register("weight_kg", { valueAsNumber: true })} aria-invalid={!!errors.weight_kg} aria-describedby={errors.weight_kg ? "listing-weight-error" : undefined} /><FieldError id="listing-weight-error" message={errors.weight_kg?.message} /></label>
     <label className="seller-consent"><input type="checkbox" {...register("authenticity_confirmed")} aria-invalid={!!errors.authenticity_confirmed} aria-describedby={errors.authenticity_confirmed ? "listing-authenticity-error" : undefined} /><span>I confirm this item is authentic, the details are accurate, and I am authorised to sell it.</span></label><FieldError id="listing-authenticity-error" message={errors.authenticity_confirmed?.message} />
     {status && <p className="form-message" role="alert">{status}</p>}<button className="primary-button">Review listing</button>
   </form></section>;
@@ -310,30 +336,62 @@ function StoreLogoEditor({ userId, store, onDone }: { userId: string; store: Sto
   return <div className="seller-logo-editor"><div className="seller-logo-preview">{logoUrl ? <img src={`${logoUrl}?v=${encodeURIComponent(store.updated_at)}`} alt={`${store.name} logo`} /> : <StoreIcon />}</div><div><strong>Brand logo</strong><p>Shown on your public Fieldio storefront.</p><div><label className="secondary-button">{working ? "Updating…" : logoUrl ? "Replace logo" : "Upload logo"}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={working} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; void uploadLogo(file); }} /></label>{logoUrl && <button className="text-link" type="button" disabled={working} onClick={() => void removeLogo()}>Remove</button>}</div><small>Square images work best. Maximum 5 MB.</small>{status && <p className="form-message" role="status">{status}</p>}</div></div>;
 }
 
-function SellerDashboard({ userId, store, listings, onAdd, onEdit, onEditContacts, onStoreUpdated }: { userId: string; store: Store; listings: Listing[]; onAdd: () => void; onEdit: (listing: Listing) => void; onEditContacts: () => void; onStoreUpdated: () => Promise<void> }) {
-  return <section className="seller-dashboard"><header><div><p>{store.name}</p><h1>Seller dashboard</h1><span>{store.description}</span></div><div className="seller-dashboard-actions"><button className="secondary-button" onClick={onEditContacts}>Edit contact details</button><button className="primary-button" onClick={onAdd}><PlusIcon /> Add product</button></div></header><StoreLogoEditor userId={userId} store={store} onDone={onStoreUpdated} /><div className="seller-summary"><div><strong>{listings.length}</strong><span>Total listings</span></div><div><strong>{listings.filter((item) => item.status === "pending").length}</strong><span>In review</span></div><div><strong>{listings.filter((item) => item.status === "approved").length}</strong><span>Live</span></div></div><section className="seller-listings"><h2>Your products</h2>{listings.length ? listings.map((listing) => <article key={listing.id}><div><h3>{listing.title}</h3><p>{listing.currency} {(listing.price / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} · <span className={`seller-status seller-status--${listing.status}`}>{listing.status}</span></p>{listing.review_reason && <small>{listing.review_reason}</small>}</div><div className="seller-listing-actions">{listing.status === "rejected" && <button className="text-link" type="button" onClick={() => onEdit(listing)}>Edit and resubmit</button>}{listing.published_product_id && <Link className="text-link" to="/collections">View in shop <ArrowIcon /></Link>}</div></article>) : <div className="seller-empty"><StoreIcon /><h3>Your store is ready.</h3><p>Add your first product. Fieldio will review it before publication.</p><button className="text-link" onClick={onAdd}>Add a product</button></div>}</section></section>;
+function SellerDashboard({ userId, store, listings, onAdd, onEdit, onManage, onEditContacts, onStoreUpdated }: { userId: string; store: Store; listings: Listing[]; onAdd: () => void; onEdit: (listing: Listing) => void; onManage: (listing: Listing) => void; onEditContacts: () => void; onStoreUpdated: () => Promise<void> }) {
+  return <section className="seller-dashboard"><header><div><p>{store.name}</p><h1>Seller dashboard</h1><span>{store.description}</span></div><div className="seller-dashboard-actions"><button className="secondary-button" onClick={onEditContacts}>Edit contact details</button><button className="primary-button" onClick={onAdd}><PlusIcon /> Add product</button></div></header><StoreLogoEditor userId={userId} store={store} onDone={onStoreUpdated} /><div className="seller-summary"><div><strong>{listings.length}</strong><span>Total listings</span></div><div><strong>{listings.filter((item) => item.status === "pending").length}</strong><span>In review</span></div><div><strong>{listings.filter((item) => item.status === "approved").length}</strong><span>Live</span></div></div><section className="seller-listings"><h2>Your products</h2>{listings.length ? listings.map((listing) => <article key={listing.id}><div><h3>{listing.title}</h3><p>{listing.currency} {(listing.price / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} · <span className={`seller-status seller-status--${listing.status}`}>{listing.status}</span></p>{listing.review_reason && <small>{listing.review_reason}</small>}</div><div className="seller-listing-actions">{listing.status === "rejected" && <button className="text-link" type="button" onClick={() => onEdit(listing)}>Edit and resubmit</button>}{listing.status === "approved" && <button className="text-link" type="button" onClick={() => onManage(listing)}>Manage inventory</button>}{listing.published_product_id && <Link className="text-link" to="/collections">View in shop <ArrowIcon /></Link>}</div></article>) : <div className="seller-empty"><StoreIcon /><h3>Your store is ready.</h3><p>Add your first product. Fieldio will review it before publication.</p><button className="text-link" onClick={onAdd}>Add a product</button></div>}</section></section>;
+}
+
+function LiveInventoryEditor({ listing, onCancel, onDone }: { listing: Listing; onCancel: () => void; onDone: () => Promise<void> }) {
+  const [rows, setRows] = useState(() => listing.variants.map((variant) => ({ ...variant })));
+  const [status, setStatus] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (!rows.length || rows.some((row) => !row.id || !Number.isInteger(row.quantity) || row.quantity < 0 || row.quantity > 10000)) { setStatus("Enter a valid quantity for every variant."); return; }
+    setSaving(true); setStatus("");
+    const result = await supabase!.rpc("update_seller_listing_inventory", { p_listing_id: listing.id, p_variants: rows.map(({ id, quantity }) => ({ id, quantity })) });
+    if (result.error) { setStatus(result.error.message === "QUANTITY_BELOW_RESERVED_STOCK" ? "A quantity cannot be lower than stock already reserved for open orders." : result.error.message); setSaving(false); return; }
+    await onDone(); setStatus("Inventory updated."); setSaving(false);
+  }
+
+  return <section className="seller-panel"><header><button type="button" className="text-link" onClick={onCancel}>← Seller dashboard</button><h1>Manage inventory</h1><p>Update stock on hand for {listing.title}. Open-order reservations are protected. Size and colour changes require a new reviewed listing.</p></header><form className="seller-form" onSubmit={(event) => void submit(event)}><fieldset className="seller-inventory-editor"><legend>Live size and colour stock</legend><div className="seller-inventory-head seller-inventory-head--live" aria-hidden="true"><span>Variant</span><span>Stock on hand</span></div>{rows.map((row, index) => <div className="seller-inventory-row seller-inventory-row--live" key={row.id ?? `${row.color}-${row.size}`}><span>{row.color} · {row.size}</span><label><span className="sr-only">Stock on hand for {row.color}, {row.size}</span><input type="number" min="0" max="10000" value={row.quantity} onChange={(event) => setRows((current) => current.map((item, rowIndex) => rowIndex === index ? { ...item, quantity: Number(event.target.value) } : item))} /></label></div>)}</fieldset>{status && <p className="form-message" role={status === "Inventory updated." ? "status" : "alert"}>{status}</p>}<button className="primary-button" disabled={saving}>{saving ? "Saving…" : "Save inventory"}</button></form></section>;
 }
 
 export function SellerFulfillments({ fulfillments, onUpdated }: { fulfillments: VendorFulfillment[]; onUpdated: () => Promise<void> }) {
   const [updating, setUpdating] = useState<string>();
   const [shippingFor, setShippingFor] = useState<string>();
+  const [rejectingFor, setRejectingFor] = useState<string>();
   const [status, setStatus] = useState("");
   const shippingInputRef = useRef<HTMLInputElement>(null);
+  const rejectionInputRef = useRef<HTMLTextAreaElement>(null);
   const shippingTriggerRefs = useRef(new Map<string, HTMLButtonElement>());
   useEffect(() => { if (shippingFor) shippingInputRef.current?.focus(); }, [shippingFor]);
+  useEffect(() => { if (rejectingFor) rejectionInputRef.current?.focus(); }, [rejectingFor]);
   function closeShippingForm(fulfillmentId: string) {
     setShippingFor(undefined);
     requestAnimationFrame(() => shippingTriggerRefs.current.get(fulfillmentId)?.focus());
   }
-  async function updateFulfillment(fulfillment: VendorFulfillment, nextStatus: "processing" | "shipped", shipping?: { carrier: string; trackingReference: string }) {
+  async function updateFulfillment(fulfillment: VendorFulfillment, nextStatus: "accepted" | "rejected" | "processing" | "shipped", details?: { carrier?: string; trackingReference?: string; rejectionReason?: string }) {
     setUpdating(fulfillment.id); setStatus("");
     try {
-      await authenticatedPost("/api/vendor-fulfillment", { action: "update-fulfillment", fulfillmentId: fulfillment.id, status: nextStatus, ...shipping });
+      await authenticatedPost("/api/vendor-fulfillment", { action: "update-fulfillment", fulfillmentId: fulfillment.id, status: nextStatus, ...details });
       await onUpdated();
       if (nextStatus === "shipped") setShippingFor(undefined);
-      setStatus(nextStatus === "shipped" ? `${fulfillment.public_reference} marked as shipped. Fieldio will update the buyer.` : `${fulfillment.public_reference} is now being prepared.`);
+      if (nextStatus === "rejected") setRejectingFor(undefined);
+      const messages = {
+        accepted: `${fulfillment.public_reference} accepted. You can now prepare it.`,
+        rejected: `${fulfillment.public_reference} rejected. Fieldio has been notified.`,
+        processing: `${fulfillment.public_reference} is now being prepared.`,
+        shipped: `${fulfillment.public_reference} marked as shipped. Fieldio will update the buyer.`
+      };
+      setStatus(messages[nextStatus]);
     } catch (error) { setStatus(error instanceof Error ? error.message : "The fulfilment could not be updated."); }
     finally { setUpdating(undefined); }
+  }
+  function submitRejection(event: FormEvent<HTMLFormElement>, fulfillment: VendorFulfillment) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    void updateFulfillment(fulfillment, "rejected", { rejectionReason: String(form.get("rejectionReason") ?? "").trim() });
   }
   function submitShipping(event: FormEvent<HTMLFormElement>, fulfillment: VendorFulfillment) {
     event.preventDefault();
@@ -343,14 +401,18 @@ export function SellerFulfillments({ fulfillments, onUpdated }: { fulfillments: 
       trackingReference: String(form.get("trackingReference") ?? "").trim()
     });
   }
-  return <section className="seller-fulfillments"><header><div><h2>Orders to fulfil</h2><p>Only your store's items appear here. Fieldio confirms the order and manages buyer updates.</p></div><strong>{fulfillments.filter(({ status: value }) => !["delivered", "cancelled"].includes(value)).length}<span>open</span></strong></header>
+  const statusLabel: Record<FulfillmentStatus, string> = { pending: "Awaiting Fieldio", confirmed: "Action required", accepted: "Accepted", rejected: "Rejected", processing: "Preparing", shipped: "Shipped", delivered: "Delivered", cancelled: "Cancelled" };
+  return <section className="seller-fulfillments"><header><div><h2>Orders to fulfil</h2><p>Accept or reject confirmed orders, prepare accepted items, then submit the carrier and tracking reference when shipped.</p></div><strong>{fulfillments.filter(({ status: value }) => !["rejected", "delivered", "cancelled"].includes(value)).length}<span>open</span></strong></header>
     {status && <p className="form-message" role="status">{status}</p>}
     {fulfillments.length ? <div className="seller-fulfillment-list">{fulfillments.map((fulfillment) => <article key={fulfillment.id}>
-      <header><div><h3>{fulfillment.public_reference}</h3><time dateTime={fulfillment.created_at}>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(fulfillment.created_at))}</time></div><span className={`seller-status seller-status--${fulfillment.status}`}>{fulfillment.status}</span></header>
+      <header><div><h3>{fulfillment.public_reference}</h3><time dateTime={fulfillment.created_at}>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(fulfillment.created_at))}</time></div><span className={`seller-status seller-status--${fulfillment.status}`}>{statusLabel[fulfillment.status]}</span></header>
       <ul>{fulfillment.items.map((item) => <li key={item.id}><span>{item.productName}{[item.variantName, item.size, item.color].filter(Boolean).length ? ` · ${[item.variantName, item.size, item.color].filter(Boolean).join(" · ")}` : ""}</span><strong>×{item.quantity}</strong></li>)}</ul>
-      <div className="seller-delivery-address"><span>Ship to</span><address>{fulfillment.customer_name}<br />{fulfillment.shipping_address}<br />Delivery phone: {fulfillment.customer_phone}</address><small>Use delivery details only to fulfil this Fieldio order. Buyer communication stays with Fieldio.</small></div>
+      {fulfillment.customer_name && fulfillment.customer_phone && fulfillment.shipping_address && <div className="seller-delivery-address"><span>Ship to</span><address>{fulfillment.customer_name}<br />{fulfillment.shipping_address}<br />Delivery phone: {fulfillment.customer_phone}</address><small>Use delivery details only to fulfil this Fieldio order. Buyer communication stays with Fieldio.</small></div>}
       {fulfillment.status === "pending" && <p className="seller-fulfillment-note">Waiting for Fieldio to confirm this order.</p>}
-      {fulfillment.status === "confirmed" && <button className="secondary-button" disabled={updating === fulfillment.id} onClick={() => void updateFulfillment(fulfillment, "processing")}>{updating === fulfillment.id ? "Updating…" : "Start preparing"}</button>}
+      {fulfillment.status === "confirmed" && fulfillment.payment_status === "pending" && <p className="seller-fulfillment-note">Waiting for Fieldio to confirm payment. Do not prepare or ship this order yet.</p>}
+      {fulfillment.status === "confirmed" && fulfillment.payment_status === "confirmed" && <><p className="seller-fulfillment-note">Payment is confirmed. Review your items and respond before preparing the order.</p><div className="seller-fulfillment-actions"><button className="primary-button" disabled={Boolean(updating)} onClick={() => void updateFulfillment(fulfillment, "accepted")}>{updating === fulfillment.id ? "Updating…" : "Accept order"}</button><button className="secondary-button" type="button" disabled={Boolean(updating)} aria-expanded={rejectingFor === fulfillment.id} aria-controls={`rejection-form-${fulfillment.id}`} onClick={() => { setStatus(""); setRejectingFor(fulfillment.id); }}>Reject order</button></div></>}
+      {fulfillment.status === "confirmed" && fulfillment.payment_status === "confirmed" && rejectingFor === fulfillment.id && <form id={`rejection-form-${fulfillment.id}`} className="seller-rejection-form" aria-label={`Reject ${fulfillment.public_reference}`} onSubmit={(event) => submitRejection(event, fulfillment)}><label><span>Reason for rejection</span><textarea ref={rejectionInputRef} name="rejectionReason" minLength={10} maxLength={500} rows={4} placeholder="Explain the stock or fulfilment issue for Fieldio operations." required /></label><p>This goes to Fieldio operations, not directly to the buyer.</p><div className="seller-shipping-actions"><button className="primary-button" type="submit" disabled={updating === fulfillment.id}>{updating === fulfillment.id ? "Submitting…" : "Confirm rejection"}</button><button className="secondary-button" type="button" disabled={updating === fulfillment.id} onClick={() => setRejectingFor(undefined)}>Cancel</button></div></form>}
+      {fulfillment.status === "accepted" && <button className="primary-button" disabled={updating === fulfillment.id} onClick={() => void updateFulfillment(fulfillment, "processing")}>{updating === fulfillment.id ? "Updating…" : "Start preparing"}</button>}
       {fulfillment.status === "processing" && <button ref={(node) => { if (node) shippingTriggerRefs.current.set(fulfillment.id, node); else shippingTriggerRefs.current.delete(fulfillment.id); }} className="primary-button" type="button" hidden={shippingFor === fulfillment.id} aria-expanded={shippingFor === fulfillment.id} aria-controls={`shipping-form-${fulfillment.id}`} disabled={Boolean(updating)} onClick={() => { setStatus(""); setShippingFor(fulfillment.id); }}>Add shipping details</button>}
       {fulfillment.status === "processing" && shippingFor === fulfillment.id && <form id={`shipping-form-${fulfillment.id}`} className="seller-shipping-form" aria-label={`Shipping details for ${fulfillment.public_reference}`} onSubmit={(event) => submitShipping(event, fulfillment)}>
         <div className="seller-shipping-fields">
@@ -360,7 +422,10 @@ export function SellerFulfillments({ fulfillments, onUpdated }: { fulfillments: 
         <p>Fieldio receives these details for buyer support and delivery updates.</p>
         <div className="seller-shipping-actions"><button className="primary-button" type="submit" disabled={updating === fulfillment.id}>{updating === fulfillment.id ? "Submitting…" : "Submit shipment"}</button><button className="secondary-button" type="button" disabled={updating === fulfillment.id} onClick={() => closeShippingForm(fulfillment.id)}>Cancel</button></div>
       </form>}
+      {fulfillment.status === "rejected" && <div className="seller-rejection-summary"><strong>Order rejected</strong><p>{fulfillment.rejection_reason}</p><small>Fieldio operations will resolve the order and contact the buyer.</small></div>}
       {fulfillment.status === "shipped" && (fulfillment.carrier && fulfillment.tracking_reference ? <div className="seller-shipment-summary"><strong>Shipping details submitted</strong><dl><div><dt>Logistics company</dt><dd>{fulfillment.carrier}</dd></div><div><dt>Tracking reference</dt><dd>{fulfillment.tracking_reference}</dd></div></dl><p>Fieldio will manage buyer updates and delivery confirmation.</p></div> : <p className="seller-fulfillment-note">Shipped. No tracking details were recorded for this earlier shipment.</p>)}
+      {fulfillment.status === "delivered" && <p className="seller-fulfillment-note">Delivery confirmed by Fieldio.</p>}
+      {fulfillment.status === "cancelled" && <p className="seller-fulfillment-note">This fulfilment was cancelled by Fieldio.</p>}
     </article>)}</div> : <div className="seller-empty"><StoreIcon /><h3>No orders to fulfil.</h3><p>Confirmed orders containing your products will appear here.</p></div>}
   </section>;
 }
@@ -385,7 +450,7 @@ export function SellerPage() {
   const { session, loading } = useSession();
   const { region } = useLocale();
   const cache = useQueryClient();
-  const [mode, setMode] = useState<"dashboard" | "listing" | "contacts">("dashboard");
+  const [mode, setMode] = useState<"dashboard" | "listing" | "inventory" | "contacts">("dashboard");
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
   const [submittedTitle, setSubmittedTitle] = useState("");
   usePageMeta({ title: "Sell with Fieldio", description: "Apply to sell verified fashion through your Fieldio store.", canonical: "https://fieldio.shop/sell" });
@@ -393,7 +458,7 @@ export function SellerPage() {
     const [application, store, listings, categories] = await Promise.all([
       supabase!.from("seller_applications").select("*").eq("owner_id", session!.user.id).maybeSingle(),
       supabase!.from("seller_stores").select("*").eq("owner_id", session!.user.id).maybeSingle(),
-      supabase!.from("seller_listings").select("id,title,description,audience,category_id,subcategory_id,condition,condition_notes,materials,item_reference,price,compare_at_price,currency,colors,sizes,quantity,weight_kg,authenticity_confirmed,status,review_reason,published_product_id,created_at,images:seller_listing_images(id,storage_path,alt_text,position)").eq("owner_id", session!.user.id).order("created_at", { ascending: false }),
+      supabase!.from("seller_listings").select("id,title,description,audience,category_id,subcategory_id,condition,condition_notes,materials,item_reference,price,compare_at_price,currency,colors,sizes,quantity,weight_kg,authenticity_confirmed,status,review_reason,published_product_id,created_at,images:seller_listing_images(id,storage_path,alt_text,position),variants:seller_listing_variants(id,color,size,quantity,published_variant_id)").eq("owner_id", session!.user.id).order("created_at", { ascending: false }),
       supabase!.from("categories").select("id,parent_id,name").eq("is_active", true).order("name")
     ]);
     const error = application.error || store.error || listings.error || categories.error;
@@ -435,5 +500,6 @@ export function SellerPage() {
   if (submittedTitle) return <SubmittedState title={submittedTitle} onAdd={() => { setSubmittedTitle(""); setMode("listing"); }} />;
   if (mode === "contacts") return <ContactDetailsForm application={application} store={store} onCancel={() => setMode("dashboard")} onDone={refresh} />;
   if (mode === "listing") return <ListingForm userId={session.user.id} store={store} categories={categories} currency={region.currency} listing={editingListing} onCancel={() => { setEditingListing(null); setMode("dashboard"); }} onSubmitted={async (title) => { await refresh(); setEditingListing(null); setSubmittedTitle(title); }} />;
-  return <><SellerDashboard userId={session.user.id} store={store} listings={listings} onAdd={() => { setEditingListing(null); setMode("listing"); }} onEdit={(listing) => { setEditingListing(listing); setMode("listing"); }} onEditContacts={() => setMode("contacts")} onStoreUpdated={refresh} /><SellerFulfillments fulfillments={fulfillments} onUpdated={refresh} /><SellerOperations payouts={payouts} returns={returns} disputes={disputes} /><SellerReviews reviews={reviews} summary={reviewSummary} /></>;
+  if (mode === "inventory" && editingListing) return <LiveInventoryEditor listing={editingListing} onCancel={() => { setEditingListing(null); setMode("dashboard"); }} onDone={refresh} />;
+  return <><SellerDashboard userId={session.user.id} store={store} listings={listings} onAdd={() => { setEditingListing(null); setMode("listing"); }} onEdit={(listing) => { setEditingListing(listing); setMode("listing"); }} onManage={(listing) => { setEditingListing(listing); setMode("inventory"); }} onEditContacts={() => setMode("contacts")} onStoreUpdated={refresh} /><SellerFulfillments fulfillments={fulfillments} onUpdated={refresh} /><SellerOperations payouts={payouts} returns={returns} disputes={disputes} /><SellerReviews reviews={reviews} summary={reviewSummary} /></>;
 }

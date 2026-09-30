@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { expect, it, vi } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { ContactDetailsForm, listingValuesFor, SellerFulfillments, SellerPage } from "../pages/SellerPage";
 
 const authenticatedPost = vi.hoisted(() => vi.fn(async () => ({ fulfillment: { status: "processing" } })));
@@ -11,6 +11,8 @@ vi.mock("../hooks/usePageMeta", () => ({ usePageMeta: () => undefined }));
 vi.mock("../context/LocaleContext", () => ({ useLocale: () => ({ region: { currency: "GBP" } }) }));
 vi.mock("./supabase", () => ({ supabase: null }));
 vi.mock("./authenticated-api", () => ({ authenticatedPost }));
+
+afterEach(cleanup);
 
 it("requires an account before a seller can apply", () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -48,25 +50,61 @@ it("converts stored listing amounts and options back into editable form values",
     condition: "excellent", condition_notes: "No visible defects.", materials: "100% wool", item_reference: null,
     price: 125000, compare_at_price: 150000, currency: "GBP", colors: ["Black", "Cream"], sizes: ["S", "M"],
     quantity: 2, weight_kg: 1.4, authenticity_confirmed: true, status: "rejected", review_reason: "Replace one image.",
-    published_product_id: null, created_at: "2026-09-20T00:00:00Z", images: []
+    published_product_id: null, created_at: "2026-09-20T00:00:00Z", images: [], variants: [
+      { id: "33333333-3333-4333-8333-333333333333", color: "Black", size: "S", quantity: 2 },
+      { id: "44444444-4444-4444-8444-444444444444", color: "Cream", size: "M", quantity: 1 }
+    ]
   }, "USD");
 
-  expect(values).toMatchObject({ price: 1250, compare_at_price: 1500, currency: "GBP", colors: "Black, Cream", sizes: "S, M", quantity: 2 });
+  expect(values).toMatchObject({ price: 1250, compare_at_price: 1500, currency: "GBP", variants: [{ color: "Black", size: "S", quantity: 2 }, { color: "Cream", size: "M", quantity: 1 }] });
 });
 
-it("shows only the vendor fulfillment and sends guarded status updates", async () => {
+it("requires a vendor to accept a confirmed fulfillment before preparing it", async () => {
   const refreshed = vi.fn(async () => undefined);
   render(<SellerFulfillments fulfillments={[{
     id: "11111111-1111-4111-8111-111111111111", order_request_id: "22222222-2222-4222-8222-222222222222", public_reference: "FLD-202609-01004",
-    status: "confirmed", store_name: "Ada Studio", customer_name: "Buyer Name", customer_phone: "+447000000000", shipping_address: "10 London Road, London",
-    carrier: null, tracking_reference: null, created_at: "2026-09-24T08:00:00Z", updated_at: "2026-09-24T08:00:00Z",
+    status: "confirmed", payment_status: "confirmed", store_name: "Ada Studio", customer_name: null, customer_phone: null, shipping_address: null,
+    carrier: null, tracking_reference: null, rejection_reason: null, accepted_at: null, rejected_at: null, preparing_at: null, shipped_at: null, delivered_at: null, created_at: "2026-09-24T08:00:00Z", updated_at: "2026-09-24T08:00:00Z",
     items: [{ id: "33333333-3333-4333-8333-333333333333", productName: "Tailored coat", variantName: "Medium", size: "M", color: "Black", quantity: 1, sku: "COAT-M" }]
   }]} onUpdated={refreshed} />);
   expect(screen.getByRole("heading", { name: "Orders to fulfil" })).toBeVisible();
   expect(screen.getByText("Tailored coat · Medium · M · Black")).toBeVisible();
+  expect(screen.queryByText("Buyer Name")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Accept order" }));
+  await waitFor(() => expect(authenticatedPost).toHaveBeenCalledWith("/api/vendor-fulfillment", { action: "update-fulfillment", fulfillmentId: "11111111-1111-4111-8111-111111111111", status: "accepted" }));
+  expect(refreshed).toHaveBeenCalledOnce();
+});
+
+it("requires a reason when a vendor rejects a fulfillment", async () => {
+  authenticatedPost.mockClear();
+  render(<SellerFulfillments fulfillments={[{
+    id: "11111111-1111-4111-8111-111111111111", order_request_id: "22222222-2222-4222-8222-222222222222", public_reference: "FLD-202609-01004",
+    status: "confirmed", payment_status: "confirmed", store_name: "Ada Studio", customer_name: null, customer_phone: null, shipping_address: null,
+    carrier: null, tracking_reference: null, rejection_reason: null, accepted_at: null, rejected_at: null, preparing_at: null, shipped_at: null, delivered_at: null, created_at: "2026-09-24T08:00:00Z", updated_at: "2026-09-24T08:00:00Z",
+    items: [{ id: "33333333-3333-4333-8333-333333333333", productName: "Tailored coat", variantName: "Medium", size: "M", color: "Black", quantity: 1, sku: "COAT-M" }]
+  }]} onUpdated={async () => undefined} />);
+
+  fireEvent.click(screen.getByRole("button", { name: "Reject order" }));
+  const reason = screen.getByRole("textbox", { name: "Reason for rejection" });
+  await waitFor(() => expect(reason).toHaveFocus());
+  fireEvent.change(reason, { target: { value: "The item failed our final stock check." } });
+  fireEvent.click(screen.getByRole("button", { name: "Confirm rejection" }));
+  await waitFor(() => expect(authenticatedPost).toHaveBeenCalledWith("/api/vendor-fulfillment", {
+    action: "update-fulfillment", fulfillmentId: "11111111-1111-4111-8111-111111111111", status: "rejected", rejectionReason: "The item failed our final stock check."
+  }));
+});
+
+it("lets an accepted fulfillment move into preparation", async () => {
+  authenticatedPost.mockClear();
+  render(<SellerFulfillments fulfillments={[{
+    id: "11111111-1111-4111-8111-111111111111", order_request_id: "22222222-2222-4222-8222-222222222222", public_reference: "FLD-202609-01004",
+    status: "accepted", payment_status: "confirmed", store_name: "Ada Studio", customer_name: "Buyer Name", customer_phone: "+447000000000", shipping_address: "10 London Road, London",
+    carrier: null, tracking_reference: null, rejection_reason: null, accepted_at: "2026-09-24T08:05:00Z", rejected_at: null, preparing_at: null, shipped_at: null, delivered_at: null, created_at: "2026-09-24T08:00:00Z", updated_at: "2026-09-24T08:05:00Z",
+    items: [{ id: "33333333-3333-4333-8333-333333333333", productName: "Tailored coat", variantName: "Medium", size: "M", color: "Black", quantity: 1, sku: "COAT-M" }]
+  }]} onUpdated={async () => undefined} />);
+
   fireEvent.click(screen.getByRole("button", { name: "Start preparing" }));
   await waitFor(() => expect(authenticatedPost).toHaveBeenCalledWith("/api/vendor-fulfillment", { action: "update-fulfillment", fulfillmentId: "11111111-1111-4111-8111-111111111111", status: "processing" }));
-  expect(refreshed).toHaveBeenCalledOnce();
 });
 
 it("requires and submits shipping details before a vendor marks an order shipped", async () => {
@@ -74,8 +112,8 @@ it("requires and submits shipping details before a vendor marks an order shipped
   const refreshed = vi.fn(async () => undefined);
   render(<SellerFulfillments fulfillments={[{
     id: "11111111-1111-4111-8111-111111111111", order_request_id: "22222222-2222-4222-8222-222222222222", public_reference: "FLD-202609-01004",
-    status: "processing", store_name: "Ada Studio", customer_name: "Buyer Name", customer_phone: "+447000000000", shipping_address: "10 London Road, London",
-    carrier: null, tracking_reference: null, created_at: "2026-09-24T08:00:00Z", updated_at: "2026-09-24T08:00:00Z",
+    status: "processing", payment_status: "confirmed", store_name: "Ada Studio", customer_name: "Buyer Name", customer_phone: "+447000000000", shipping_address: "10 London Road, London",
+    carrier: null, tracking_reference: null, rejection_reason: null, accepted_at: "2026-09-24T08:05:00Z", rejected_at: null, preparing_at: "2026-09-24T08:10:00Z", shipped_at: null, delivered_at: null, created_at: "2026-09-24T08:00:00Z", updated_at: "2026-09-24T08:10:00Z",
     items: [{ id: "33333333-3333-4333-8333-333333333333", productName: "Tailored coat", variantName: "Medium", size: "M", color: "Black", quantity: 1, sku: "COAT-M" }]
   }]} onUpdated={refreshed} />);
 

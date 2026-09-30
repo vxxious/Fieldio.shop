@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "test:db:lifecycle": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-marketplace-lifecycle.ps1",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:preview": "tsc -b && vite build --mode preview",

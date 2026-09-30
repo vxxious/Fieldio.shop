@@ -29,8 +29,10 @@ export const useCartStore = create<CartState>()(
       addItem: (product, variant, quantity = 1) => set((state) => {
         const key = buildKey(product.id, variant.id);
         const existing = state.items.find((item) => item.key === key);
+        const limit = Math.min(10, variant.inventory ?? 10);
+        if (limit < 1) return state;
         const items = existing
-          ? state.items.map((item) => item.key === key ? { ...item, quantity: Math.min(item.quantity + quantity, 10) } : item)
+          ? state.items.map((item) => item.key === key ? { ...item, quantity: Math.max(1, Math.min(item.quantity + quantity, limit)), availableQuantity: variant.inventory } : item)
           : [...state.items, {
               key,
               productId: product.id,
@@ -41,7 +43,8 @@ export const useCartStore = create<CartState>()(
               ...(variant.size ? { selectedSize: variant.size } : {}),
               selectedVariant: variant.name,
               variantId: variant.id,
-              quantity,
+              quantity: Math.max(1, Math.min(quantity, limit)),
+              availableQuantity: variant.inventory,
               unitPrice: variant.priceOverride ?? product.price,
               currency: product.currency
             }];
@@ -49,7 +52,7 @@ export const useCartStore = create<CartState>()(
       }),
       removeItem: (key) => set((state) => ({ items: state.items.filter((item) => item.key !== key) })),
       updateQuantity: (key, quantity) => set((state) => ({
-        items: state.items.map((item) => item.key === key ? { ...item, quantity: Math.max(1, Math.min(quantity, 10)) } : item)
+        items: state.items.map((item) => item.key === key ? { ...item, quantity: Math.max(1, Math.min(quantity, 10, item.availableQuantity ?? 10)) } : item)
       })),
       clearCart: () => set({ items: [] })
     }),

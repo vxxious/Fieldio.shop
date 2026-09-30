@@ -5,7 +5,7 @@ import { useRequireAccount } from "../hooks/useRequireAccount";
 import { trackEvent } from "../lib/analytics";
 import { useLocale } from "../context/LocaleContext";
 import { responsiveImage } from "../lib/images";
-import { productCondition, productSizeSummary } from "../lib/product-trust";
+import { productCondition, productSizeSummary, variantOptionLabel } from "../lib/product-trust";
 import { useCartStore } from "../store/cart";
 import { useWishlistStore } from "../store/wishlist";
 import type { Product } from "../types/catalog";
@@ -73,7 +73,7 @@ export function ProductCard({ product, priority = false, quickAdd = false }: { p
           <div className="related-quick-add">
             {singleVariant ? <button type="button" className="quick-action" disabled={singleVariant.inventory === 0} onClick={(event) => void addVariant(singleVariant, event.currentTarget)}>{singleVariant.inventory === 0 ? t("product.unavailable") : quickLabel}</button> : <>
               <button type="button" className="quick-action" aria-expanded={showSizes} onClick={() => setShowSizes((value) => !value)}>{showSizes ? t("product.closeSizes") : quickLabel}</button>
-              {showSizes && <div className="quick-size-options" role="group" aria-label={`${quickLabel} ${product.name} by size`}>{product.variants.map((variant) => <button key={variant.id} type="button" disabled={variant.inventory === 0} aria-label={`${quickLabel} ${product.name}, ${variant.size ?? variant.name}`} onClick={(event) => void addVariant(variant, event.currentTarget)}>{variant.size ?? variant.name}</button>)}</div>}
+              {showSizes && <div className="quick-size-options" role="group" aria-label={`${quickLabel} ${product.name} by option`}>{product.variants.map((variant) => <button key={variant.id} type="button" disabled={variant.inventory === 0} aria-label={`${quickLabel} ${product.name}, ${variantOptionLabel(variant)}`} onClick={(event) => void addVariant(variant, event.currentTarget)}>{variantOptionLabel(variant)}</button>)}</div>}
             </>}
           </div>
         ) : singleVariant ? (

@@ -17,5 +17,6 @@ it("converts editable currency amounts to database minor units", () => {
 it("limits each staff role to its operational area", () => {
   expect(adminResourcesFor("editor").map(({ table }) => table)).toContain("products");
   expect(adminResourcesFor("editor").map(({ table }) => table)).not.toContain("order_requests");
-  expect(adminResourcesFor("fulfilment").map(({ table }) => table)).toEqual(["inventory", "order_requests", "order_fulfillments", "order_items", "marketplace_returns", "marketplace_disputes"]);
+  expect(adminResourcesFor("fulfilment").map(({ table }) => table)).toEqual(["inventory"]);
+  expect(adminResourcesFor("admin").map(({ table }) => table)).not.toContain("order_requests");
 });

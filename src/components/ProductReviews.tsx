@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { useSession } from "../hooks/useSession";
@@ -53,11 +53,11 @@ function ReviewLightbox({ images, index, onIndex, onClose }: { images: ReviewIma
   </div>, document.body);
 }
 
-function ReviewEditor({ productName, eligibility, review, onClose, onSaved }: { productName: string; eligibility: Eligibility[]; review: Review | null; onClose: () => void; onSaved: () => Promise<void> }) {
+function ReviewEditor({ productName, eligibility, preferredOrderItemId, review, onClose, onSaved }: { productName: string; eligibility: Eligibility[]; preferredOrderItemId: string | undefined; review: Review | null; onClose: () => void; onSaved: () => Promise<void> }) {
   const { session } = useSession();
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const [orderItemId, setOrderItemId] = useState(review?.order_item_id ?? eligibility.find((item) => !item.existing_review_id)?.order_item_id ?? "");
+  const [orderItemId, setOrderItemId] = useState(review?.order_item_id ?? eligibility.find((item) => item.order_item_id === preferredOrderItemId && !item.existing_review_id)?.order_item_id ?? eligibility.find((item) => !item.existing_review_id)?.order_item_id ?? "");
   const [rating, setRating] = useState(review?.rating ?? 0);
   const [reviewText, setReviewText] = useState(review?.review_text ?? "");
   const [tags, setTags] = useState<ReviewTag[]>(review?.tags ?? []);
@@ -166,11 +166,13 @@ function ReviewEditor({ productName, eligibility, review, onClose, onSaved }: { 
 
 export function ProductReviews({ productId, productName, averageRating = 0, ratingCount = 0 }: ProductReviewsProps) {
   const { session, loading: sessionLoading } = useSession();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>("all");
   const [detailFilter, setDetailFilter] = useState<DetailFilter>("all");
   const [sort, setSort] = useState<Sort>("newest");
   const [editorReview, setEditorReview] = useState<Review | "new" | null>(null);
+  const [dismissedDirectReview, setDismissedDirectReview] = useState<string>();
   const [lightbox, setLightbox] = useState<{ images: ReviewImage[]; index: number } | null>(null);
 
   const summaryQuery = useQuery({ queryKey: ["review-summary", productId], queryFn: () => fetchSummary(productId), initialData: { averageRating, total: ratingCount, breakdown: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 }, withPhotos: 0, verified: ratingCount, tags: [] } });
@@ -207,6 +209,10 @@ export function ProductReviews({ productId, productName, averageRating = 0, rati
   const allPhotos = useMemo(() => reviews.flatMap((review) => review.images).filter((image) => image.url), [reviews]);
   const canCreate = eligibilityQuery.data?.some((item) => !item.existing_review_id) ?? false;
   const reviewsUnavailable = summaryQuery.isError || reviewsQuery.isError;
+  const requestedOrderItemId = new URLSearchParams(location.search).get("reviewItem") ?? undefined;
+  const directReviewKey = requestedOrderItemId ? `${productId}:${requestedOrderItemId}` : undefined;
+  const directReviewAvailable = Boolean(directReviewKey && dismissedDirectReview !== directReviewKey && eligibilityQuery.data?.some((item) => item.order_item_id === requestedOrderItemId && !item.existing_review_id));
+  const activeEditorReview = editorReview ?? (directReviewAvailable ? "new" : null);
 
   const refresh = useCallback(async () => {
     await Promise.all([
@@ -261,7 +267,7 @@ export function ProductReviews({ productId, productName, averageRating = 0, rati
       <footer><button type="button" aria-pressed={voted} disabled={own} onClick={() => void helpful(review)}>Helpful{review.helpful_count ? ` · ${review.helpful_count}` : ""}</button>{own ? <><button type="button" onClick={() => setEditorReview(review)}>Edit</button><button type="button" onClick={() => void removeReview(review)}>Delete</button></> : <details><summary>Report</summary><div><button type="button" onClick={() => void report(review.id, "spam")}>Spam</button><button type="button" onClick={() => void report(review.id, "abuse")}>Abusive</button><button type="button" onClick={() => void report(review.id, "privacy")}>Privacy</button><button type="button" onClick={() => void report(review.id, "not_about_product")}>Not about product</button></div></details>}</footer>
     </article>; })}</div>
     {reviewsQuery.hasNextPage && <button className="review-load-more" type="button" disabled={reviewsQuery.isFetchingNextPage} onClick={() => void reviewsQuery.fetchNextPage()}>{reviewsQuery.isFetchingNextPage ? "Loading…" : "Load more reviews"}</button>}
-    {editorReview && <ReviewEditor productName={productName} eligibility={eligibilityQuery.data ?? []} review={editorReview === "new" ? null : editorReview} onClose={() => setEditorReview(null)} onSaved={refresh} />}
+    {activeEditorReview && <ReviewEditor productName={productName} eligibility={eligibilityQuery.data ?? []} preferredOrderItemId={editorReview ? undefined : requestedOrderItemId} review={activeEditorReview === "new" ? null : activeEditorReview} onClose={() => { setEditorReview(null); if (directReviewKey) setDismissedDirectReview(directReviewKey); }} onSaved={refresh} />}
     {lightbox && <ReviewLightbox images={lightbox.images} index={lightbox.index} onIndex={(index) => setLightbox({ ...lightbox, index })} onClose={() => setLightbox(null)} />}
   </section>;
 }

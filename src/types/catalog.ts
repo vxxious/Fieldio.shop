@@ -68,6 +68,7 @@ export interface CartItem {
   selectedVariant: string;
   variantId: string;
   quantity: number;
+  availableQuantity?: number | null;
   unitPrice: number | null;
   currency: Currency;
 }

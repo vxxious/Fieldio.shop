@@ -9,12 +9,14 @@ const schema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("update-fulfillment"),
     fulfillmentId: z.string().uuid(),
-    status: z.enum(["processing", "shipped"]),
+    status: z.enum(["accepted", "rejected", "processing", "shipped"]),
     carrier: z.string().trim().min(2).max(120).optional(),
-    trackingReference: z.string().trim().min(2).max(120).optional()
+    trackingReference: z.string().trim().min(2).max(120).optional(),
+    rejectionReason: z.string().trim().min(10).max(500).optional()
   }).superRefine((value, context) => {
     if (value.status === "shipped" && !value.carrier) context.addIssue({ code: "custom", path: ["carrier"], message: "Enter the logistics company." });
     if (value.status === "shipped" && !value.trackingReference) context.addIssue({ code: "custom", path: ["trackingReference"], message: "Enter the tracking or itinerary reference." });
+    if (value.status === "rejected" && !value.rejectionReason) context.addIssue({ code: "custom", path: ["rejectionReason"], message: "Explain why you cannot fulfil this order." });
   }),
   z.object({ action: z.literal("review-application"), applicationId: z.string().uuid(), decision: z.enum(["approved", "rejected", "suspended"]), reason: z.string().trim().max(1000).nullable().optional() }).superRefine((value, context) => {
     if (value.decision !== "approved" && !value.reason) context.addIssue({ code: "custom", path: ["reason"], message: "A reason is required." });
@@ -32,6 +34,13 @@ const schema = z.discriminatedUnion("action", [
   })
 ]);
 
+const buyerFulfillmentCopy = {
+  accepted: { subject: "A store accepted your Fieldio order", heading: "Your order is accepted", message: "The store has accepted its part of your order and will begin preparing it." },
+  processing: { subject: "Part of your Fieldio order is being prepared", heading: "Your items are being prepared", message: "The store is preparing its part of your order for dispatch." },
+  shipped: { subject: "Part of your Fieldio order has shipped", heading: "Your items are on the way", message: "The store has dispatched its part of your order. Tracking details are available below and in your Fieldio account." },
+  rejected: { subject: "Part of your Fieldio order needs attention", heading: "A store could not fulfil your items", message: "The store could not fulfil its part of your order. Fieldio will manage the affected items; other store fulfilments continue separately." }
+} as const;
+
 const slugify = (value: string) => value.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
 
 export async function POST(request: Request): Promise<Response> {
@@ -41,24 +50,39 @@ export async function POST(request: Request): Promise<Response> {
     const { admin, client, user } = await getAuthenticatedSupabase(request);
 
     if (input.action === "update-fulfillment") {
-      const { data, error } = await client.rpc("update_vendor_fulfillment_status", { p_fulfillment_id: input.fulfillmentId, p_status: input.status, p_carrier: input.carrier ?? null, p_tracking_reference: input.trackingReference ?? null });
+      const { data, error } = await client.rpc("update_vendor_fulfillment_status", { p_fulfillment_id: input.fulfillmentId, p_status: input.status, p_carrier: input.carrier ?? null, p_tracking_reference: input.trackingReference ?? null, p_rejection_reason: input.rejectionReason ?? null });
       if (error?.message.includes("SELLER_ACCESS_REQUIRED")) return json({ error: "Approved seller access is required." }, 403);
       if (error?.message.includes("FULFILLMENT_NOT_FOUND")) return json({ error: "This fulfilment is unavailable." }, 404);
       if (error?.message.includes("INVALID_FULFILLMENT_STATUS_TRANSITION")) return json({ error: "That fulfilment update is not allowed. Refresh and try again." }, 409);
       if (error?.message.includes("SHIPPING_DETAILS_REQUIRED")) return json({ error: "Enter the logistics company and tracking or itinerary reference." }, 400);
+      if (error?.message.includes("REJECTION_REASON_REQUIRED")) return json({ error: "Explain why you cannot fulfil this order." }, 400);
+      if (error?.message.includes("PAYMENT_NOT_CONFIRMED")) return json({ error: "Fieldio must confirm payment before you can accept this order." }, 409);
+      if (error?.message.includes("INVENTORY_RESERVATION_MISSING")) return json({ error: "The reserved stock for this order is unavailable. Contact Fieldio support." }, 409);
       if (error) throw error;
-      const fulfillment = data as { id: string; order_request_id: string; store_name: string; status: "processing" | "shipped"; carrier: string | null; tracking_reference: string | null };
-      const order = await admin.from("order_requests").select("public_reference").eq("id", fulfillment.order_request_id).single();
+      const fulfillment = data as { id: string; order_request_id: string; store_name: string; status: "accepted" | "rejected" | "processing" | "shipped"; carrier: string | null; tracking_reference: string | null; rejection_reason: string | null };
+      const order = await admin.from("order_requests").select("public_reference,customer_email").eq("id", fulfillment.order_request_id).single();
       if (order.error) throw order.error;
-      await sendTrackedEmail(admin, `vendor-fulfillment:${fulfillment.id}:${fulfillment.status}`, "vendor-fulfillment-status", {
-        to: notificationEmail(),
-        subject: `${fulfillment.store_name} marked ${order.data.public_reference} ${fulfillment.status}`,
-        heading: `Vendor fulfilment ${fulfillment.status}`,
-        message: "A vendor updated its part of a marketplace order. Review the master order before updating the customer-facing status.",
-        details: [{ label: "Reference", value: order.data.public_reference }, { label: "Store", value: fulfillment.store_name }, { label: "Status", value: fulfillment.status }, ...(fulfillment.status === "shipped" ? [{ label: "Logistics company", value: fulfillment.carrier ?? "Not supplied" }, { label: "Tracking reference", value: fulfillment.tracking_reference ?? "Not supplied" }] : [])],
-        action: { label: "Open admin orders", url: "https://fieldio.shop/admin" }
-      });
-      return json({ fulfillment });
+      const shippingDetails = fulfillment.status === "shipped" ? [{ label: "Logistics company", value: fulfillment.carrier ?? "Not supplied" }, { label: "Tracking reference", value: fulfillment.tracking_reference ?? "Not supplied" }] : [];
+      const buyerCopy = buyerFulfillmentCopy[fulfillment.status];
+      const [, buyerDelivery] = await Promise.all([
+        sendTrackedEmail(admin, `vendor-fulfillment:${fulfillment.id}:${fulfillment.status}:admin`, "vendor-fulfillment-status", {
+          to: notificationEmail(),
+          subject: `${fulfillment.store_name} marked ${order.data.public_reference} ${fulfillment.status}`,
+          heading: `Vendor fulfilment ${fulfillment.status}`,
+          message: "A vendor updated its part of a marketplace order. The buyer-facing master status has been updated automatically.",
+          details: [{ label: "Reference", value: order.data.public_reference }, { label: "Store", value: fulfillment.store_name }, { label: "Status", value: fulfillment.status }, ...(fulfillment.status === "rejected" ? [{ label: "Reason", value: fulfillment.rejection_reason ?? "Not supplied" }] : []), ...shippingDetails],
+          action: { label: "Open admin orders", url: "https://fieldio.shop/admin" }
+        }),
+        sendTrackedEmail(admin, `vendor-fulfillment:${fulfillment.id}:${fulfillment.status}:buyer`, "buyer-fulfillment-status", {
+          to: order.data.customer_email,
+          subject: `${buyerCopy.subject} - ${order.data.public_reference}`,
+          heading: buyerCopy.heading,
+          message: buyerCopy.message,
+          details: [{ label: "Order", value: order.data.public_reference }, { label: "Store", value: fulfillment.store_name }, ...shippingDetails],
+          action: { label: "Track your order", url: "https://fieldio.shop/account" }
+        })
+      ]);
+      return json({ fulfillment, customerEmailDelivered: buyerDelivery !== "failed" });
     }
 
     if (input.action === "create-store") {

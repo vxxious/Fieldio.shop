@@ -1,4 +1,4 @@
-import type { Product } from "../types/catalog";
+import type { Product, ProductVariant } from "../types/catalog";
 
 const conditionLabels: Record<string, string> = {
   new_with_tags: "New with tags",
@@ -21,6 +21,10 @@ export function productSizeSummary(product: Product, limit = 3): string {
   if (!sizes.length) return "Size confirmed on request";
   const visible = sizes.slice(0, limit).join(", ");
   return sizes.length > limit ? `${visible} +${sizes.length - limit}` : visible;
+}
+
+export function variantOptionLabel(variant: ProductVariant): string {
+  return variant.color && variant.size ? `${variant.color} / ${variant.size}` : variant.size ?? variant.color ?? variant.name;
 }
 
 export function deliveryGuidance(regionCode: string) {

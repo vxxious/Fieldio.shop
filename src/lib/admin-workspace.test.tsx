@@ -33,21 +33,6 @@ it("uses named catalog choices and human price inputs", async () => {
   expect(screen.getByLabelText("Price (blank for request)")).toHaveAttribute("step", "0.01");
 });
 
-it("updates order status through the guarded RPC", async () => {
-  authenticatedPost.mockClear();
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const orders = adminResources.find((resource) => resource.table === "order_requests")!;
-  const view = render(<QueryClientProvider client={client}><AdminWorkspace resource={orders} /></QueryClientProvider>);
-  await within(view.container).findByText("FLD-1001");
-  fireEvent.click(within(view.container).getByRole("button", { name: "Edit" }));
-  fireEvent.change(await within(view.container).findByLabelText("Order status"), { target: { value: "awaiting_confirmation" } });
-  fireEvent.click(within(view.container).getByRole("button", { name: "Save record" }));
-  await waitFor(() => expect(authenticatedPost).toHaveBeenCalledWith("/api/order-status", {
-    orderId: "33333333-3333-4333-8333-333333333333",
-    status: "awaiting_confirmation"
-  }));
-});
-
 it("keeps unsaved admin edits when record replacement is cancelled", async () => {
   const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });

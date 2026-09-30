@@ -14,7 +14,7 @@ import { useLocale } from "../context/LocaleContext";
 import { trackEvent } from "../lib/analytics";
 import { responsiveImage } from "../lib/images";
 import { createProductEnquiryUrl, createWhatsAppUrl } from "../lib/whatsapp";
-import { deliveryGuidance, productCondition, returnEligibility } from "../lib/product-trust";
+import { deliveryGuidance, productCondition, returnEligibility, variantOptionLabel } from "../lib/product-trust";
 import { selectCartCount, selectCartSubtotal, useCartStore } from "../store/cart";
 import { useWishlistStore } from "../store/wishlist";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../components/ui/accordion";
@@ -114,7 +114,11 @@ export function ProductPage() {
   const changeVariant = (nextVariantId: string) => {
     setVariantId(nextVariantId);
     const variant = product.variants.find((item) => item.id === nextVariantId);
-    if (variant) trackEvent("size_selection", { product_id: product.id, variant_id: variant.id, size: variant.size ?? variant.name });
+    if (variant) {
+      const available = variant.inventory;
+      if (available !== null) setQuantity((current) => Math.max(1, Math.min(current, available)));
+      trackEvent("size_selection", { product_id: product.id, variant_id: variant.id, size: variantOptionLabel(variant) });
+    }
   };
 
   const changeQuantity = (nextQuantity: number) => {
@@ -133,7 +137,7 @@ export function ProductPage() {
     trackEvent("add_to_cart", { product_id: product.id, variant_id: selectedVariant.id, quantity, source });
   };
 
-  const selectedLabel = selectedVariant?.size ?? selectedVariant?.name ?? t("product.selectSize");
+  const selectedLabel = selectedVariant ? variantOptionLabel(selectedVariant) : t("product.selectSize");
   const bagTotalLabel = product.price === null || bagSubtotal === null ? t("cart.confirm") : formatMoney(bagSubtotal, product.currency);
   const availableSizes = product.variants.flatMap((variant) => variant.size ? [variant.size] : []);
   const unavailableSizes = product.variants.flatMap((variant) => variant.inventory === 0 && variant.size ? [variant.size] : []);
@@ -172,11 +176,11 @@ export function ProductPage() {
         <fieldset className="variant-fieldset">
           <legend>{product.variants.some((variant) => variant.size) ? t("product.selectSize") : t("product.requestType")}</legend>
           <div className={`variant-grid${product.variants.length === 1 ? " single-option" : ""}`}>
-            {product.variants.map((variant) => <label key={variant.id} className={effectiveVariantId === variant.id ? "selected" : ""}><input type="radio" name="variant" value={variant.id} disabled={variant.inventory === 0} checked={effectiveVariantId === variant.id} onChange={() => changeVariant(variant.id)} /><span>{variant.size ?? variant.name}{variant.inventory === 0 ? ` · ${t("product.soldOut")}` : ""}</span></label>)}
+            {product.variants.map((variant) => <label key={variant.id} className={effectiveVariantId === variant.id ? "selected" : ""}><input type="radio" name="variant" value={variant.id} disabled={variant.inventory === 0} checked={effectiveVariantId === variant.id} onChange={() => changeVariant(variant.id)} /><span>{variantOptionLabel(variant)}{variant.inventory === 0 ? ` · ${t("product.soldOut")}` : ""}</span></label>)}
           </div>
         </fieldset>
         <div className="purchase-controls" ref={purchaseControlsRef}>
-          <div className="quantity-stepper"><button type="button" disabled={quantity <= 1} onClick={() => changeQuantity(quantity - 1)} aria-label={`Decrease quantity for ${product.name}`}><MinusIcon /></button><output aria-label={`Quantity ${quantity}`}>{String(quantity).padStart(2, "0")}</output><button type="button" disabled={quantity >= 10} onClick={() => changeQuantity(quantity + 1)} aria-label={`Increase quantity for ${product.name}`}><PlusIcon /></button></div>
+          <div className="quantity-stepper"><button type="button" disabled={quantity <= 1} onClick={() => changeQuantity(quantity - 1)} aria-label={`Decrease quantity for ${product.name}`}><MinusIcon /></button><output aria-label={`Quantity ${quantity}`}>{String(quantity).padStart(2, "0")}</output><button type="button" disabled={quantity >= Math.min(10, selectedVariant?.inventory ?? 10)} onClick={() => changeQuantity(quantity + 1)} aria-label={`Increase quantity for ${product.name}`}><PlusIcon /></button></div>
           <Button className="primary-button add-button" type="button" disabled={unavailable || !product.variants.length} onClick={(event) => void addToCart(event.currentTarget)}>{t("product.addBag")}</Button>
           <button className="icon-button wishlist-product" type="button" aria-label={t(wished ? "product.removeWishlist" : "product.addWishlist")} aria-pressed={wished} onClick={async () => { if (await requireAccount()) toggleWishlist(product.id); }}><HeartIcon fill={wished ? "currentColor" : "none"} /></button>
         </div>

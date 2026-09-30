@@ -53,7 +53,7 @@ function CartRow({ item }: { item: CartItem }) {
           <div className="quantity-stepper" aria-label={`Quantity for ${item.productName}`}>
             <button type="button" onClick={() => changeQuantity(item.quantity - 1)} disabled={item.quantity <= 1} aria-label="Decrease quantity"><MinusIcon /></button>
             <output aria-live="polite">{String(item.quantity).padStart(2, "0")}</output>
-            <button type="button" onClick={() => changeQuantity(item.quantity + 1)} disabled={item.quantity >= 10} aria-label="Increase quantity"><PlusIcon /></button>
+            <button type="button" onClick={() => changeQuantity(item.quantity + 1)} disabled={item.quantity >= Math.min(10, item.availableQuantity ?? 10)} aria-label="Increase quantity"><PlusIcon /></button>
           </div>
           <p className="cart-row-price">{formatMoney(item.unitPrice === null ? null : item.unitPrice * item.quantity, item.currency)}</p>
         </div>

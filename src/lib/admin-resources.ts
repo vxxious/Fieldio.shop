@@ -14,7 +14,6 @@ const namedFields = [field("name", "Name", "text", true), field("slug", "URL slu
 const reference = (key: string, label: string, required = false) => field(key, label, "uuid", required);
 const catalogRoles: AdminRole[] = ["owner", "admin", "editor"];
 const managementRoles: AdminRole[] = ["owner", "admin"];
-const fulfilmentRoles: AdminRole[] = ["owner", "admin", "fulfilment"];
 
 export const adminResources: AdminResource[] = [
   { table: "products", title: "Products", roles: catalogRoles, columns: ["name", "sku", "status", "price", "currency"], fields: [
@@ -33,11 +32,6 @@ export const adminResources: AdminResource[] = [
   { table: "collections", title: "Collections", roles: catalogRoles, columns: ["name", "slug", "is_active"], fields: [...namedFields, field("intro", "Introduction", "textarea"), field("hero_image_url", "Hero image URL", "url"), field("hero_image_alt", "Hero image description"), field("published_at", "Publish date", "datetime-local"), field("is_active", "Active", "boolean")] },
   { table: "collection_products", title: "Collection products", roles: catalogRoles, key: "product_id", columns: ["collection_id", "product_id", "position"], fields: [reference("collection_id", "Collection", true), reference("product_id", "Product", true), field("position", "Position", "number", true)] },
   { table: "editorial_content", title: "Lookbook & homepage", roles: catalogRoles, columns: ["page_key", "section_key", "is_published"], fields: [field("page_key", "Page key", "text", true), field("section_key", "Section key", "text", true), field("content", "Section content (JSON object)", "json", true), field("is_published", "Published", "boolean")] },
-  { table: "order_requests", title: "Order requests", roles: fulfilmentRoles, noCreate: true, columns: ["public_reference", "customer_name", "customer_email", "status", "created_at"], fields: [{ key: "status", label: "Order status", options: ["order_request", "awaiting_confirmation", "confirmed", "processing", "shipped", "delivered", "cancelled"], required: true }] },
-  { table: "order_fulfillments", title: "Vendor fulfilments", roles: fulfilmentRoles, readOnly: true, columns: ["order_request_id", "store_name", "status", "updated_at"], fields: [] },
-  { table: "order_items", title: "Order items", roles: fulfilmentRoles, readOnly: true, columns: ["order_request_id", "product_name", "variant_name", "quantity", "line_total"], fields: [] },
-  { table: "marketplace_returns", title: "Returns", roles: fulfilmentRoles, noCreate: true, columns: ["order_request_id", "reason", "status", "created_at"], fields: [{ key: "status", label: "Return status", options: ["requested", "approved", "rejected", "in_transit", "received", "refunded", "closed"], required: true }, field("resolution", "Resolution", "textarea")] },
-  { table: "marketplace_disputes", title: "Disputes", roles: fulfilmentRoles, noCreate: true, columns: ["order_request_id", "fulfillment_id", "reason", "status", "created_at"], fields: [{ key: "status", label: "Dispute status", options: ["open", "reviewing", "resolved", "rejected", "closed"], required: true }, field("resolution", "Resolution", "textarea")] },
   { table: "audit_logs", title: "Activity log", roles: managementRoles, readOnly: true, columns: ["actor_id", "action", "entity_type", "entity_id", "created_at"], fields: [] },
   { table: "profiles", title: "Customers", roles: managementRoles, readOnly: true, columns: ["id", "full_name", "phone", "created_at"], fields: [] },
   { table: "newsletter_subscribers", title: "Newsletter subscribers", roles: managementRoles, readOnly: true, columns: ["email", "status", "consented_at", "unsubscribed_at"], fields: [] },
