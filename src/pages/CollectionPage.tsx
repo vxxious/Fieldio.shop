@@ -17,9 +17,27 @@ const genderCategories = {
   men: ["sale", "new-in", "tops", "bottoms", "outerwear", "tailoring", "accessories", "footwear", "all"],
   women: ["sale", "new-in", "dresses", "tops", "bottoms", "outerwear", "accessories", "footwear", "all"]
 } as const;
-const categoryLabels: Record<string, string> = { sale: "Sale", "new-in": "New in", tops: "Tops", bottoms: "Bottoms", outerwear: "Outerwear", tailoring: "Tailoring", dresses: "Dresses", accessories: "Accessories", footwear: "Footwear", all: "All pieces", sunglasses: "Sunglasses", belts: "Belts", "hats-caps": "Hats & caps", "wallets-cardholders": "Wallets & cardholders", scarves: "Scarves", "glasses-frames": "Glasses & frames", "hair-accessories": "Hair accessories", gloves: "Gloves", jewellery: "Jewellery", "fashion-jewellery": "All fashion jewellery", bracelets: "Bracelets", earrings: "Earrings", necklaces: "Necklaces", rings: "Rings", watches: "Watches", "fine-jewellery": "All fine jewellery", "demi-fine-jewellery": "All demi-fine jewellery", "fine-bracelets": "Fine bracelets", "fine-earrings": "Fine earrings", "fine-necklaces": "Fine necklaces", "fine-rings": "Fine rings", "fine-watches": "Fine watches" };
+const categoryLabels: Record<string, string> = { sale: "Sale", "new-in": "New in", tops: "Tops", bottoms: "Bottoms", outerwear: "Outerwear", tailoring: "Tailoring", dresses: "Dresses", accessories: "Accessories", footwear: "Footwear", all: "All pieces", sneakers: "Sneakers", boots: "Boots", pumps: "Pumps", loafers: "Loafers", "ballet-flats": "Ballet flats", mules: "Mules", slippers: "Slippers", "derby-oxford-shoes": "Derby & Oxford shoes", sandals: "Sandals", "slides-flip-flops": "Slides & flip-flops", espadrilles: "Espadrilles", sunglasses: "Sunglasses", belts: "Belts", "hats-caps": "Hats & caps", "wallets-cardholders": "Wallets & cardholders", scarves: "Scarves", "glasses-frames": "Glasses & frames", "hair-accessories": "Hair accessories", gloves: "Gloves", jewellery: "Jewellery", "fashion-jewellery": "All fashion jewellery", bracelets: "Bracelets", earrings: "Earrings", necklaces: "Necklaces", rings: "Rings", watches: "Watches", "fine-jewellery": "All fine jewellery", "demi-fine-jewellery": "All demi-fine jewellery", "fine-bracelets": "Fine bracelets", "fine-earrings": "Fine earrings", "fine-necklaces": "Fine necklaces", "fine-rings": "Fine rings", "fine-watches": "Fine watches" };
 
 const catalogDirectories = {
+  shoes: {
+    title: "Shoes",
+    intro: "Everyday foundations and statement pairs, selected across shape, finish, and wearability.",
+    groups: [{ title: "Shoes", links: [
+      ["All shoes", "/collections/shoes?category=all"],
+      ["Sneakers", "/collections/shoes?category=sneakers"],
+      ["Boots", "/collections/shoes?category=boots"],
+      ["Pumps", "/collections/shoes?category=pumps"],
+      ["Loafers", "/collections/shoes?category=loafers"],
+      ["Ballet flats", "/collections/shoes?category=ballet-flats"],
+      ["Mules", "/collections/shoes?category=mules"],
+      ["Slippers", "/collections/shoes?category=slippers"],
+      ["Derby & Oxford shoes", "/collections/shoes?category=derby-oxford-shoes"],
+      ["Sandals", "/collections/shoes?category=sandals"],
+      ["Slides & flip-flops", "/collections/shoes?category=slides-flip-flops"],
+      ["Espadrilles", "/collections/shoes?category=espadrilles"]
+    ] }]
+  },
   accessories: {
     title: "Accessories",
     intro: "The finishing pieces: considered, useful, and sourced with the same care as the main look.",

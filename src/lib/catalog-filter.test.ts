@@ -28,6 +28,15 @@ describe("catalog filters", () => {
     expect(filterCatalog([bag, jewellery, shoes], { collection: "accessories" }).map((product) => product.id)).toEqual(["jewellery"]);
     expect(filterCatalog([bag, jewellery, shoes], { collection: "jewellery", subcategory: "earrings" }).map((product) => product.id)).toEqual(["jewellery"]);
   });
+  it("routes shoe categories through the shoes directory", () => {
+    const base = products[0]!;
+    const sneakers = { ...base, id: "sneakers", category: "Footwear", tags: ["trainers"] };
+    const loafers = { ...base, id: "loafers", category: "Shoes", tags: ["loafers"] };
+    const bag = { ...base, id: "bag", category: "Bags", tags: ["bags"] };
+    expect(filterCatalog([sneakers, loafers, bag], { collection: "shoes" }).map((product) => product.id)).toEqual(["sneakers", "loafers"]);
+    expect(filterCatalog([sneakers, loafers, bag], { collection: "shoes", subcategory: "sneakers" }).map((product) => product.id)).toEqual(["sneakers"]);
+    expect(filterCatalog([sneakers, loafers, bag], { collection: "shoes", subcategory: "loafers" }).map((product) => product.id)).toEqual(["loafers"]);
+  });
 });
 
 describe("brand routes", () => {

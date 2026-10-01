@@ -19,6 +19,7 @@ const links = [
   ["nav.women", "/collections/women"],
   ["nav.men", "/collections/men"],
   ["nav.bags", "/collections/bags"],
+  ["nav.shoes", "/collections/shoes"],
   ["nav.accessories", "/collections/accessories"],
   ["nav.brands", "/brands"],
   ["nav.personal", "/personal-shopping"],
