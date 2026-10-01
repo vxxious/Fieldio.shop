@@ -25,9 +25,26 @@ export function HomePage() {
   return (
     <>
       <section className="catalog-intro" aria-labelledby="catalog-title">
-        <div className="catalog-copy">
-          <h1 id="catalog-title"><EditorialText text={editorial.intro?.heading || t("home.title")} /></h1>
-          <p>{editorial.intro?.body || t("home.intro")}</p>
+        <div className="home-hero-composition">
+          <div className="home-hero-copy">
+            <p className="home-hero-label">The Fieldio Edit</p>
+            <h1 id="catalog-title" aria-label="Designer fashion, personally sourced.">
+              <span aria-hidden="true">
+                <span className="home-hero-line"><EditorialText text="Designer fashion," /></span>
+                <span className="home-hero-line"><EditorialText text="personally sourced." /></span>
+              </span>
+            </h1>
+            <div className="home-hero-details">
+              <p>An independent marketplace for designer fashion and personal sourcing, delivered worldwide.</p>
+              <Link className="home-hero-cta" to="/collections">Explore the edit <ArrowIcon /></Link>
+            </div>
+          </div>
+          <div className="home-hero-media">
+            <picture>
+              <source type="image/webp" srcSet="/images/fieldio-mannequin-hero-480.webp 480w, /images/fieldio-mannequin-hero-940.webp 940w" sizes="(max-width: 760px) 94vw, 48vw" />
+              <img src="/images/fieldio-mannequin-hero.png" width="941" height="1672" alt="Mannequin wearing a leopard-print cap and fleece with wide-leg denim and brown trainers" loading="eager" fetchPriority="high" />
+            </picture>
+          </div>
         </div>
         <div className="catalog-controls">
           <nav aria-label="Product categories">{categories.map(([category, label], index) => <Link key={category} className={index === 0 ? "active" : ""} to={category === "All" ? "/collections" : `/collections/${category.toLowerCase()}`}>{t(label)}</Link>)}</nav>
