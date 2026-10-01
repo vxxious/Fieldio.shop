@@ -15,7 +15,7 @@ const subcategoryTags: Record<string, string[]> = {
   "ballet-flats": ["ballet flat", "ballet flats"],
   mules: ["mule", "mules"],
   slippers: ["slipper", "slippers"],
-  "derby-oxford-shoes": ["derby", "derby shoes", "oxford", "oxfords", "oxford shoes"],
+  "derby-oxford-shoes": ["derby", "derby shoes", "oxford", "oxfords", "oxford shoes", "lace-up shoe", "lace-up shoes", "lace up shoe", "lace up shoes"],
   sandals: ["sandal", "sandals"],
   "slides-flip-flops": ["slide", "slides", "flip-flop", "flip-flops", "flip flops"],
   espadrilles: ["espadrille", "espadrilles"],
@@ -45,6 +45,13 @@ const subcategoryTags: Record<string, string[]> = {
   footwear: ["footwear", "shoe", "shoes", "trainer", "trainers", "sneaker", "sneakers"]
 };
 
+const normalizeCatalogTerm = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+function matchesCatalogTerms(product: Product, terms: string[]): boolean {
+  const searchable = ` ${[product.category, product.name, product.slug, ...product.tags].map(normalizeCatalogTerm).join(" ")} `;
+  return terms.some((term) => searchable.includes(` ${normalizeCatalogTerm(term)} `));
+}
+
 export function filterCatalog(products: Product[], filters: { collection?: string; subcategory?: string; brand?: string; size?: string; sort?: string }) {
   const { collection, subcategory, brand, size, sort } = filters;
   const result = products.filter((product) => {
@@ -57,15 +64,13 @@ export function filterCatalog(products: Product[], filters: { collection?: strin
     if (collection && !["new-arrivals", "featured", "sale", "luxury"].includes(collection)) {
       const inGender = ["men", "women"].includes(collection) && product.tags.some((tag) => tag.toLowerCase() === collection);
       const terms = subcategoryTags[collection] ?? [collection];
-      const productTerms = [product.category, ...product.tags].map((value) => value.toLowerCase());
-      if (!terms.some((term) => productTerms.includes(term)) && !product.collectionSlugs?.includes(collection) && !inGender) return false;
+      if (!matchesCatalogTerms(product, terms) && !product.collectionSlugs?.includes(collection) && !inGender) return false;
     }
     if (subcategory === "new-in" && !product.isNewArrival) return false;
     if (subcategory === "sale" && !product.isSale) return false;
     if (subcategory && subcategory !== "all") {
       const tags = subcategoryTags[subcategory] ?? [subcategory];
-      const productTerms = [product.category, ...product.tags].map((value) => value.toLowerCase());
-      if (!tags.some((tag) => productTerms.includes(tag))) return false;
+      if (!matchesCatalogTerms(product, tags)) return false;
     }
     return true;
   });

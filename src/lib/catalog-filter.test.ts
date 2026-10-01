@@ -30,12 +30,17 @@ describe("catalog filters", () => {
   });
   it("routes shoe categories through the shoes directory", () => {
     const base = products[0]!;
-    const sneakers = { ...base, id: "sneakers", category: "Footwear", tags: ["trainers"] };
-    const loafers = { ...base, id: "loafers", category: "Shoes", tags: ["loafers"] };
+    const sneakers = { ...base, id: "sneakers", name: "B23 High-Top Sneaker", slug: "dior-b23-high-top-sneaker", category: "Footwear", tags: ["men", "footwear"] };
+    const boots = { ...base, id: "boots", name: "Leather Ankle Boots", slug: "leather-ankle-boots", category: "Footwear", tags: ["women", "footwear"] };
+    const pumps = { ...base, id: "pumps", name: "J'Adior Slingback Pump", slug: "jadior-slingback-pump", category: "Footwear", tags: ["women", "footwear"] };
+    const laceUps = { ...base, id: "lace-ups", name: "Monolith Lace-Up Shoes", slug: "monolith-lace-up-shoes", category: "Footwear", tags: ["men", "footwear"] };
     const bag = { ...base, id: "bag", category: "Bags", tags: ["bags"] };
-    expect(filterCatalog([sneakers, loafers, bag], { collection: "shoes" }).map((product) => product.id)).toEqual(["sneakers", "loafers"]);
-    expect(filterCatalog([sneakers, loafers, bag], { collection: "shoes", subcategory: "sneakers" }).map((product) => product.id)).toEqual(["sneakers"]);
-    expect(filterCatalog([sneakers, loafers, bag], { collection: "shoes", subcategory: "loafers" }).map((product) => product.id)).toEqual(["loafers"]);
+    const fixtures = [sneakers, boots, pumps, laceUps, bag];
+    expect(filterCatalog(fixtures, { collection: "shoes" }).map((product) => product.id)).toEqual(["sneakers", "boots", "pumps", "lace-ups"]);
+    expect(filterCatalog(fixtures, { collection: "shoes", subcategory: "sneakers" }).map((product) => product.id)).toEqual(["sneakers"]);
+    expect(filterCatalog(fixtures, { collection: "shoes", subcategory: "boots" }).map((product) => product.id)).toEqual(["boots"]);
+    expect(filterCatalog(fixtures, { collection: "shoes", subcategory: "pumps" }).map((product) => product.id)).toEqual(["pumps"]);
+    expect(filterCatalog(fixtures, { collection: "shoes", subcategory: "derby-oxford-shoes" }).map((product) => product.id)).toEqual(["lace-ups"]);
   });
 });
 
