@@ -19,6 +19,15 @@ describe("catalog filters", () => {
     expect(filterCatalog(products, { collection: "women", subcategory: "footwear" }).map((product) => product.slug)).toContain("ivory-sculptural-slingbacks");
     expect(filterCatalog(products, { collection: "women", subcategory: "dresses" }).map((product) => product.slug)).toContain("architectural-column-dress");
   });
+  it("keeps bags separate while nesting jewellery in accessories", () => {
+    const base = products[0]!;
+    const bag = { ...base, id: "bag", category: "Bags", tags: ["bags"] };
+    const jewellery = { ...base, id: "jewellery", category: "Accessories", tags: ["jewellery", "earrings"] };
+    const shoes = { ...base, id: "shoes", category: "Footwear", tags: ["shoes"] };
+    expect(filterCatalog([bag, jewellery, shoes], { collection: "bags" }).map((product) => product.id)).toEqual(["bag"]);
+    expect(filterCatalog([bag, jewellery, shoes], { collection: "accessories" }).map((product) => product.id)).toEqual(["jewellery"]);
+    expect(filterCatalog([bag, jewellery, shoes], { collection: "jewellery", subcategory: "earrings" }).map((product) => product.id)).toEqual(["jewellery"]);
+  });
 });
 
 describe("brand routes", () => {

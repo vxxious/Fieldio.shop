@@ -38,6 +38,18 @@ export const collectionEditorials: Record<string, CollectionEditorial> = {
     statement: "Structured icons, modern utility, and personal sourcing without the noise.",
     layout: "cinematic"
   },
+  accessories: {
+    image: "/images/oxblood-accessories.png",
+    imageAlt: "Oxblood structured bag arranged with ivory accessories",
+    statement: "Finishing pieces selected for form, utility, and the way they complete a look.",
+    layout: "index"
+  },
+  jewellery: {
+    image: "/images/oxblood-accessories.png",
+    imageAlt: "A restrained Fieldio accessories composition in oxblood and ivory",
+    statement: "Fashion, demi-fine, and fine jewellery sourced with clarity around materials, condition, and delivery.",
+    layout: "index"
+  },
   shoes: {
     image: "/images/oxblood-accessories.png",
     imageAlt: "Ivory sculptural slingback shoes on a stone plinth",

@@ -6,7 +6,30 @@ const subcategoryTags: Record<string, string[]> = {
   outerwear: ["outerwear", "coat", "coats", "jacket", "jackets", "blazer", "blazers"],
   dresses: ["dress", "dresses"],
   tailoring: ["tailoring", "suit", "suits", "blazer", "blazers"],
-  accessories: ["accessory", "accessories", "bag", "bags", "jewellery", "jewelry"],
+  bags: ["bag", "bags", "handbag", "handbags", "tote", "totes", "clutch", "clutches"],
+  accessories: ["accessory", "accessories", "sunglasses", "belt", "belts", "hat", "hats", "cap", "caps", "wallet", "wallets", "cardholder", "cardholders", "scarf", "scarves", "glasses", "frames", "hair accessories", "glove", "gloves", "jewellery", "jewelry"],
+  sunglasses: ["sunglasses"],
+  belts: ["belt", "belts"],
+  "hats-caps": ["hat", "hats", "cap", "caps"],
+  "wallets-cardholders": ["wallet", "wallets", "cardholder", "cardholders"],
+  scarves: ["scarf", "scarves"],
+  "glasses-frames": ["glasses", "frames"],
+  "hair-accessories": ["hair accessories"],
+  gloves: ["glove", "gloves"],
+  jewellery: ["jewellery", "jewelry"],
+  "fashion-jewellery": ["fashion jewellery", "fashion jewelry"],
+  "fine-jewellery": ["fine jewellery", "fine jewelry"],
+  "demi-fine-jewellery": ["demi-fine jewellery", "demi-fine jewelry"],
+  bracelets: ["bracelet", "bracelets"],
+  earrings: ["earring", "earrings"],
+  necklaces: ["necklace", "necklaces"],
+  rings: ["ring", "rings"],
+  watches: ["watch", "watches"],
+  "fine-bracelets": ["fine bracelet", "fine bracelets"],
+  "fine-earrings": ["fine earring", "fine earrings"],
+  "fine-necklaces": ["fine necklace", "fine necklaces"],
+  "fine-rings": ["fine ring", "fine rings"],
+  "fine-watches": ["fine watch", "fine watches"],
   footwear: ["footwear", "shoe", "shoes", "trainer", "trainers", "sneaker", "sneakers"]
 };
 
@@ -21,7 +44,9 @@ export function filterCatalog(products: Product[], filters: { collection?: strin
     if (collection === "luxury" && !product.tags.includes("luxury") && product.collection !== "Luxury Sourcing") return false;
     if (collection && !["new-arrivals", "featured", "sale", "luxury"].includes(collection)) {
       const inGender = ["men", "women"].includes(collection) && product.tags.some((tag) => tag.toLowerCase() === collection);
-      if (product.category.toLowerCase() !== collection && !product.collectionSlugs?.includes(collection) && !inGender) return false;
+      const terms = subcategoryTags[collection] ?? [collection];
+      const productTerms = [product.category, ...product.tags].map((value) => value.toLowerCase());
+      if (!terms.some((term) => productTerms.includes(term)) && !product.collectionSlugs?.includes(collection) && !inGender) return false;
     }
     if (subcategory === "new-in" && !product.isNewArrival) return false;
     if (subcategory === "sale" && !product.isSale) return false;

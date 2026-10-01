@@ -16,6 +16,7 @@ const en = {
   "nav.men": "Men",
   "nav.brands": "Brands",
   "nav.bags": "Bags",
+  "nav.accessories": "Accessories",
   "nav.shoes": "Shoes",
   "nav.wholesale": "Wholesale",
   "nav.contact": "Contact",

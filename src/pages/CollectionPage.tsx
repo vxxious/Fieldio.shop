@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLayoutEffect, useRef } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { EditorialText } from "../components/EditorialText";
+import { ArrowIcon } from "../components/Icons";
 import { ProductCard } from "../components/ProductCard";
 import { collectionEditorials } from "../data/collection-editorials";
 import { emptyCatalog, useCatalogProducts } from "../hooks/useCatalog";
@@ -16,7 +17,41 @@ const genderCategories = {
   men: ["sale", "new-in", "tops", "bottoms", "outerwear", "tailoring", "accessories", "footwear", "all"],
   women: ["sale", "new-in", "dresses", "tops", "bottoms", "outerwear", "accessories", "footwear", "all"]
 } as const;
-const categoryLabels: Record<string, string> = { sale: "Sale", "new-in": "New in", tops: "Tops", bottoms: "Bottoms", outerwear: "Outerwear", tailoring: "Tailoring", dresses: "Dresses", accessories: "Accessories", footwear: "Footwear", all: "All pieces" };
+const categoryLabels: Record<string, string> = { sale: "Sale", "new-in": "New in", tops: "Tops", bottoms: "Bottoms", outerwear: "Outerwear", tailoring: "Tailoring", dresses: "Dresses", accessories: "Accessories", footwear: "Footwear", all: "All pieces", sunglasses: "Sunglasses", belts: "Belts", "hats-caps": "Hats & caps", "wallets-cardholders": "Wallets & cardholders", scarves: "Scarves", "glasses-frames": "Glasses & frames", "hair-accessories": "Hair accessories", gloves: "Gloves", jewellery: "Jewellery", "fashion-jewellery": "All fashion jewellery", bracelets: "Bracelets", earrings: "Earrings", necklaces: "Necklaces", rings: "Rings", watches: "Watches", "fine-jewellery": "All fine jewellery", "demi-fine-jewellery": "All demi-fine jewellery", "fine-bracelets": "Fine bracelets", "fine-earrings": "Fine earrings", "fine-necklaces": "Fine necklaces", "fine-rings": "Fine rings", "fine-watches": "Fine watches" };
+
+const catalogDirectories = {
+  accessories: {
+    title: "Accessories",
+    intro: "The finishing pieces: considered, useful, and sourced with the same care as the main look.",
+    groups: [{ title: "Accessories", links: [
+      ["All accessories", "/collections/accessories?category=all"],
+      ["Sunglasses", "/collections/accessories?category=sunglasses"],
+      ["Belts", "/collections/accessories?category=belts"],
+      ["Hats & caps", "/collections/accessories?category=hats-caps"],
+      ["Wallets & cardholders", "/collections/accessories?category=wallets-cardholders"],
+      ["Scarves", "/collections/accessories?category=scarves"],
+      ["Glasses & frames", "/collections/accessories?category=glasses-frames"],
+      ["Hair accessories", "/collections/accessories?category=hair-accessories"],
+      ["Gloves", "/collections/accessories?category=gloves"],
+      ["Jewellery", "/collections/jewellery"]
+    ] }]
+  },
+  jewellery: {
+    title: "Jewellery",
+    intro: "Fashion, demi-fine, and fine pieces selected for material, finish, and lasting relevance.",
+    groups: [
+      { title: "Fashion jewellery", links: [["All fashion jewellery", "/collections/jewellery?category=fashion-jewellery"], ["Bracelets", "/collections/jewellery?category=bracelets"], ["Earrings", "/collections/jewellery?category=earrings"], ["Necklaces", "/collections/jewellery?category=necklaces"], ["Rings", "/collections/jewellery?category=rings"], ["Watches", "/collections/jewellery?category=watches"]] },
+      { title: "Fine jewellery", links: [["All fine jewellery", "/collections/jewellery?category=fine-jewellery"], ["All demi-fine jewellery", "/collections/jewellery?category=demi-fine-jewellery"], ["Fine bracelets", "/collections/jewellery?category=fine-bracelets"], ["Fine earrings", "/collections/jewellery?category=fine-earrings"], ["Fine necklaces", "/collections/jewellery?category=fine-necklaces"], ["Fine rings", "/collections/jewellery?category=fine-rings"], ["Fine watches", "/collections/jewellery?category=fine-watches"]] }
+    ]
+  }
+} as const;
+
+function CatalogDirectory({ directory, backTo }: { directory: (typeof catalogDirectories)[keyof typeof catalogDirectories]; backTo?: string }) {
+  return <main className="catalog-directory">
+    <header><div>{backTo && <Link className="catalog-directory-back" to={backTo}><ArrowIcon /> Back to accessories</Link>}<h1><EditorialText text={directory.title} /></h1></div><p>{directory.intro}</p></header>
+    <div className="catalog-directory-groups">{directory.groups.map((group) => <section key={group.title}><h2>{group.title}</h2><nav aria-label={group.title}>{group.links.map(([label, href]) => <Link key={href} to={href}><span>{label}</span><ArrowIcon /></Link>)}</nav></section>)}</div>
+  </main>;
+}
 
 export function CollectionPage() {
   const { t } = useLocale();
@@ -56,6 +91,9 @@ export function CollectionPage() {
     return () => context.revert();
   }, [slug, heroImage]);
 
+  const directory = catalogDirectories[slug as keyof typeof catalogDirectories];
+  if (directory && !subcategory) return <CatalogDirectory directory={directory} {...(slug === "jewellery" ? { backTo: "/collections/accessories" } : {})} />;
+
   if (gender && !subcategory) return <div className="gender-directory">
     <header><h1>{gender === "men" ? "Men" : "Women"}</h1><p>Choose a category to browse a more focused Fieldio edit.</p></header>
     <nav className="gender-switch" aria-label="Shop by gender"><Link className={gender === "men" ? "active" : ""} to="/collections/men">Men</Link><Link className={gender === "women" ? "active" : ""} to="/collections/women">Women</Link></nav>
@@ -67,7 +105,7 @@ export function CollectionPage() {
 
   return <div className="collection-page">
     <header ref={heroRef} className={`collection-editorial collection-editorial--${editorial.layout}`}>
-      <div className="collection-editorial-copy"><h1><EditorialText text={subcategory ? `${title} / ${categoryLabels[subcategory] ?? subcategory}` : title} /></h1><p>{collection.data?.intro || editorial.statement || intro}</p>{gender && <Link className="text-link" to={`/collections/${gender}`}>Browse {gender} categories</Link>}</div>
+      <div className="collection-editorial-copy"><h1><EditorialText text={subcategory ? `${title} / ${categoryLabels[subcategory] ?? subcategory.replaceAll("-", " ")}` : title} /></h1><p>{collection.data?.intro || editorial.statement || intro}</p>{gender && <Link className="text-link" to={`/collections/${gender}`}>Browse {gender} categories</Link>}</div>
       <div className="collection-editorial-media"><img {...responsiveImage(heroImage)} sizes="(max-width: 760px) 100vw, 62vw" alt={heroImageAlt} /></div>
     </header>
     <div className="mobile-filter-bar"><p aria-live="polite">{visibleProducts.length} {visibleProducts.length === 1 ? t("collection.piece") : t("collection.pieces")}{brand || size ? ` · ${[brand, size].filter(Boolean).join(" · ")}` : ""}</p><button type="button" className="secondary-button" onClick={() => filterDialogRef.current?.showModal()}>{t("collection.filter")}</button></div>
