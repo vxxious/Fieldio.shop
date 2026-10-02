@@ -11,7 +11,7 @@ import { useWishlistStore } from "../store/wishlist";
 import type { Product } from "../types/catalog";
 import { HeartIcon } from "./Icons";
 
-export function ProductCard({ product, priority = false, quickAdd = false }: { product: Product; priority?: boolean; quickAdd?: boolean }) {
+export function ProductCard({ product, quickAdd = false }: { product: Product; quickAdd?: boolean }) {
   const [showSizes, setShowSizes] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
   const toggleWishlist = useWishlistStore((state) => state.toggle);
@@ -42,8 +42,8 @@ export function ProductCard({ product, priority = false, quickAdd = false }: { p
               objectPosition: product.images[0].cardCrop.objectPosition,
               scale: product.images[0].cardCrop.scale
             } } : {})}
-            loading={priority ? "eager" : "lazy"}
-            fetchPriority={priority ? "high" : "auto"}
+            loading="lazy"
+            fetchPriority="low"
             {...(!reduceMotion ? { whileHover: { scale: 1.025 } } : {})}
             transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
           /> : <div className="image-placeholder">Photography coming soon</div>}

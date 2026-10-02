@@ -1,6 +1,6 @@
 ---
 name: "Fieldio"
-description: "A restrained editorial catalog for worldwide fashion sourcing and personal shopping."
+description: "A warm editorial marketplace for worldwide fashion sourcing and personal shopping."
 colors:
   paper: "#f6f6f3"
   surface: "#ffffff"
@@ -22,6 +22,18 @@ colors:
   footer-muted: "#aeb0a8"
   footer-line: "#3b3c37"
   scrim: "rgba(17, 18, 15, 0.44)"
+  editorial-light-bg: "#d8ccba"
+  editorial-light-shape: "#e7dfd2"
+  editorial-light-ink: "#1b1713"
+  editorial-light-muted: "#5f5549"
+  editorial-light-line: "#b5a793"
+  editorial-dark-bg: "#201814"
+  editorial-dark-shape: "#30251f"
+  editorial-dark-ink: "#f4ede4"
+  editorial-dark-muted: "#c8b9aa"
+  editorial-dark-line: "#4a3a31"
+  editorial-announcement-light: "#201813"
+  editorial-announcement-dark: "#120d0a"
 typography:
   display:
     fontFamily: '"Schibsted Grotesk", sans-serif'
@@ -81,6 +93,18 @@ typography:
     fontFamily: '"Manrope", sans-serif'
     fontSize: "11px"
     fontWeight: 400
+  campaign-display:
+    fontFamily: '"Schibsted Grotesk", sans-serif'
+    fontSize: "clamp(62px, 6.2vw, 100px)"
+    fontWeight: 500
+    lineHeight: 0.88
+    letterSpacing: "-0.055em"
+  campaign-display-mobile:
+    fontFamily: '"Schibsted Grotesk", sans-serif'
+    fontSize: "clamp(50px, 14.5vw, 68px)"
+    fontWeight: 500
+    lineHeight: 0.88
+    letterSpacing: "-0.055em"
 rounded:
   square: "0"
   circle: "50%"
@@ -208,7 +232,7 @@ components:
 
 Fieldio behaves like a precise fashion index rather than a conventional promotional storefront. A compact centered masthead gives way to image-led collection stories, oversized editorial type, filters, and tightly aligned product imagery. Collection and product surfaces now extend the index language through asymmetric hero compositions, masked reveals, structured product information, and horizontally browsable recommendations.
 
-The atmosphere is minimal, premium, editorial, assured, globally minded, and restrained. Warm paper, near-black ink, quiet utility copy, square image fields, and exact hairline rules establish the world; controlled scale and whitespace provide luxury without ornament. Accessible Shadcn and Radix primitives are restyled into this geometry instead of importing their default visual personality. The interface stays honest about its service model by presenting checkout as a request that continues with a personal shopper on WhatsApp.
+The atmosphere is minimal, premium, editorial, assured, globally minded, and restrained. The homepage campaign uses muted beige in light mode and deep espresso in dark mode; the rest of the catalogue retains warm paper, near-black ink, quiet utility copy, square image fields, and exact hairline rules. Controlled scale and whitespace provide luxury without ornament. Accessible Shadcn and Radix primitives are restyled into this geometry instead of importing their default visual personality. The interface stays honest about its service model by presenting checkout as a request that continues with a personal shopper on WhatsApp.
 
 **Key Characteristics:**
 
@@ -219,14 +243,17 @@ The atmosphere is minimal, premium, editorial, assured, globally minded, and res
 - Collection heroes use four intentional compositions: split, reverse, index, and cinematic.
 - Shadcn and Radix provide behavior while Fieldio tokens, square geometry, and custom inline icons provide identity.
 - Motion uses masked vertical reveals, clipped image entrances, and short directional drawer transitions; every effect is removable.
+- The homepage masthead and campaign form one tonal surface, while inner routes return to the standard paper-and-ink header.
 
 ## Colors
 
-The palette is a mineral-white and near-black neutral system, with muted moss and oxblood reserved for restrained semantic or photographic warmth rather than decorative saturation.
+The palette has two coordinated layers: a paper-and-ink system for commerce and a warm editorial system for the homepage campaign. Muted moss and oxblood remain reserved for semantic or photographic warmth rather than decorative saturation.
 
 ### Primary
 
 - **Near-Black Ink:** The primary voice for text, filled actions, the announcement bar, selection, and inverse footer surfaces.
+- **Light Editorial Beige (`#d8ccba`):** The homepage campaign field in light mode, paired with Dark Editorial Ink (`#1b1713`).
+- **Dark Editorial Espresso (`#201814`):** The homepage campaign field in dark mode, paired with Light Editorial Ink (`#f4ede4`).
 
 ### Secondary
 
@@ -248,6 +275,9 @@ The palette is a mineral-white and near-black neutral system, with muted moss an
 - **Accessible Focus Blue:** A visible keyboard-only focus outline kept distinct from the brand palette.
 - **Error Oxblood:** Validation copy and failure messaging use `#9f2635` in light mode and `#df7d89` in dark mode.
 - **Scrim Ink:** The translucent backdrop behind modal drawers and mobile navigation.
+- **Editorial Shape:** `#e7dfd2` in light mode and `#30251f` in dark mode. It is a quiet tonal plane, not a gradient or decorative card.
+- **Editorial Supporting Copy:** `#5f5549` in light mode and `#c8b9aa` in dark mode.
+- **Campaign Announcement:** `#201813` in light mode and the deeper `#120d0a` in dark mode, with warm off-white text.
 
 ### Named Rules
 
@@ -275,6 +305,7 @@ The palette is a mineral-white and near-black neutral system, with muted moss an
 - **Label** (400, 13px, 0.02em tracking): Product brands, field labels, prices, and compact commerce metadata.
 - **Micro** (400, 12px): Secondary states, counts, helper copy, and dense administrative metadata.
 - **Button** (400, 11px): The shared Shadcn button primitive and similarly compact atomic controls.
+- **Homepage Campaign Display** (500, fluid from 62px to 100px, 0.88 line-height): The two-line designer-fashion statement. On mobile it uses a dedicated 50px to 68px fluid range and a narrower measure so the model and words remain legible together rather than merely shrinking the desktop layout.
 
 ### Named Rules
 
@@ -285,6 +316,8 @@ The palette is a mineral-white and near-black neutral system, with muted moss an
 ## Layout
 
 The primary page container is fluid with 20px side gutters and a 1600px ceiling. At widths up to 1050px the gutters become 16px; the Brands alphabet becomes a horizontal 44px touch rail at 820px; at 760px and below the page gutters become 14px. Review filters use three compact columns on mobile and stack to one readable column below 380px. The header uses a three-part grid with the Fieldio mark centered independently between primary navigation and utilities.
+
+The homepage campaign is intentionally full-bleed and excludes those page gutters. Desktop uses a spacious two-column composition: campaign copy on the left and an unboxed mannequin on the right, with a subtle geometric tonal plane behind the model. Mobile is a separate composition: the mannequin sits behind the copy at full opacity and a controlled scale, while the label, headline, supporting copy, and minimal underlined CTA stay in the foreground. The hero preserves its supplied 941:1672 source ratio through explicit dimensions and responsive 480px/940px WebP sources, preventing layout shift while prioritising only the hero image.
 
 The catalog is a four-column image index with a fluid 10–18px gap, reducing to three columns below 1050px and two columns with a 9px gap on mobile. Product media uses a tall 4:5.25 proportion on larger screens and 3:4 on mobile. Collection pages begin with a white editorial hero, 520–760px tall, using one of four actual variants: a narrow-copy/wide-image split; its image-left reverse; an index with a full-width copy row above a full-width image; or a cinematic image with copy overlaid on a translucent ink block. At 760px, split, reverse, and index heroes become image-first stacks, while cinematic heroes retain the overlay composition.
 
@@ -368,7 +401,7 @@ Use only Fieldio's small inline SVG components. The shared drawing language is a
 
 ### Navigation
 
-The 74px desktop masthead uses compact 12px links arranged around the independently centered Fieldio wordmark. Active links are underlined with a five-pixel underline offset. At 760px, the header becomes 66px tall, primary links move into a full-screen paper-toned menu, and utility actions compress visually while preserving minimum 44px by 44px hit areas and global focus behavior.
+The 74px desktop masthead uses compact 12px links arranged around the independently centered Fieldio wordmark. Active links are underlined with a five-pixel underline offset. On the homepage, the masthead inherits the campaign beige or espresso field and its matching ink, line, logo, and icon treatment; inner routes use the standard paper-and-ink tokens. At 760px, the header becomes 66px tall, primary links move into a full-screen paper-toned menu, and utility actions compress visually while preserving minimum 44px by 44px hit areas and global focus behavior. The announcement stays single-line at 10px on mobile and never wraps into the masthead.
 
 ### Product Card
 
@@ -403,6 +436,14 @@ Product reviews form a ruled editorial chapter beneath product details. The summ
 ### Cart Drawer
 
 The cart is a flat paper panel up to 520px wide over a translucent ink scrim. It is loaded only when opened. Hairline-separated rows combine a 112px by 140px image with compact details and a bordered quantity stepper whose increment and decrement controls are 44px square. The panel enters from the right, stages its rows and summary in short sequences, traps focus, restores focus on close, kills conflicting panel or scrim tweens before exit, and removes its animation for reduced-motion users.
+
+## Theme Behavior and Accessibility
+
+Theme state is resolved before the application paints and updates the browser theme color, preventing a flash of the wrong palette. The light and dark homepage campaign tokens switch as one group, including its masthead, monogram treatment, icons, rules, announcement, text, and tonal shape. Photographs are never inverted. Inner routes continue to use the standard light and dark paper-and-ink tokens. Theme transitions change color only and do not move or resize content.
+
+All interactive controls target an effective area of approximately 44 by 44px while compact type and icons keep their editorial scale. Keyboard focus uses the shared high-contrast focus token; labels, landmarks, heading order, alternative text, live status messaging, and focus restoration remain semantic. Body and supporting text maintain WCAG AA contrast against their active theme surface. The 10px announcement is the only intentionally compact mobile display text and remains a short, non-wrapping status line.
+
+Motion conveys hierarchy rather than blocking it. Framer Motion owns route, menu, and small interaction transitions; GSAP and ScrollTrigger own editorial word and section reveals; Lenis is loaded only for fine-pointer, motion-permitted devices. `prefers-reduced-motion` skips reveals and smooth scrolling while preserving content, state changes, focus, and navigation. Below-fold catalogue imagery is natively lazy-loaded; only the responsive campaign image receives eager loading and high fetch priority.
 
 ## Do's and Don'ts
 

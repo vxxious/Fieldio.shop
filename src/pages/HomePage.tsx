@@ -54,7 +54,7 @@ export function HomePage() {
 
       {error && <div className="catalog-notice" role="alert">The live catalog could not load. Refresh the page or ask Fieldio on WhatsApp.</div>}
       {!isLoading && !error && !catalog.length && <div className="empty-state"><h2>Your next piece, personally sourced.</h2><p>The online edit is being prepared. Tell Fieldio what you are looking for.</p><Link to="/personal-shopping" className="text-link">Speak to a personal shopper</Link></div>}
-      {isLoading ? <div className="product-grid home-grid" aria-label="Loading products">{Array.from({ length: 4 }).map((_, index) => <div className="product-skeleton" key={index} />)}</div> : <section className="product-grid home-grid" aria-label="Featured products">{homeCatalog.slice(0, 4).map((product, index) => <ProductCard key={product.id} product={product} priority={index < 4} />)}</section>}
+      {isLoading ? <div className="product-grid home-grid" aria-label="Loading products">{Array.from({ length: 4 }).map((_, index) => <div className="product-skeleton" key={index} />)}</div> : <section className="product-grid home-grid" aria-labelledby="home-featured-title"><h2 id="home-featured-title" className="sr-only">Featured products</h2>{homeCatalog.slice(0, 4).map((product) => <ProductCard key={product.id} product={product} />)}</section>}
 
       <Reveal className="account-bulletin-reveal">
         <section className="account-bulletin" aria-labelledby="account-bulletin-title">
