@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { useLocale } from "../context/LocaleContext";
 import { useRequireAccount } from "../hooks/useRequireAccount";
 import { selectCartCount, useCartStore } from "../store/cart";
@@ -11,6 +11,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { Wordmark } from "./Wordmark";
 
 export function SiteHeader() {
+  const isHome = useLocation().pathname === "/";
   const [menuOpen, setMenuOpen] = useState(false);
   const [regionOpen, setRegionOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -47,7 +48,7 @@ export function SiteHeader() {
           <span className="region-trigger-currency"> · {region.currency}</span>
         </button>
       </div>
-      <header className="site-header">
+      <header className={`site-header${isHome ? " site-header-home" : ""}`}>
         <div className="header-left">
           <button ref={menuButtonRef} className="icon-button menu-button mobile-only" type="button" onClick={() => setMenuOpen(true)} aria-label={t("nav.openMenu")} aria-expanded={menuOpen}><MenuIcon /></button>
           <Link to="/search" className="icon-button mobile-only mobile-search-button" aria-label={t("nav.search")}><SearchIcon /></Link>

@@ -31,7 +31,7 @@ export function applyTheme(theme: Theme, persist = false) {
   root.dataset.theme = theme;
   root.classList.toggle("dark", dark);
   root.style.colorScheme = theme;
-  document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute("content", dark ? "#11120f" : "#f6f6f3");
+  document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute("content", dark ? "#201814" : "#d8ccba");
 
   if (persist) {
     try {
