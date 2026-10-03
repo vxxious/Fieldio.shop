@@ -71,6 +71,8 @@ export interface CartItem {
   availableQuantity?: number | null;
   unitPrice: number | null;
   currency: Currency;
+  sellerStoreName?: string;
+  sellerStoreSlug?: string;
 }
 
 export interface CustomerDetails {

@@ -2,9 +2,10 @@ import gsap from "gsap";
 import { useCallback, useLayoutEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useFocusTrap } from "../hooks/useFocusTrap";
+import { emptyCatalog, useCatalogProducts } from "../hooks/useCatalog";
 import { useLocale } from "../context/LocaleContext";
 import { trackEvent } from "../lib/analytics";
-import { selectCartSubtotal, useCartStore } from "../store/cart";
+import { groupCartItemsByStore, selectCartSubtotal, useCartStore } from "../store/cart";
 import type { CartItem } from "../types/catalog";
 import { CloseIcon, MinusIcon, PlusIcon } from "./Icons";
 import { Button } from "./ui/button";
@@ -69,6 +70,8 @@ export function CartDrawer() {
   const items = useCartStore((state) => state.items);
   const subtotal = useCartStore(selectCartSubtotal);
   const trigger = useCartStore((state) => state.lastTrigger);
+  const { data: catalog = emptyCatalog } = useCatalogProducts();
+  const storeGroups = groupCartItemsByStore(items, catalog);
   const layerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
   const { formatMoney, t } = useLocale();
@@ -114,11 +117,19 @@ export function CartDrawer() {
         </div>
         {items.length > 0 ? (
           <>
-            <ul className="cart-list">{items.map((item) => <CartRow key={item.key} item={item} />)}</ul>
+            <div className="cart-list">
+              {storeGroups.length > 1 && <p className="cart-multistore-note">{t("cart.multiStore")}</p>}
+              {storeGroups.map((group) => (
+                <section className="cart-store-group" key={group.key} aria-labelledby={`cart-store-${group.key}`}>
+                  <h3 className="cart-store-name" id={`cart-store-${group.key}`}>{group.name}</h3>
+                  <ul className="cart-store-items">{group.items.map((item) => <CartRow key={item.key} item={item} />)}</ul>
+                </section>
+              ))}
+            </div>
             <div className="cart-summary">
               <div><span>{t("cart.subtotal")}</span><strong>{subtotal === null ? t("cart.confirm") : formatMoney(subtotal, items[0]?.currency ?? "GBP")}</strong></div>
               <p>{t("cart.confirmationNote")}</p>
-              <Button asChild size="lg" className="primary-button full-button"><Link to="/checkout" onClick={handleClose}>{t("cart.checkout")}</Link></Button>
+              <Button asChild size="lg" className="primary-button full-button"><Link to="/checkout" onClick={handleClose}>{t("cart.continueCheckout")}</Link></Button>
               <Button type="button" variant="link" className="text-link centered-link" onClick={handleClose}>{t("cart.continue")}</Button>
             </div>
           </>

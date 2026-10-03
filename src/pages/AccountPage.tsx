@@ -74,7 +74,7 @@ export function AccountPage() {
   if (loading || (session && mode !== "update" && accountRole.isPending)) return <div className="route-loading" role="status">Checking account…</div>;
   if (session && mode !== "update" && accountRole.error) return <div className="not-found"><h1>Account unavailable</h1><p>We could not verify your account access.</p><button className="primary-button" onClick={() => void accountRole.refetch()}>Try again</button></div>;
   if (session && mode !== "update" && accountRole.data === "admin") return <div className="route-loading" role="status">Opening administration…</div>;
-  if (session && mode !== "update" && accountRole.data) return <AccountDetails accountRole={accountRole.data === "seller" ? "seller" : "buyer"} userId={session.user.id} email={session.user.email || ""} avatarUrl={String(session.user.user_metadata.avatar_url || session.user.user_metadata.picture || "")} />;
+  if (session && mode !== "update" && accountRole.data) return <AccountDetails accountRole={accountRole.data === "seller" ? "seller" : "buyer"} userId={session.user.id} email={session.user.email || ""} avatarUrl={String(session.user.user_metadata.avatar_url || session.user.user_metadata.picture || "")} initialView={searchParams.get("view") === "orders" ? "orders" : "overview"} />;
   const titles = { signin: t("account.signInTitle"), signup: t("account.signUpTitle"), reset: t("account.resetTitle"), update: t("account.updateTitle") };
   const showAuthMethods = mode === "signin" || mode === "signup";
   return <div className="account-page"><section><h1>{titles[mode]}</h1><p>{t("account.intro")}</p>

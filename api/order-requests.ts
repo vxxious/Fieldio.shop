@@ -35,18 +35,20 @@ export async function POST(request: Request): Promise<Response> {
       throw error;
     }
     const response = data as { reference?: unknown; items?: unknown } | null;
-    const reference = typeof response?.reference === "string" ? response.reference : "Pending";
+    if (typeof response?.reference !== "string" || !/^FLD-[A-Z0-9-]+$/.test(response.reference)) throw new Error("ORDER_REFERENCE_UNAVAILABLE");
+    const reference = response.reference;
     const itemCount = Array.isArray(response?.items) ? response.items.length : input.items.length;
-    const order = await supabase.from("order_requests").select("id").eq("request_key", input.requestKey).single();
+    const order = await supabase.from("order_requests").select("id,payment_status").eq("request_key", input.requestKey).single();
     if (order.error) throw order.error;
-    const groups = await supabase.from("order_fulfillments").select("id,seller_owner_id,store_name").eq("order_request_id", order.data.id).not("seller_owner_id", "is", null);
+    const groups = await supabase.from("order_fulfillments").select("id,seller_owner_id,store_name").eq("order_request_id", order.data.id);
     if (groups.error) throw groups.error;
     const groupIds = (groups.data ?? []).map(({ id }) => id);
-    const groupItems = groupIds.length ? await supabase.from("order_items").select("fulfillment_id").in("fulfillment_id", groupIds) : { data: [], error: null };
+    const groupItems = groupIds.length ? await supabase.from("order_items").select("fulfillment_id,quantity").in("fulfillment_id", groupIds) : { data: [], error: null };
     if (groupItems.error) throw groupItems.error;
     const itemCounts = new Map<string, number>();
-    for (const item of groupItems.data ?? []) if (item.fulfillment_id) itemCounts.set(item.fulfillment_id, (itemCounts.get(item.fulfillment_id) ?? 0) + 1);
+    for (const item of groupItems.data ?? []) if (item.fulfillment_id) itemCounts.set(item.fulfillment_id, (itemCounts.get(item.fulfillment_id) ?? 0) + item.quantity);
     const vendorGroups = (groups.data ?? []).flatMap((group) => group.seller_owner_id ? [{ id: group.id, sellerOwnerId: group.seller_owner_id, storeName: group.store_name, itemCount: itemCounts.get(group.id) ?? 0 }] : []);
+    const publicGroups = (groups.data ?? []).map((group) => ({ storeName: group.store_name, itemCount: itemCounts.get(group.id) ?? 0 }));
     const ownerIds = [...new Set(vendorGroups.map(({ sellerOwnerId }) => sellerOwnerId))];
     const contacts = ownerIds.length
       ? await supabase.from("seller_applications").select("owner_id,contact_email").in("owner_id", ownerIds).eq("status", "approved")
@@ -65,6 +67,6 @@ export async function POST(request: Request): Promise<Response> {
         action: { label: "Open seller fulfilment", url: "https://fieldio.shop/sell" }
       }))
     ]);
-    return json({ reference, items: Array.isArray(response?.items) ? response.items : [] }, 201);
+    return json({ reference, paymentStatus: order.data.payment_status, groups: publicGroups, items: Array.isArray(response?.items) ? response.items : [] }, 201);
   } catch (error) { return handleApiError(error); }
 }

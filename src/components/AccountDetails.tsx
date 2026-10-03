@@ -92,10 +92,10 @@ function OrderSupport({ order }: { order: Order }) {
     </form>}{message && <p className="form-message" role="status">{message}</p>}</div>;
 }
 
-export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "buyer" }: { userId: string; email: string; avatarUrl?: string; accountRole?: Exclude<AccountRole, "admin"> }) {
+export function AccountDetails({ userId, email, avatarUrl = "", accountRole = "buyer", initialView = "overview" }: { userId: string; email: string; avatarUrl?: string; accountRole?: Exclude<AccountRole, "admin">; initialView?: AccountView }) {
   const { formatMoney, language, t } = useLocale();
   const cache = useQueryClient();
-  const [view, setView] = useState<AccountView>("overview");
+  const [view, setView] = useState<AccountView>(initialView);
   const [status, setStatus] = useState("");
   const [copyStatus, setCopyStatus] = useState<{ reference: string; state: "copied" | "error" } | null>(null);
   const [savingIntent, setSavingIntent] = useState(false);

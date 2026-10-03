@@ -94,7 +94,7 @@ test("customer can build a request from product to checkout", async ({ page }) =
   await firstVariant.check();
   await page.getByRole("button", { name: "Add to bag" }).first().click();
   await expect(page.getByRole("dialog", { name: /Your bag/ })).toBeVisible();
-  await page.getByRole("link", { name: "Checkout via WhatsApp" }).click();
+  await page.getByRole("link", { name: "Continue to checkout" }).click();
   await expect(page.getByRole("heading", { name: "Complete your request" })).toBeVisible();
   await expect(page.getByText("No payment is taken here.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Delivery destination" })).toBeVisible();
@@ -106,8 +106,59 @@ test("customer can build a request from product to checkout", async ({ page }) =
   await page.getByLabel("Shipping address").fill("10 Example Street, London, United Kingdom");
   await page.getByRole("checkbox", { name: /I understand/ }).check();
   const whatsappRequest = page.waitForRequest(/^https:\/\/wa\.me\/447344059705\?text=/);
-  await page.getByRole("button", { name: "Continue on WhatsApp" }).click();
+  await page.getByRole("button", { name: "Send order request" }).click();
   expect(decodeURIComponent((await whatsappRequest).url())).toContain("Fieldio Order Request");
+});
+
+test("order confirmation stays usable across Fieldio breakpoints and themes", async ({ page }) => {
+  await signInBuyer(page);
+  await page.addInitScript(({ id }) => sessionStorage.setItem("fieldio-checkout-confirmation-v1", JSON.stringify({
+    userId: id,
+    reference: "FLD-202610-02001",
+    paymentStatus: "pending",
+    groups: [{ storeName: "Atelier A", itemCount: 2 }, { storeName: "Studio B", itemCount: 1 }],
+    cartSignature: "[]"
+  })), { id: buyer.id });
+
+  for (const theme of ["light", "dark"] as const) {
+    await page.addInitScript((value) => localStorage.setItem("fieldio-theme", value), theme);
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/checkout");
+      await expect(page.getByRole("heading", { name: "Order request received" })).toBeVisible();
+      await expect(page.getByText("FLD-202610-02001")).toBeVisible();
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+      const actions = page.locator(".checkout-confirmation-actions a");
+      for (let index = 0; index < await actions.count(); index += 1) expect((await actions.nth(index).boundingBox())?.height).toBeGreaterThanOrEqual(44);
+    }
+  }
+});
+
+test("multi-store bag stays scannable across Fieldio breakpoints and themes", async ({ page, isMobile }) => {
+  test.skip(isMobile, "One browser project covers the explicit viewport matrix.");
+  await signInBuyer(page);
+  await page.addInitScript(() => localStorage.setItem("fieldio-cart-v1", JSON.stringify({ state: { items: [
+    { key: "product-a:variant-a", productId: "product-a", variantId: "variant-a", sku: "A-1", productName: "Editorial coat", brand: "Atelier A", image: "/images/luxury-travel.png", selectedVariant: "Black / M", quantity: 1, availableQuantity: 4, unitPrice: 12000, currency: "GBP", sellerStoreName: "Atelier A", sellerStoreSlug: "atelier-a" },
+    { key: "product-b:variant-b", productId: "product-b", variantId: "variant-b", sku: "B-1", productName: "Leather bag", brand: "Studio B", image: "/images/olive-silk-look.png", selectedVariant: "Oxblood", quantity: 2, availableQuantity: 5, unitPrice: 9000, currency: "GBP", sellerStoreName: "Studio B", sellerStoreSlug: "studio-b" }
+  ] }, version: 0 })));
+
+  for (const theme of ["light", "dark"] as const) {
+    await page.addInitScript((value) => localStorage.setItem("fieldio-theme", value), theme);
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      await expect(page.locator('.bag-button[aria-label*="3 items"]')).toBeVisible();
+      await page.locator(".bag-button:visible").click();
+      const drawer = page.getByRole("dialog", { name: /Your bag/ });
+      await expect(drawer.getByRole("heading", { name: "Atelier A" })).toBeVisible();
+      await expect(drawer.getByRole("heading", { name: "Studio B" })).toBeVisible();
+      await expect(drawer.getByText(/different stores/i)).toBeVisible();
+      await expect.poll(() => drawer.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+      const quantityControls = drawer.locator(".quantity-stepper");
+      for (let index = 0; index < await quantityControls.count(); index += 1) expect((await quantityControls.nth(index).boundingBox())?.height).toBeGreaterThanOrEqual(44);
+    }
+  }
 });
 
 test("mobile navigation opens, traps focus, and closes with Escape", async ({ page, isMobile }) => {

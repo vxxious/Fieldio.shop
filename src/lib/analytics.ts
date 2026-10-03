@@ -9,6 +9,7 @@ type AnalyticsEvent =
   | "search"
   | "add_to_cart"
   | "remove_from_cart"
+  | "order_request_created"
   | "whatsapp_checkout_started"
   | "wishlist_addition"
   | "newsletter_signup";

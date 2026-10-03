@@ -14,6 +14,12 @@ interface CartState {
   clearCart: () => void;
 }
 
+export interface CartStoreGroup {
+  key: string;
+  name: string;
+  items: CartItem[];
+}
+
 function buildKey(productId: string, variantId: string): string {
   return `${productId}:${variantId}`;
 }
@@ -46,7 +52,9 @@ export const useCartStore = create<CartState>()(
               quantity: Math.max(1, Math.min(quantity, limit)),
               availableQuantity: variant.inventory,
               unitPrice: variant.priceOverride ?? product.price,
-              currency: product.currency
+              currency: product.currency,
+              ...(product.sellerVerified && product.sellerStoreName ? { sellerStoreName: product.sellerStoreName } : {}),
+              ...(product.sellerVerified && product.sellerStoreSlug ? { sellerStoreSlug: product.sellerStoreSlug } : {})
             }];
         return { items, isOpen: true };
       }),
@@ -69,3 +77,18 @@ export const selectCartSubtotal = (state: CartState): number | null => {
   if (state.items.some((item) => item.unitPrice === null) || new Set(state.items.map((item) => item.currency)).size > 1) return null;
   return state.items.reduce((sum, item) => sum + (item.unitPrice ?? 0) * item.quantity, 0);
 };
+
+export function groupCartItemsByStore(items: CartItem[], catalog: Product[] = []): CartStoreGroup[] {
+  const groups = new Map<string, CartStoreGroup>();
+  const products = new Map(catalog.map((product) => [product.id, product]));
+  for (const item of items) {
+    const product = products.get(item.productId);
+    const name = (product?.sellerVerified ? product.sellerStoreName?.trim() : "") || item.sellerStoreName?.trim() || "Fieldio";
+    const slug = (product?.sellerVerified ? product.sellerStoreSlug?.trim() : "") || item.sellerStoreSlug?.trim();
+    const key = (slug || name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "fieldio";
+    const group = groups.get(key);
+    if (group) group.items.push(item);
+    else groups.set(key, { key, name, items: [item] });
+  }
+  return [...groups.values()];
+}

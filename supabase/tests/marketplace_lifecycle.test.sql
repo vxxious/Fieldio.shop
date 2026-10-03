@@ -87,6 +87,16 @@ reset role;
 select is((select payment_status from public.order_requests where request_key = '15000000-0000-0000-0000-000000000001'), 'pending', 'new order starts payment pending');
 select is((select quantity from public.inventory where variant_id = '14000000-0000-0000-0000-000000000001'), 20, 'order creation does not deduct physical stock');
 select is((select reserved_quantity from public.inventory where variant_id = '14000000-0000-0000-0000-000000000001'), 1, 'order creation reserves the exact variant');
+set role service_role;
+select public.create_order_request(
+  '{"name":"Buyer One","phone":"+447700900101","email":"buyer-one@fieldio.test","shippingAddress":"1 Test Road"}',
+  '[{"productId":"13000000-0000-0000-0000-000000000001","variantId":"14000000-0000-0000-0000-000000000001","quantity":1}]',
+  '01000000-0000-0000-0000-000000000001', '15000000-0000-0000-0000-000000000001');
+reset role;
+select is((select count(*) from public.order_requests where request_key = '15000000-0000-0000-0000-000000000001'), 1::bigint, 'retry does not create a duplicate order');
+select is((select count(*) from public.order_items where order_request_id = (select id from public.order_requests where request_key = '15000000-0000-0000-0000-000000000001')), 1::bigint, 'retry does not duplicate order items');
+select is((select count(*) from public.order_fulfillments where order_request_id = (select id from public.order_requests where request_key = '15000000-0000-0000-0000-000000000001')), 1::bigint, 'retry does not duplicate fulfilments');
+select is((select reserved_quantity from public.inventory where variant_id = '14000000-0000-0000-0000-000000000001'), 1, 'retry does not double reserve inventory');
 
 set role authenticated;
 select pg_temp.set_test_user('03000000-0000-0000-0000-000000000001');
