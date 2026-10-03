@@ -36,11 +36,11 @@ interface CatalogRow {
   brand: { name: string } | null;
   category: { name: string } | null;
   images: Array<{ id: string; public_url: string | null; storage_path: string; alt_text: string; position: number }>;
-  variants: Array<{ id: string; sku: string; name: string; size: string | null; color: string | null; price_override: number | null; is_active: boolean; inventory: { quantity: number; reserved_quantity: number; allow_backorder: boolean } | null }>;
+  variants: Array<{ id: string; sku: string; name: string; size: string | null; color: string | null; price_override: number | null; is_active: boolean }>;
   collection_products: Array<{ collection: { name: string; slug: string } | null }>;
 }
 
-function toProduct(row: CatalogRow): Product {
+export function toProduct(row: CatalogRow, availability: Map<string, number | null>): Product {
   return {
     id: row.id,
     sku: row.sku,
@@ -55,7 +55,7 @@ function toProduct(row: CatalogRow): Product {
     price: row.price,
     currency: row.currency as Currency,
     images: [...row.images].sort((a, b) => a.position - b.position).map((image) => ({ id: image.id, url: image.public_url?.replace(/^https:\/\/fieldio\.shop(?=\/)/, "") ?? supabase!.storage.from("product-images").getPublicUrl(image.storage_path).data.publicUrl, alt: image.alt_text, position: image.position })),
-    variants: row.variants.filter((variant) => variant.is_active).map((variant) => ({ id: variant.id, sku: variant.sku, name: variant.name, ...(variant.size ? { size: variant.size } : {}), ...(variant.color ? { color: variant.color } : {}), priceOverride: variant.price_override, inventory: row.inquiry_only || variant.inventory?.allow_backorder ? null : variant.inventory ? Math.max(0, variant.inventory.quantity - variant.inventory.reserved_quantity) : 0 })),
+    variants: row.variants.filter((variant) => variant.is_active).map((variant) => ({ id: variant.id, sku: variant.sku, name: variant.name, ...(variant.size ? { size: variant.size } : {}), ...(variant.color ? { color: variant.color } : {}), priceOverride: variant.price_override, inventory: row.inquiry_only ? null : availability.has(variant.id) ? availability.get(variant.id)! : 0 })),
     materials: row.materials ?? "Confirmed on request.",
     care: row.care_information ?? "Confirmed on request.",
     featured: row.featured,
@@ -78,7 +78,7 @@ function toProduct(row: CatalogRow): Product {
   };
 }
 
-const legacyCatalogSelect = "id,sku,slug,name,description,short_description,price,currency,materials,care_information,featured,is_new_arrival,is_sale,inquiry_only,tags,seo_title,seo_description,created_at,updated_at,brand:brands(name),category:categories(name),images:product_images(id,public_url,storage_path,alt_text,position),variants:product_variants(id,sku,name,size,color,price_override,is_active,inventory(quantity,reserved_quantity,allow_backorder)),collection_products(collection:collections(name,slug))";
+const legacyCatalogSelect = "id,sku,slug,name,description,short_description,price,currency,materials,care_information,featured,is_new_arrival,is_sale,inquiry_only,tags,seo_title,seo_description,created_at,updated_at,brand:brands(name),category:categories(name),images:product_images(id,public_url,storage_path,alt_text,position),variants:product_variants(id,sku,name,size,color,price_override,is_active),collection_products(collection:collections(name,slug))";
 const catalogSelect = legacyCatalogSelect.replace("inquiry_only,tags", "inquiry_only,condition,seller_verified,seller_store_name,seller_store_slug,seller_country_code,seller_store_logo_path,average_rating,rating_count,tags");
 const trustColumns = ["condition", "seller_verified", "seller_store_name", "seller_store_slug", "seller_country_code", "seller_store_logo_path", "average_rating", "rating_count"];
 
@@ -96,7 +96,15 @@ async function fetchCatalog(): Promise<Product[]> {
   let response = await queryCatalog(catalogSelect);
   if (response.error && isMissingCatalogTrustColumn(response.error)) response = await queryCatalog(legacyCatalogSelect);
   if (response.error) throw response.error;
-  const products = (response.data ?? []).map(toProduct);
+  const variantIds = (response.data ?? []).flatMap((product) => product.variants.filter((variant) => variant.is_active && !product.inquiry_only).map((variant) => variant.id));
+  const availability = new Map<string, number | null>();
+  const batches = Array.from({ length: Math.ceil(variantIds.length / 200) }, (_, index) => variantIds.slice(index * 200, (index + 1) * 200));
+  const results = await Promise.all(batches.map((ids) => supabase!.rpc("shop_variant_availability", { p_variant_ids: ids })));
+  for (const result of results) {
+    if (result.error) throw result.error;
+    for (const row of (result.data ?? []) as Array<{ variant_id: string; available_quantity: number | null }>) availability.set(row.variant_id, row.available_quantity);
+  }
+  const products = (response.data ?? []).map((row) => toProduct(row, availability));
   return products.length || !catalogPreview ? products : previewProducts;
 }
 

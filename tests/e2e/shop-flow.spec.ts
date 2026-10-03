@@ -137,6 +137,32 @@ test("customer can build a request from product to checkout", async ({ page, isM
   expect(decodeURIComponent((await whatsappRequest).url())).toContain("Fieldio Order Request");
 });
 
+test("public shopping uses safe variant availability without reading inventory rows", async ({ page }) => {
+  let availabilityCalls = 0;
+  let operationalInventoryRequested = false;
+  await page.route("http://127.0.0.1:54321/rest/v1/products?*", (route) => {
+    operationalInventoryRequested ||= new URL(route.request().url()).searchParams.get("select")?.includes("inventory(") ?? false;
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{
+      id: "privacy-product", sku: "PRIVACY-P1", slug: "privacy-test-coat", name: "Privacy Test Coat", description: "A tailored black coat.", short_description: "A tailored black coat.", price: 12000, currency: "GBP",
+      materials: null, care_information: null, featured: false, is_new_arrival: false, is_sale: false, inquiry_only: false,
+      tags: [], seo_title: null, seo_description: null, created_at: "2026-09-01T00:00:00Z", updated_at: "2026-09-01T00:00:00Z",
+      brand: { name: "Fieldio" }, category: { name: "Clothing" }, images: [{ id: "image", public_url: "/images/luxury-travel.png", storage_path: "", alt_text: "Black coat", position: 0 }],
+      variants: [{ id: "privacy-variant", sku: "PRIVACY-V1", name: "Black / M", size: "M", color: "Black", price_override: null, is_active: true }],
+      collection_products: []
+    }]) });
+  });
+  await page.route("http://127.0.0.1:54321/rest/v1/rpc/shop_variant_availability", (route) => {
+    availabilityCalls += 1;
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{ variant_id: "privacy-variant", available_quantity: 2 }]) });
+  });
+  await page.goto("/products/privacy-test-coat");
+  await expect(page.getByRole("heading", { name: "Privacy Test Coat" })).toBeVisible();
+  await page.locator('input[type="radio"][value="privacy-variant"]').check();
+  await expect(page.getByRole("button", { name: "Add to bag" }).first()).toBeEnabled();
+  expect(availabilityCalls).toBeGreaterThan(0);
+  expect(operationalInventoryRequested).toBe(false);
+});
+
 test("order confirmation stays usable across Fieldio breakpoints and themes", async ({ page }) => {
   await signInBuyer(page);
   await page.addInitScript(({ id }) => sessionStorage.setItem("fieldio-checkout-confirmation-v1", JSON.stringify({
@@ -247,6 +273,48 @@ test("seller entry is clear, responsive, and returns to the protected flow after
   await expect(page.getByRole("link", { name: "Create seller account" })).toHaveAttribute("href", "/account?mode=signup&returnTo=%2Fsell");
   await expect(page.getByRole("link", { name: /Already have an account/ })).toHaveAttribute("href", "/account?returnTo=%2Fsell");
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("vendor attention and reserved inventory stay readable across breakpoints", async ({ page }) => {
+  await signInBuyer(page);
+  await page.route("http://127.0.0.1:54321/rest/v1/**", (route) => {
+    const { pathname } = new URL(route.request().url());
+    const name = pathname.split("/").pop();
+    const rows: Record<string, unknown> = {
+      seller_applications: { id: "application", owner_id: buyer.id, status: "approved" },
+      seller_stores: { id: "store", owner_id: buyer.id, name: "Atelier Fieldio", slug: "atelier-fieldio", description: "Independent fashion studio.", logo_path: null, status: "active", updated_at: "2026-09-24T00:00:00Z" },
+      seller_listings: [{ id: "listing", title: "Tailored coat", description: "A tailored coat.", status: "approved", price: 12000, currency: "GBP", review_reason: null, published_product_id: null, created_at: "2026-09-24T00:00:00Z", images: [], variants: [{ id: "matrix", color: "Black", size: "M", quantity: 4, published_variant_id: "variant" }] }],
+      inventory: [{ variant_id: "variant", quantity: 4, reserved_quantity: 2, low_stock_threshold: 2 }],
+      categories: [],
+      seller_order_fulfillments: [],
+      seller_review_summary: { averageRating: 0, total: 0, breakdown: {} },
+      seller_payouts: [],
+      marketplace_returns: [],
+      marketplace_disputes: []
+    };
+    const body = JSON.stringify(rows[name ?? ""] ?? []);
+    return route.fulfill({ status: 200, contentType: "application/json", headers: { "Content-Range": "0-0/0" }, body });
+  });
+  await page.goto("/sell");
+  await expect(page.getByRole("heading", { name: "Needs attention" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /1 variant low on available stock/ })).toBeVisible();
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 800 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), `${width}px dashboard overflow`).toBeLessThanOrEqual(0);
+  }
+  await page.getByRole("button", { name: "Manage inventory" }).click();
+  await expect(page.getByRole("heading", { name: "Manage inventory" })).toBeVisible();
+  await expect(page.getByRole("spinbutton", { name: /Stock on hand for Black, M/ })).toHaveAttribute("min", "2");
+  await expect(page.getByLabel("Available stock for Black, M")).toHaveText("2");
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 800 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), `${width}px inventory overflow`).toBeLessThanOrEqual(0);
+  }
+  const themeBefore = await page.locator("html").getAttribute("data-theme");
+  await page.getByRole("button", { name: /Switch to (dark|light) mode/ }).click();
+  await expect(page.locator("html")).not.toHaveAttribute("data-theme", themeBefore ?? "");
+  await page.setViewportSize({ width: 320, height: 800 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), "320px alternate-theme overflow").toBeLessThanOrEqual(0);
 });
 
 test("mobile purchase bar appears only after the in-flow controls are passed", async ({ page, isMobile }) => {

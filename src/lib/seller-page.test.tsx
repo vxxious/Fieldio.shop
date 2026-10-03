@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, expect, it, vi } from "vitest";
-import { ContactDetailsForm, listingValuesFor, SellerFulfillments, SellerPage } from "../pages/SellerPage";
+import { availableStock, ContactDetailsForm, listingValuesFor, LiveInventoryEditor, sellerAttentionCounts, SellerFulfillments, SellerPage, withInventorySnapshots } from "../pages/SellerPage";
 
 const authenticatedPost = vi.hoisted(() => vi.fn(async () => ({ fulfillment: { status: "processing" } })));
 
@@ -13,6 +13,64 @@ vi.mock("./supabase", () => ({ supabase: null }));
 vi.mock("./authenticated-api", () => ({ authenticatedPost }));
 
 afterEach(cleanup);
+
+const stockListing = {
+  id: "own-listing", title: "Wool coat", status: "approved" as const,
+  variants: [
+    { id: "matrix-small", color: "Black", size: "S", quantity: 8, published_variant_id: "own-small" },
+    { id: "matrix-large", color: "Black", size: "L", quantity: 3, published_variant_id: "own-large" }
+  ]
+};
+
+it("shows actionable orders only after payment confirmation and counts other real attention items", () => {
+  const listings = [stockListing, { status: "rejected" as const, variants: [] }];
+  const stock = withInventorySnapshots([stockListing as Parameters<typeof withInventorySnapshots>[0][number]], [
+    { variant_id: "own-small", quantity: 8, reserved_quantity: 2, low_stock_threshold: 2 },
+    { variant_id: "own-large", quantity: 3, reserved_quantity: 3, low_stock_threshold: 2 }
+  ]);
+  const counts = sellerAttentionCounts([stock[0]!, listings[1]!], [
+    { status: "confirmed", payment_status: "pending" },
+    { status: "confirmed", payment_status: "confirmed" },
+    { status: "accepted", payment_status: "confirmed" },
+    { status: "processing", payment_status: "confirmed" },
+    { status: "delivered", payment_status: "confirmed" }
+  ], 2, 3);
+  expect(counts).toEqual({ response: 1, prepare: 1, ship: 1, lowStock: 1, rejected: 1, cases: 3, payouts: 2 });
+});
+
+it("uses only matching published inventory snapshots and calculates no, partial, and full reservations", () => {
+  const [listing] = withInventorySnapshots([stockListing as Parameters<typeof withInventorySnapshots>[0][number]], [
+    { variant_id: "own-small", quantity: 8, reserved_quantity: 0, low_stock_threshold: 2 },
+    { variant_id: "own-large", quantity: 3, reserved_quantity: 3, low_stock_threshold: 2 },
+    { variant_id: "another-store", quantity: 100, reserved_quantity: 100, low_stock_threshold: 2 }
+  ]);
+  expect(listing!.variants.map(({ quantity, reserved_quantity }) => [quantity, reserved_quantity])).toEqual([[8, 0], [3, 3]]);
+  expect(availableStock(8, 0)).toBe(8);
+  expect(availableStock(8, 2)).toBe(6);
+  expect(availableStock(3, 3)).toBe(0);
+  expect(sellerAttentionCounts([listing!], [], 0, 0).lowStock).toBe(1);
+});
+
+it("keeps reserved and available inventory read-only and rejects stock below reserved", async () => {
+  const [listing] = withInventorySnapshots([stockListing as Parameters<typeof withInventorySnapshots>[0][number]], [
+    { variant_id: "own-small", quantity: 8, reserved_quantity: 2, low_stock_threshold: 2 },
+    { variant_id: "own-large", quantity: 3, reserved_quantity: 3, low_stock_threshold: 2 }
+  ]);
+  const onDone = vi.fn(async () => undefined);
+  render(<LiveInventoryEditor listing={listing!} onCancel={() => undefined} onDone={onDone} />);
+  const small = screen.getByRole("spinbutton", { name: /Stock on hand for Black, S/ });
+  const large = screen.getByRole("spinbutton", { name: /Stock on hand for Black, L/ });
+  expect(small).toHaveAttribute("min", "2");
+  expect(large).toHaveAttribute("min", "3");
+  expect(screen.getByLabelText("Available stock for Black, S")).toHaveTextContent("6");
+  expect(screen.getByLabelText("Available stock for Black, L")).toHaveTextContent("0");
+  expect(screen.queryByRole("spinbutton", { name: /Reserved/ })).not.toBeInTheDocument();
+  fireEvent.change(large, { target: { value: "2" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save inventory" }));
+  expect(large).toBeInvalid();
+  expect(screen.getByText("On-hand stock cannot be below reserved stock.")).toBeVisible();
+  expect(onDone).not.toHaveBeenCalled();
+});
 
 it("requires an account before a seller can apply", () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });

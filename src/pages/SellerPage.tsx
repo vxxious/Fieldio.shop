@@ -19,7 +19,8 @@ type ListingStatus = ReviewStatus | "archived";
 interface SellerApplication { id: string; kind: "seller" | "vendor"; legal_name: string; business_name: string | null; country_code: string; phone_country_code: string; phone: string; whatsapp_country_code: string; whatsapp_phone: string; contact_email: string; website: string | null; identity_document_path: string; address_document_path: string; business_document_path: string | null; status: ReviewStatus; review_reason: string | null; }
 interface Store { id: string; name: string; slug: string; description: string; logo_path: string | null; contact_email: string; contact_phone_country_code: string; contact_phone: string; contact_whatsapp_country_code: string; contact_whatsapp_phone: string; status: "active" | "suspended"; updated_at: string; }
 interface ListingImage { id: string; storage_path: string; alt_text: string; position: number; preview_url: string; }
-interface ListingVariant { id?: string; color: string; size: string; quantity: number; published_variant_id?: string | null; }
+interface ListingVariant { id?: string; color: string; size: string; quantity: number; published_variant_id?: string | null; reserved_quantity?: number | null; low_stock_threshold?: number | null; }
+interface InventorySnapshot { variant_id: string; quantity: number; reserved_quantity: number; low_stock_threshold: number; }
 interface Listing { id: string; title: string; description: string; audience: ListingValues["audience"]; category_id: string; subcategory_id: string; condition: ListingValues["condition"]; condition_notes: string; materials: string; item_reference: string | null; price: number; compare_at_price: number | null; currency: string; colors: string[]; sizes: string[]; quantity: number; weight_kg: number; authenticity_confirmed: boolean; status: ListingStatus; review_reason: string | null; published_product_id: string | null; created_at: string; images: ListingImage[]; variants: ListingVariant[]; }
 interface Category { id: string; parent_id: string | null; name: string; }
 interface VendorReview { id: string; rating: number; review_text: string; reviewer_name: string; purchased_variant: string | null; purchased_size: string | null; purchased_color: string | null; created_at: string; product: { name: string } | null; images: Array<{ id: string; storage_path: string; position: number; url: string }>; }
@@ -29,6 +30,31 @@ interface VendorFulfillmentItem { id: string; productName: string; variantName: 
 interface VendorFulfillment { id: string; order_request_id: string; public_reference: string; status: FulfillmentStatus; payment_status: "pending" | "confirmed"; store_name: string; customer_name: string | null; customer_phone: string | null; shipping_address: string | null; carrier: string | null; tracking_reference: string | null; rejection_reason: string | null; accepted_at: string | null; rejected_at: string | null; preparing_at: string | null; shipped_at: string | null; delivered_at: string | null; created_at: string; updated_at: string; items: VendorFulfillmentItem[]; }
 interface SellerPayout { id: string; amount: number; currency: string; status: string; reference: string | null; created_at: string; paid_at: string | null }
 interface SellerCase { id: string; order_request_id: string; reason: string; details: string; status: string; created_at: string }
+
+export const availableStock = (onHand: number, reserved: number) => onHand - reserved;
+
+export function withInventorySnapshots(listings: Listing[], snapshots: InventorySnapshot[]): Listing[] {
+  const byVariant = new Map(snapshots.map((snapshot) => [snapshot.variant_id, snapshot]));
+  return listings.map((listing) => ({
+    ...listing,
+    variants: listing.variants.map((variant) => {
+      const snapshot = variant.published_variant_id ? byVariant.get(variant.published_variant_id) : undefined;
+      return snapshot ? { ...variant, quantity: snapshot.quantity, reserved_quantity: snapshot.reserved_quantity, low_stock_threshold: snapshot.low_stock_threshold } : variant;
+    })
+  }));
+}
+
+export function sellerAttentionCounts(listings: Pick<Listing, "status" | "variants">[], fulfillments: Pick<VendorFulfillment, "status" | "payment_status">[], heldPayouts: number, openCases: number) {
+  return {
+    response: fulfillments.filter((item) => item.status === "confirmed" && item.payment_status === "confirmed").length,
+    prepare: fulfillments.filter((item) => item.status === "accepted" && item.payment_status === "confirmed").length,
+    ship: fulfillments.filter((item) => item.status === "processing" && item.payment_status === "confirmed").length,
+    lowStock: listings.filter((listing) => listing.status === "approved").flatMap((listing) => listing.variants).filter((variant) => variant.published_variant_id && variant.reserved_quantity !== null && variant.reserved_quantity !== undefined && variant.low_stock_threshold !== null && variant.low_stock_threshold !== undefined && availableStock(variant.quantity, variant.reserved_quantity) <= variant.low_stock_threshold).length,
+    rejected: listings.filter((listing) => listing.status === "rejected").length,
+    cases: openCases,
+    payouts: heldPayouts
+  };
+}
 
 const callingCodeOptions = phoneCountryOptions();
 const phoneCountrySchema = z.string().refine(isPhoneCountryCode, "Choose a country calling code.");
@@ -336,11 +362,21 @@ function StoreLogoEditor({ userId, store, onDone }: { userId: string; store: Sto
   return <div className="seller-logo-editor"><div className="seller-logo-preview">{logoUrl ? <img src={`${logoUrl}?v=${encodeURIComponent(store.updated_at)}`} alt={`${store.name} logo`} /> : <StoreIcon />}</div><div><strong>Brand logo</strong><p>Shown on your public Fieldio storefront.</p><div><label className="secondary-button">{working ? "Updating…" : logoUrl ? "Replace logo" : "Upload logo"}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={working} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; void uploadLogo(file); }} /></label>{logoUrl && <button className="text-link" type="button" disabled={working} onClick={() => void removeLogo()}>Remove</button>}</div><small>Square images work best. Maximum 5 MB.</small>{status && <p className="form-message" role="status">{status}</p>}</div></div>;
 }
 
-function SellerDashboard({ userId, store, listings, onAdd, onEdit, onManage, onEditContacts, onStoreUpdated }: { userId: string; store: Store; listings: Listing[]; onAdd: () => void; onEdit: (listing: Listing) => void; onManage: (listing: Listing) => void; onEditContacts: () => void; onStoreUpdated: () => Promise<void> }) {
-  return <section className="seller-dashboard"><header><div><p>{store.name}</p><h1>Seller dashboard</h1><span>{store.description}</span></div><div className="seller-dashboard-actions"><button className="secondary-button" onClick={onEditContacts}>Edit contact details</button><button className="primary-button" onClick={onAdd}><PlusIcon /> Add product</button></div></header><StoreLogoEditor userId={userId} store={store} onDone={onStoreUpdated} /><div className="seller-summary"><div><strong>{listings.length}</strong><span>Total listings</span></div><div><strong>{listings.filter((item) => item.status === "pending").length}</strong><span>In review</span></div><div><strong>{listings.filter((item) => item.status === "approved").length}</strong><span>Live</span></div></div><section className="seller-listings"><h2>Your products</h2>{listings.length ? listings.map((listing) => <article key={listing.id}><div><h3>{listing.title}</h3><p>{listing.currency} {(listing.price / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} · <span className={`seller-status seller-status--${listing.status}`}>{listing.status}</span></p>{listing.review_reason && <small>{listing.review_reason}</small>}</div><div className="seller-listing-actions">{listing.status === "rejected" && <button className="text-link" type="button" onClick={() => onEdit(listing)}>Edit and resubmit</button>}{listing.status === "approved" && <button className="text-link" type="button" onClick={() => onManage(listing)}>Manage inventory</button>}{listing.published_product_id && <Link className="text-link" to="/collections">View in shop <ArrowIcon /></Link>}</div></article>) : <div className="seller-empty"><StoreIcon /><h3>Your store is ready.</h3><p>Add your first product. Fieldio will review it before publication.</p><button className="text-link" onClick={onAdd}>Add a product</button></div>}</section></section>;
+function SellerDashboard({ userId, store, listings, fulfillments, heldPayouts, openCases, onAdd, onEdit, onManage, onEditContacts, onStoreUpdated }: { userId: string; store: Store; listings: Listing[]; fulfillments: VendorFulfillment[]; heldPayouts: number; openCases: number; onAdd: () => void; onEdit: (listing: Listing) => void; onManage: (listing: Listing) => void; onEditContacts: () => void; onStoreUpdated: () => Promise<void> }) {
+  const attention = sellerAttentionCounts(listings, fulfillments, heldPayouts, openCases);
+  const items = [
+    { count: attention.response, label: attention.response === 1 ? "order needs your response" : "orders need your response", href: "#seller-fulfillments" },
+    { count: attention.prepare, label: attention.prepare === 1 ? "order ready to prepare" : "orders ready to prepare", href: "#seller-fulfillments" },
+    { count: attention.ship, label: attention.ship === 1 ? "order ready to ship" : "orders ready to ship", href: "#seller-fulfillments" },
+    { count: attention.lowStock, label: attention.lowStock === 1 ? "variant low on available stock" : "variants low on available stock", href: "#seller-listings" },
+    { count: attention.rejected, label: attention.rejected === 1 ? "listing needs correction" : "listings need correction", href: "#seller-listings" },
+    { count: attention.cases, label: attention.cases === 1 ? "open return or dispute" : "open returns or disputes", href: "#seller-operations" },
+    { count: attention.payouts, label: attention.payouts === 1 ? "payout on hold" : "payouts on hold", href: "#seller-operations" }
+  ].filter(({ count }) => count > 0);
+  return <section className="seller-dashboard"><header><div><p>{store.name}</p><h1>Seller dashboard</h1><span>{store.description}</span></div><div className="seller-dashboard-actions"><button className="secondary-button" onClick={onEditContacts}>Edit contact details</button><button className="primary-button" onClick={onAdd}><PlusIcon /> Add product</button></div></header><section className="seller-attention" aria-labelledby="seller-attention-title"><h2 id="seller-attention-title">Needs attention</h2>{items.length ? <ul>{items.map(({ count, label, href }) => <li key={label}><a href={href}><strong>{count}</strong><span>{label}</span><ArrowIcon aria-hidden="true" /></a></li>)}</ul> : <p>Nothing needs your attention right now.</p>}</section><StoreLogoEditor userId={userId} store={store} onDone={onStoreUpdated} /><div className="seller-summary"><div><strong>{listings.length}</strong><span>Total listings</span></div><div><strong>{listings.filter((item) => item.status === "pending").length}</strong><span>In review</span></div><div><strong>{listings.filter((item) => item.status === "approved").length}</strong><span>Live</span></div></div><section id="seller-listings" className="seller-listings"><h2>Your products</h2>{listings.length ? listings.map((listing) => <article key={listing.id}><div><h3>{listing.title}</h3><p>{listing.currency} {(listing.price / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} · <span className={`seller-status seller-status--${listing.status}`}>{listing.status}</span></p>{listing.review_reason && <small>{listing.review_reason}</small>}</div><div className="seller-listing-actions">{listing.status === "rejected" && <button className="text-link" type="button" onClick={() => onEdit(listing)}>Edit and resubmit</button>}{listing.status === "approved" && <button className="text-link" type="button" onClick={() => onManage(listing)}>Manage inventory</button>}{listing.published_product_id && <Link className="text-link" to="/collections">View in shop <ArrowIcon /></Link>}</div></article>) : <div className="seller-empty"><StoreIcon /><h3>Your store is ready.</h3><p>Add your first product. Fieldio will review it before publication.</p><button className="text-link" onClick={onAdd}>Add a product</button></div>}</section></section>;
 }
 
-function LiveInventoryEditor({ listing, onCancel, onDone }: { listing: Listing; onCancel: () => void; onDone: () => Promise<void> }) {
+export function LiveInventoryEditor({ listing, onCancel, onDone }: { listing: Listing; onCancel: () => void; onDone: () => Promise<void> }) {
   const [rows, setRows] = useState(() => listing.variants.map((variant) => ({ ...variant })));
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
@@ -348,13 +384,33 @@ function LiveInventoryEditor({ listing, onCancel, onDone }: { listing: Listing; 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!rows.length || rows.some((row) => !row.id || !Number.isInteger(row.quantity) || row.quantity < 0 || row.quantity > 10000)) { setStatus("Enter a valid quantity for every variant."); return; }
+    if (rows.some((row) => row.reserved_quantity === null || row.reserved_quantity === undefined)) { setStatus("Current reservations could not be loaded. Return to the dashboard and try again."); return; }
+    if (rows.some((row) => row.quantity < row.reserved_quantity!)) { setStatus("Stock on hand cannot be lower than stock reserved for open orders."); return; }
     setSaving(true); setStatus("");
     const result = await supabase!.rpc("update_seller_listing_inventory", { p_listing_id: listing.id, p_variants: rows.map(({ id, quantity }) => ({ id, quantity })) });
     if (result.error) { setStatus(result.error.message === "QUANTITY_BELOW_RESERVED_STOCK" ? "A quantity cannot be lower than stock already reserved for open orders." : result.error.message); setSaving(false); return; }
     await onDone(); setStatus("Inventory updated."); setSaving(false);
   }
 
-  return <section className="seller-panel"><header><button type="button" className="text-link" onClick={onCancel}>← Seller dashboard</button><h1>Manage inventory</h1><p>Update stock on hand for {listing.title}. Open-order reservations are protected. Size and colour changes require a new reviewed listing.</p></header><form className="seller-form" onSubmit={(event) => void submit(event)}><fieldset className="seller-inventory-editor"><legend>Live size and colour stock</legend><div className="seller-inventory-head seller-inventory-head--live" aria-hidden="true"><span>Variant</span><span>Stock on hand</span></div>{rows.map((row, index) => <div className="seller-inventory-row seller-inventory-row--live" key={row.id ?? `${row.color}-${row.size}`}><span>{row.color} · {row.size}</span><label><span className="sr-only">Stock on hand for {row.color}, {row.size}</span><input type="number" min="0" max="10000" value={row.quantity} onChange={(event) => setRows((current) => current.map((item, rowIndex) => rowIndex === index ? { ...item, quantity: Number(event.target.value) } : item))} /></label></div>)}</fieldset>{status && <p className="form-message" role={status === "Inventory updated." ? "status" : "alert"}>{status}</p>}<button className="primary-button" disabled={saving}>{saving ? "Saving…" : "Save inventory"}</button></form></section>;
+  return <section className="seller-panel">
+    <header><button type="button" className="text-link" onClick={onCancel}>← Seller dashboard</button><h1>Manage inventory</h1><p>Update stock on hand for {listing.title}. Reserved stock cannot be edited. Availability is calculated from current stock and reservations. Size and colour changes require a new reviewed listing.</p></header>
+    <form className="seller-form" onSubmit={(event) => void submit(event)}>
+      <fieldset className="seller-inventory-editor">
+        <legend>Live size and colour stock</legend>
+        <p>Fieldio checks reservations again when you save. Variants with available stock at or below their existing threshold are low stock.</p>
+        <div className="seller-inventory-head seller-inventory-head--live" aria-hidden="true"><span>Variant</span><span>On hand</span><span>Reserved</span><span>Available</span></div>
+        {rows.map((row, index) => <div className="seller-inventory-row seller-inventory-row--live" key={row.id ?? `${row.color}-${row.size}`}>
+          <span className="seller-stock-variant">{row.color} · {row.size}</span>
+          <label><span className="seller-stock-mobile-label" aria-hidden="true">On hand</span><span className="sr-only">Stock on hand for {row.color}, {row.size}</span><input type="number" min={row.reserved_quantity ?? 0} max="10000" value={row.quantity} disabled={row.reserved_quantity === null || row.reserved_quantity === undefined} onChange={(event) => setRows((current) => current.map((item, rowIndex) => rowIndex === index ? { ...item, quantity: Number(event.target.value) } : item))} /></label>
+          <span className="seller-stock-figure"><small>Reserved</small><output aria-label={`Reserved stock for ${row.color}, ${row.size}`}>{row.reserved_quantity ?? "—"}</output></span>
+          <span className="seller-stock-figure"><small>Available</small><output aria-label={`Available stock for ${row.color}, ${row.size}`}>{row.reserved_quantity === null || row.reserved_quantity === undefined ? "—" : availableStock(row.quantity, row.reserved_quantity)}</output></span>
+          {row.reserved_quantity !== null && row.reserved_quantity !== undefined && row.quantity < row.reserved_quantity && <small role="alert">On-hand stock cannot be below reserved stock.</small>}
+        </div>)}
+      </fieldset>
+      {status && <p className="form-message" role={status === "Inventory updated." ? "status" : "alert"}>{status}</p>}
+      <button className="primary-button" disabled={saving || rows.some((row) => row.reserved_quantity === null || row.reserved_quantity === undefined)}>{saving ? "Saving…" : "Save inventory"}</button>
+    </form>
+  </section>;
 }
 
 export function SellerFulfillments({ fulfillments, onUpdated }: { fulfillments: VendorFulfillment[]; onUpdated: () => Promise<void> }) {
@@ -402,7 +458,7 @@ export function SellerFulfillments({ fulfillments, onUpdated }: { fulfillments: 
     });
   }
   const statusLabel: Record<FulfillmentStatus, string> = { pending: "Awaiting Fieldio", confirmed: "Action required", accepted: "Accepted", rejected: "Rejected", processing: "Preparing", shipped: "Shipped", delivered: "Delivered", cancelled: "Cancelled" };
-  return <section className="seller-fulfillments"><header><div><h2>Orders to fulfil</h2><p>Accept or reject confirmed orders, prepare accepted items, then submit the carrier and tracking reference when shipped.</p></div><strong>{fulfillments.filter(({ status: value }) => !["rejected", "delivered", "cancelled"].includes(value)).length}<span>open</span></strong></header>
+  return <section id="seller-fulfillments" className="seller-fulfillments"><header><div><h2>Orders to fulfil</h2><p>Accept or reject confirmed orders, prepare accepted items, then submit the carrier and tracking reference when shipped.</p></div><strong>{fulfillments.filter(({ status: value }) => !["rejected", "delivered", "cancelled"].includes(value)).length}<span>open</span></strong></header>
     {status && <p className="form-message" role="status">{status}</p>}
     {fulfillments.length ? <div className="seller-fulfillment-list">{fulfillments.map((fulfillment) => <article key={fulfillment.id}>
       <header><div><h3>{fulfillment.public_reference}</h3><time dateTime={fulfillment.created_at}>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(fulfillment.created_at))}</time></div><span className={`seller-status seller-status--${fulfillment.status}`}>{statusLabel[fulfillment.status]}</span></header>
@@ -436,7 +492,7 @@ function SellerReviews({ reviews, summary }: { reviews: VendorReview[]; summary:
 
 function SellerOperations({ payouts, returns, disputes }: { payouts: SellerPayout[]; returns: SellerCase[]; disputes: SellerCase[] }) {
   const pending = payouts.filter((payout) => !["paid", "cancelled", "failed"].includes(payout.status)).reduce((total, payout) => total + payout.amount, 0);
-  return <section className="seller-operations"><header><div><h2>Payouts & cases</h2><p>Fieldio manages customer resolutions and seller payouts. Customer contact remains private.</p></div><strong>{pending ? `£${(pending / 100).toFixed(2)}` : "—"}<span>pending payout</span></strong></header>
+  return <section id="seller-operations" className="seller-operations"><header><div><h2>Payouts & cases</h2><p>Fieldio manages customer resolutions and seller payouts. Customer contact remains private.</p></div><strong>{pending ? `£${(pending / 100).toFixed(2)}` : "—"}<span>pending payout</span></strong></header>
     <div className="seller-operations-grid"><section><h3>Payout history</h3>{payouts.length ? <ul>{payouts.map((payout) => <li key={payout.id}><div><strong>{new Intl.NumberFormat("en-GB", { style: "currency", currency: payout.currency }).format(payout.amount / 100)}</strong><span>{payout.status}</span></div><small>{payout.reference ? `Reference ${payout.reference}` : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(payout.created_at))}</small></li>)}</ul> : <p>No payouts yet. Delivered order balances will appear after Fieldio creates a payout.</p>}</section>
     <section><h3>Returns & disputes</h3>{returns.length || disputes.length ? <ul>{[...returns.map((item) => ({ ...item, kind: "Return" })), ...disputes.map((item) => ({ ...item, kind: "Dispute" }))].sort((a, b) => b.created_at.localeCompare(a.created_at)).map((item) => <li key={`${item.kind}-${item.id}`}><div><strong>{item.kind}</strong><span>{item.status}</span></div><small>{item.reason.replaceAll("_", " ")} · Fieldio is managing this case.</small></li>)}</ul> : <p>No returns or disputes for your products.</p>}</section></div>
   </section>;
@@ -466,15 +522,21 @@ export function SellerPage() {
     const fulfillments = application.data?.status === "approved" ? await supabase!.rpc("seller_order_fulfillments") : { data: [], error: null };
     if (fulfillments.error) throw fulfillments.error;
     const listingRows = listings.data as unknown as Array<Omit<Listing, "images"> & { images: Array<Omit<ListingImage, "preview_url">> }>;
+    const variantIds = listingRows.flatMap((listing) => listing.variants.flatMap((variant) => variant.published_variant_id ? [variant.published_variant_id] : []));
+    const inventory = variantIds.length ? await supabase!.from("inventory").select("variant_id,quantity,reserved_quantity,low_stock_threshold").in("variant_id", variantIds) : { data: [], error: null };
+    if (inventory.error) throw inventory.error;
     const productIds = listingRows.flatMap((listing) => listing.published_product_id ? [listing.published_product_id] : []);
     const reviews = productIds.length ? await supabase!.from("product_reviews").select("id,rating,review_text,reviewer_name,purchased_variant,purchased_size,purchased_color,created_at,product:products(name),images:product_review_images(id,storage_path,position)").in("product_id", productIds).eq("status", "published").order("created_at", { ascending: false }).limit(8) : { data: [], error: null };
     const reviewSummary = await supabase!.rpc("seller_review_summary");
-    const [payouts, returns, disputes] = await Promise.all([
+    const [payouts, returns, disputes, heldPayouts, openReturns, openDisputes] = await Promise.all([
       supabase!.from("seller_payouts").select("id,amount,currency,status,reference,created_at,paid_at").order("created_at", { ascending: false }).limit(30),
       supabase!.from("marketplace_returns").select("id,order_request_id,reason,details,status,created_at").order("created_at", { ascending: false }).limit(30),
-      supabase!.from("marketplace_disputes").select("id,order_request_id,reason,details,status,created_at").order("created_at", { ascending: false }).limit(30)
+      supabase!.from("marketplace_disputes").select("id,order_request_id,reason,details,status,created_at").order("created_at", { ascending: false }).limit(30),
+      supabase!.from("seller_payouts").select("id", { count: "exact", head: true }).eq("status", "held"),
+      supabase!.from("marketplace_returns").select("id", { count: "exact", head: true }).in("status", ["requested", "approved", "in_transit", "received"]),
+      supabase!.from("marketplace_disputes").select("id", { count: "exact", head: true }).in("status", ["open", "reviewing"])
     ]);
-    if (reviews.error || reviewSummary.error || payouts.error || returns.error || disputes.error) throw reviews.error || reviewSummary.error || payouts.error || returns.error || disputes.error;
+    if (reviews.error || reviewSummary.error || payouts.error || returns.error || disputes.error || heldPayouts.error || openReturns.error || openDisputes.error) throw reviews.error || reviewSummary.error || payouts.error || returns.error || disputes.error || heldPayouts.error || openReturns.error || openDisputes.error;
     const imagePaths = listingRows.flatMap((listing) => listing.images.map(({ storage_path }) => storage_path));
     const signedImages = imagePaths.length ? await supabase!.storage.from("seller-listing-media").createSignedUrls(imagePaths, 3600) : { data: [], error: null };
     if (signedImages.error) throw signedImages.error;
@@ -482,7 +544,8 @@ export function SellerPage() {
     const reviewRows = (reviews.data ?? []) as unknown as VendorReview[];
     const signedReviewImages = await signReviewImages(supabase!, reviewRows.flatMap((review) => review.images));
     const reviewImagesById = new Map(signedReviewImages.map((image) => [image.id, image]));
-    return { application: application.data as SellerApplication | null, store: store.data as Store | null, listings: listingRows.map((listing) => ({ ...listing, images: listing.images.map((image) => ({ ...image, preview_url: previewByPath.get(image.storage_path) ?? "" })) })) as Listing[], categories: categories.data as Category[], fulfillments: (fulfillments.data ?? []) as VendorFulfillment[], reviews: reviewRows.map((review) => ({ ...review, images: review.images.map((image) => reviewImagesById.get(image.id) ?? { ...image, url: "" }) })), reviewSummary: reviewSummary.data as unknown as VendorReviewSummary, payouts: (payouts.data ?? []) as SellerPayout[], returns: (returns.data ?? []) as SellerCase[], disputes: (disputes.data ?? []) as SellerCase[] };
+    const ownListings = listingRows.map((listing) => ({ ...listing, images: listing.images.map((image) => ({ ...image, preview_url: previewByPath.get(image.storage_path) ?? "" })) })) as Listing[];
+    return { application: application.data as SellerApplication | null, store: store.data as Store | null, listings: withInventorySnapshots(ownListings, (inventory.data ?? []) as InventorySnapshot[]), categories: categories.data as Category[], fulfillments: (fulfillments.data ?? []) as VendorFulfillment[], reviews: reviewRows.map((review) => ({ ...review, images: review.images.map((image) => reviewImagesById.get(image.id) ?? { ...image, url: "" }) })), reviewSummary: reviewSummary.data as unknown as VendorReviewSummary, payouts: (payouts.data ?? []) as SellerPayout[], returns: (returns.data ?? []) as SellerCase[], disputes: (disputes.data ?? []) as SellerCase[], heldPayouts: heldPayouts.count ?? 0, openCases: (openReturns.count ?? 0) + (openDisputes.count ?? 0) };
   } });
   const refresh = async () => { await cache.invalidateQueries({ queryKey: ["seller-account", session?.user.id] }); };
 
@@ -491,7 +554,7 @@ export function SellerPage() {
   if (!supabase) return <div className="seller-gate"><h1>Seller services unavailable</h1><p>Please try again later or contact Fieldio.</p><Link className="primary-button" to="/contact">Contact Fieldio</Link></div>;
   if (query.isPending) return <div className="route-loading" role="status">Loading seller account…</div>;
   if (query.error || !query.data) return <div className="seller-gate"><h1>Your seller account could not load.</h1><p>Check your connection and try again.</p><button className="primary-button" onClick={() => void query.refetch()}>Try again</button></div>;
-  const { application, store, listings, categories, fulfillments, reviews, reviewSummary, payouts, returns, disputes } = query.data;
+  const { application, store, listings, categories, fulfillments, reviews, reviewSummary, payouts, returns, disputes, heldPayouts, openCases } = query.data;
   if (!application || application.status === "draft" || application.status === "rejected") return <VerificationForm userId={session.user.id} email={session.user.email ?? ""} application={application} defaultCountryCode={region.code} onDone={refresh} />;
   if (application.status === "pending") return <div className="seller-gate"><CheckSealIcon /><h1>Verification in review</h1><p>We are checking your identity and seller details. You will be able to create your store after approval.</p><Link className="text-link" to="/account">Return to account</Link></div>;
   if (application.status === "suspended") return <div className="seller-gate"><h1>Seller access paused</h1><p>{application.review_reason || "Contact Fieldio for help with your seller account."}</p><Link className="primary-button" to="/contact">Contact Fieldio</Link></div>;
@@ -501,5 +564,5 @@ export function SellerPage() {
   if (mode === "contacts") return <ContactDetailsForm application={application} store={store} onCancel={() => setMode("dashboard")} onDone={refresh} />;
   if (mode === "listing") return <ListingForm userId={session.user.id} store={store} categories={categories} currency={region.currency} listing={editingListing} onCancel={() => { setEditingListing(null); setMode("dashboard"); }} onSubmitted={async (title) => { await refresh(); setEditingListing(null); setSubmittedTitle(title); }} />;
   if (mode === "inventory" && editingListing) return <LiveInventoryEditor listing={editingListing} onCancel={() => { setEditingListing(null); setMode("dashboard"); }} onDone={refresh} />;
-  return <><SellerDashboard userId={session.user.id} store={store} listings={listings} onAdd={() => { setEditingListing(null); setMode("listing"); }} onEdit={(listing) => { setEditingListing(listing); setMode("listing"); }} onManage={(listing) => { setEditingListing(listing); setMode("inventory"); }} onEditContacts={() => setMode("contacts")} onStoreUpdated={refresh} /><SellerFulfillments fulfillments={fulfillments} onUpdated={refresh} /><SellerOperations payouts={payouts} returns={returns} disputes={disputes} /><SellerReviews reviews={reviews} summary={reviewSummary} /></>;
+  return <><SellerDashboard userId={session.user.id} store={store} listings={listings} fulfillments={fulfillments} heldPayouts={heldPayouts} openCases={openCases} onAdd={() => { setEditingListing(null); setMode("listing"); }} onEdit={(listing) => { setEditingListing(listing); setMode("listing"); }} onManage={(listing) => { setEditingListing(listing); setMode("inventory"); }} onEditContacts={() => setMode("contacts")} onStoreUpdated={refresh} /><SellerFulfillments fulfillments={fulfillments} onUpdated={refresh} /><SellerOperations payouts={payouts} returns={returns} disputes={disputes} /><SellerReviews reviews={reviews} summary={reviewSummary} /></>;
 }

@@ -971,7 +971,10 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .seller-inventory-row > small { grid-column: 1 / -1; color: var(--destructive); }
 .seller-inventory-row .text-link { min-height: 44px; }
 .seller-inventory-editor > .secondary-button { justify-self: start; min-height: 44px; padding-inline: 18px; }
-.seller-inventory-head--live, .seller-inventory-row--live { grid-template-columns: minmax(0, 1fr) minmax(100px, .35fr); }
+.seller-inventory-head--live, .seller-inventory-row--live { grid-template-columns: minmax(0, 1.4fr) minmax(100px, .55fr) minmax(72px, .4fr) minmax(72px, .4fr); }
+.seller-stock-mobile-label, .seller-stock-figure small { display: none; }
+.seller-stock-figure { font-variant-numeric: tabular-nums; }
+.seller-stock-figure output { font-weight: 500; }
 .seller-inventory-summary { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .seller-inventory-summary li { display: flex; justify-content: space-between; gap: 18px; padding-bottom: 7px; border-bottom: 1px solid var(--line); }
 .seller-inventory-summary strong { font-variant-numeric: tabular-nums; }
@@ -1011,6 +1014,17 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .seller-dashboard > header .primary-button { flex: 0 0 auto; gap: 8px; }
 .seller-dashboard > header .primary-button svg { width: 18px; height: 18px; }
 .seller-dashboard-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.seller-attention { padding: 30px 0 24px; border-bottom: 1px solid var(--line); }
+.seller-attention h2 { margin: 0 0 16px; font-size: clamp(26px, 3vw, 36px); }
+.seller-attention ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 28px; margin: 0; padding: 0; list-style: none; }
+.seller-attention li { min-width: 0; border-top: 1px solid var(--line); }
+.seller-attention a { display: flex; align-items: center; min-height: 52px; gap: 14px; color: var(--ink); text-decoration: none; }
+.seller-attention a:hover span { text-decoration: underline; text-underline-offset: 4px; }
+.seller-attention a strong { min-width: 2ch; font-family: var(--font-display); font-size: 25px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.seller-attention a span { min-width: 0; flex: 1; }
+.seller-attention a svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.seller-attention > p { margin: 0; color: var(--muted); }
+.seller-listings, .seller-fulfillments, .seller-operations { scroll-margin-top: 120px; }
 .seller-logo-editor { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 24px; padding: 28px 0; border-bottom: 1px solid var(--line); }
 .seller-logo-preview { width: 110px; height: 110px; display: grid; place-items: center; overflow: hidden; background: var(--image-field); border: 1px solid var(--line); }
 .seller-logo-preview img { width: 100%; height: 100%; object-fit: cover; }
@@ -1569,7 +1583,11 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .seller-inventory-head { display: none; }
   .seller-inventory-row { grid-template-columns: 1fr 1fr; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
   .seller-inventory-row > label:nth-of-type(3), .seller-inventory-row > .text-link, .seller-inventory-row--live > label { grid-column: 1 / -1; }
-  .seller-inventory-row--live { grid-template-columns: 1fr; }
+  .seller-inventory-row--live { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .seller-stock-variant { grid-column: 1 / -1; font-weight: 500; }
+  .seller-inventory-row--live > label { grid-column: 1 / -1; }
+  .seller-stock-mobile-label, .seller-stock-figure small { display: block; margin-bottom: 5px; color: var(--muted); font-size: 12px; }
+  .seller-stock-figure { min-width: 0; }
   .seller-choice { align-items: flex-start; flex-direction: column; }
   .seller-contact, .seller-documents, .seller-media { padding: 18px 14px; }
   .seller-phone-field { grid-template-columns: 1fr; }
@@ -1578,6 +1596,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .seller-media-preview, .seller-review-thumbs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .seller-dashboard > header { align-items: flex-start; flex-direction: column; }
   .seller-dashboard-actions { width: 100%; align-items: stretch; flex-direction: column; }
+  .seller-attention ul { grid-template-columns: 1fr; }
   .seller-fulfillments, .seller-reviews { width: 100%; padding-inline: 14px; }
   .seller-fulfillments > header, .seller-reviews > header { align-items: start; flex-direction: column; }
   .seller-fulfillments header > strong, .seller-reviews header > strong { justify-items: start; }
