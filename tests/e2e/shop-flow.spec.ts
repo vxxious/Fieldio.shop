@@ -466,6 +466,10 @@ test("scroll-to-top appears near the footer, rests quietly, and returns to the t
 });
 
 test("account methods fit cleanly at desktop and mobile widths", async ({ page, isMobile }) => {
+  await page.route("https://accounts.google.com/gsi/client", (route) => route.fulfill({
+    contentType: "text/javascript",
+    body: `window.google={accounts:{id:{initialize:()=>{},renderButton:(parent)=>{const button=document.createElement("button");button.textContent="Continue with Google";parent.append(button)}}}};`
+  }));
   await page.goto("/account");
   const google = page.getByRole("button", { name: "Continue with Google" });
   const email = page.getByRole("button", { name: "Continue with email" });
@@ -475,8 +479,6 @@ test("account methods fit cleanly at desktop and mobile widths", async ({ page, 
   expect(googleBox).not.toBeNull();
   expect(emailBox).not.toBeNull();
   expect(await page.locator(".google-signin-button").evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
-  await expect(google).toHaveCSS("border-radius", "0px");
-  expect(await page.locator('script[data-google-identity]').count()).toBe(0);
   if (isMobile) {
     expect(emailBox!.y).toBeGreaterThanOrEqual(googleBox!.y + googleBox!.height);
   } else {

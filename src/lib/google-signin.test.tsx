@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { AccountPage } from "../pages/AccountPage";
 
-const auth = vi.hoisted(() => ({ signInWithOAuth: vi.fn() }));
+const auth = vi.hoisted(() => ({ signInWithIdToken: vi.fn() }));
 
 vi.mock("../hooks/useSession", () => ({ useSession: () => ({ session: null, loading: false }) }));
 vi.mock("../hooks/useAccountRole", () => ({ useAccountRole: () => ({ data: null, error: null, isPending: false }) }));
@@ -12,25 +12,41 @@ vi.mock("../context/LocaleContext", () => ({ useLocale: () => ({ t: (key: string
 vi.mock("./supabase", () => ({
   supabase: { auth: {
     onAuthStateChange: () => ({ data: { subscription: { unsubscribe: vi.fn() } } }),
-    signInWithOAuth: auth.signInWithOAuth
+    signInWithIdToken: auth.signInWithIdToken
   } }
 }));
 
-beforeEach(() => auth.signInWithOAuth.mockReset().mockResolvedValue({ data: {}, error: null }));
+beforeEach(() => {
+  auth.signInWithIdToken.mockReset().mockResolvedValue({ data: {}, error: null });
+  vi.stubEnv("VITE_GOOGLE_CLIENT_ID", "fieldio.apps.googleusercontent.com");
+  delete window.google;
+  document.querySelector("script[data-google-identity]")?.remove();
+});
 
-it("renders Google sign-in immediately and preserves the requested route", async () => {
+afterEach(() => {
+  delete window.google;
+  document.querySelector("script[data-google-identity]")?.remove();
+  vi.unstubAllEnvs();
+});
+
+it("shows the Google action immediately and signs in without a Supabase OAuth redirect", async () => {
   render(<MemoryRouter initialEntries={["/account?returnTo=%2Fcheckout"]}><AccountPage /></MemoryRouter>);
 
-  const button = screen.getByRole("button", { name: "account.google" });
-  expect(button).toBeVisible();
-  fireEvent.click(button);
+  expect(screen.getByText("account.google")).toBeVisible();
+  await waitFor(() => expect(document.querySelector("script[data-google-identity]")).toBeInTheDocument());
+  const script = document.querySelector<HTMLScriptElement>("script[data-google-identity]")!;
+  let credentialCallback: ((response: { credential?: string }) => void) | undefined;
+  window.google = { accounts: { id: {
+    initialize: (config) => { credentialCallback = config.callback; },
+    renderButton: (parent) => {
+      const button = document.createElement("button");
+      button.textContent = "Continue with Google";
+      button.addEventListener("click", () => credentialCallback?.({ credential: "verified-google-token" }));
+      parent.append(button);
+    }
+  } } };
+  fireEvent.load(script);
+  fireEvent.click(await screen.findByRole("button", { name: "Continue with Google" }));
 
-  await waitFor(() => expect(auth.signInWithOAuth).toHaveBeenCalledTimes(1));
-  const request = auth.signInWithOAuth.mock.calls[0]?.[0];
-  const redirect = new URL(request.options.redirectTo);
-
-  expect(request.provider).toBe("google");
-  expect(redirect.pathname).toBe("/account");
-  expect(redirect.searchParams.get("returnTo")).toBe("/checkout");
-  expect(document.querySelector("script[data-google-identity]")).not.toBeInTheDocument();
+  await waitFor(() => expect(auth.signInWithIdToken).toHaveBeenCalledWith({ provider: "google", token: "verified-google-token" }));
 });
