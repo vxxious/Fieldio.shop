@@ -22,6 +22,7 @@ export function AccountPage() {
   const [mode, setMode] = useState<Mode>(() => searchParams.get("mode") === "signup" ? "signup" : "signin");
   const [status, setStatus] = useState<string | null>(null);
   const [confirmationEmail, setConfirmationEmail] = useState("");
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const returnTo = safeReturnTo(searchParams.get("returnTo"), "");
@@ -63,13 +64,19 @@ export function AccountPage() {
     } catch { setStatus(mode === "signin" ? "The email or password is incorrect." : "We could not complete that request. Please try again shortly."); }
   };
 
-  const googleSignIn = async (token: string) => {
+  const googleSignIn = async () => {
     setStatus(null);
     if (!supabase) { setStatus("Account services are temporarily unavailable."); return; }
+    setGoogleSubmitting(true);
     try {
-      const { error } = await supabase.auth.signInWithIdToken({ provider: "google", token });
+      const redirect = new URL("/account", window.location.origin);
+      if (returnTo) redirect.searchParams.set("returnTo", returnTo);
+      const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: redirect.toString() } });
       if (error) throw error;
-    } catch { setStatus("Google sign-in could not be completed. Please try again."); }
+    } catch {
+      setGoogleSubmitting(false);
+      setStatus("Google sign-in could not be completed. Please try again.");
+    }
   };
   if (loading || (session && mode !== "update" && accountRole.isPending)) return <div className="route-loading" role="status">Checking account…</div>;
   if (session && mode !== "update" && accountRole.error) return <div className="not-found"><h1>Account unavailable</h1><p>We could not verify your account access.</p><button className="primary-button" onClick={() => void accountRole.refetch()}>Try again</button></div>;
@@ -79,7 +86,7 @@ export function AccountPage() {
   const showAuthMethods = mode === "signin" || mode === "signup";
   return <div className="account-page"><section><h1>{titles[mode]}</h1><p>{t("account.intro")}</p>
     {showAuthMethods && <div className="oauth-buttons" aria-label={mode === "signup" ? "Account creation methods" : "Sign-in methods"}>
-      <GoogleSignInButton onCredential={(token) => void googleSignIn(token)} onError={() => setStatus("Google sign-in could not be loaded. Please use email or try again shortly.")} />
+      <GoogleSignInButton disabled={googleSubmitting} label={googleSubmitting ? "Opening Google\u2026" : t("account.google")} onClick={() => void googleSignIn()} />
       <button type="button" onClick={() => window.requestAnimationFrame(() => setFocus("email"))} aria-controls="account-email"><EmailIcon />{t("account.emailMethod")}</button>
     </div>}
     {showAuthMethods && <div className="auth-divider" aria-hidden="true"><span>{t("account.emailPassword")}</span></div>}

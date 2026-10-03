@@ -86,9 +86,11 @@ test("a 300px reload stays styled before and after hydration", async ({ page }) 
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
 });
 
-test("customer can build a request from product to checkout", async ({ page }) => {
+test("customer can build a request from product to checkout", async ({ page, isMobile }) => {
   await signInBuyer(page);
-  await openFirstProduct(page);
+  await page.goto("/products/architectural-column-dress");
+  await expect(page.getByRole("heading", { name: "Architectural Column Dress" })).toBeVisible();
+  if (isMobile) expect(await page.locator(".variant-grid").evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(2);
   const firstVariant = page.locator('input[type="radio"]:not([disabled])').first();
   await expect(firstVariant).toBeVisible();
   await firstVariant.check();
@@ -464,10 +466,6 @@ test("scroll-to-top appears near the footer, rests quietly, and returns to the t
 });
 
 test("account methods fit cleanly at desktop and mobile widths", async ({ page, isMobile }) => {
-  await page.route("https://accounts.google.com/gsi/client", (route) => route.fulfill({
-    contentType: "text/javascript",
-    body: `window.google={accounts:{id:{initialize:()=>{},renderButton:(parent)=>{const button=document.createElement("button");button.textContent="Continue with Google";button.style.width="200px";parent.append(button)}}}};`
-  }));
   await page.goto("/account");
   const google = page.getByRole("button", { name: "Continue with Google" });
   const email = page.getByRole("button", { name: "Continue with email" });
@@ -477,6 +475,8 @@ test("account methods fit cleanly at desktop and mobile widths", async ({ page, 
   expect(googleBox).not.toBeNull();
   expect(emailBox).not.toBeNull();
   expect(await page.locator(".google-signin-button").evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await expect(google).toHaveCSS("border-radius", "0px");
+  expect(await page.locator('script[data-google-identity]').count()).toBe(0);
   if (isMobile) {
     expect(emailBox!.y).toBeGreaterThanOrEqual(googleBox!.y + googleBox!.height);
   } else {
