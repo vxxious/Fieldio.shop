@@ -86,6 +86,31 @@ test("a 300px reload stays styled before and after hydration", async ({ page }) 
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
 });
 
+test("home catalogue controls fit without page overflow across viewports", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".catalog-controls")).toBeVisible();
+
+  for (const width of [320, 360, 375, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 800 });
+    const layout = await page.locator(".catalog-controls").evaluate((controls) => {
+      const bounds = controls.getBoundingClientRect();
+      const links = Array.from(controls.querySelectorAll("a"));
+      return {
+        pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        controlOverflow: controls.scrollWidth - controls.clientWidth,
+        links: links.map((link) => {
+          const rect = link.getBoundingClientRect();
+          return { text: link.textContent?.trim(), left: rect.left, right: rect.right, height: rect.height, width: rect.width, withinControls: rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1 };
+        })
+      };
+    });
+    expect(layout.pageOverflow, `${width}px page overflow`).toBe(0);
+    expect(layout.controlOverflow, `${width}px catalogue overflow`).toBe(0);
+    expect(layout.links.every((link) => link.withinControls), `${width}px control clipping`).toBe(true);
+    if (width <= 768) expect(layout.links.every((link) => link.height >= 44 && link.width >= 44), `${width}px touch targets`).toBe(true);
+  }
+});
+
 test("customer can build a request from product to checkout", async ({ page, isMobile }) => {
   await signInBuyer(page);
   await page.goto("/products/architectural-column-dress");
@@ -122,11 +147,13 @@ test("order confirmation stays usable across Fieldio breakpoints and themes", as
     cartSignature: "[]"
   })), { id: buyer.id });
 
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.goto("/checkout");
   for (const theme of ["light", "dark"] as const) {
-    await page.addInitScript((value) => localStorage.setItem("fieldio-theme", value), theme);
+    if (theme === "dark") await page.getByRole("button", { name: "Switch to dark mode" }).click();
     for (const width of [320, 390, 768, 1440]) {
       await page.setViewportSize({ width, height: 900 });
-      await page.goto("/checkout");
       await expect(page.getByRole("heading", { name: "Order request received" })).toBeVisible();
       await expect(page.getByText("FLD-202610-02001")).toBeVisible();
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
@@ -135,6 +162,10 @@ test("order confirmation stays usable across Fieldio breakpoints and themes", as
       for (let index = 0; index < await actions.count(); index += 1) expect((await actions.nth(index).boundingBox())?.height).toBeGreaterThanOrEqual(44);
     }
   }
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Order request received" })).toBeVisible();
+  await expect(page.getByText("FLD-202610-02001")).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 });
 
 test("multi-store bag stays scannable across Fieldio breakpoints and themes", async ({ page, isMobile }) => {
@@ -171,8 +202,8 @@ test("mobile navigation opens, traps focus, and closes with Escape", async ({ pa
   const dialog = page.getByRole("dialog", { name: "Mobile navigation" });
   await expect(dialog).toBeVisible();
   await expect(dialog).toBeFocused();
-  await expect(dialog.getByRole("link", { name: "Bags", exact: true })).toHaveCount(0);
-  await expect(dialog.getByRole("link", { name: "Shoes", exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole("link", { name: "Bags", exact: true })).toHaveAttribute("href", "/collections/bags");
+  await expect(dialog.getByRole("link", { name: "Shoes", exact: true })).toHaveAttribute("href", "/collections/shoes");
   await expect(dialog.getByRole("link", { name: "Brands", exact: true })).toHaveAttribute("href", "/brands");
   const controls = dialog.locator('a[href], button:not([disabled])');
   await controls.last().focus();
