@@ -98,7 +98,7 @@ it("keeps a delivered vendor visible when another vendor rejects", async () => {
   account.orders = [{ id: "order-1", public_reference: "FIELDIO-1002", status: "delivered", fulfillment_status: "partially_delivered", created_at: "2026-09-18T00:00:00Z", updated_at: "2026-09-24T00:00:00Z", confirmed_at: "2026-09-19T00:00:00Z", subtotal: null, currency: "GBP", payment_status: "confirmed", payment_amount: 10000, payment_method: "bank_transfer", payment_reference: "PAY-2", order_items: [], marketplace_returns: [], marketplace_disputes: [] }];
   account.fulfillments = [
     { order_request_id: "order-1", store_name: "Gucci", status: "delivered", updated_at: "2026-09-24T00:00:00Z", items: [{ id: "item-1", productId: "product-1", productSlug: "gucci-bag", productName: "Gucci bag", quantity: 1, reviewId: null }] },
-    { order_request_id: "order-1", store_name: "Nike", status: "rejected", updated_at: "2026-09-20T00:00:00Z", items: [] }
+    { order_request_id: "order-1", store_name: "Nike", status: "rejected", updated_at: "2026-09-20T00:00:00Z", items: [{ id: "item-2", productName: "Nike trainers", quantity: 1 }] }
   ];
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(<MemoryRouter><QueryClientProvider client={client}><AccountDetails userId="user-1" email="ada@example.com" /></QueryClientProvider></MemoryRouter>);
@@ -107,7 +107,10 @@ it("keeps a delivered vendor visible when another vendor rejects", async () => {
   const groups = screen.getByRole("region", { name: "Fulfilment by store" });
   expect(groups).toHaveTextContent("Gucci");
   expect(groups).toHaveTextContent("Delivered");
-  expect(groups).toHaveTextContent("NikeUnable to fulfil");
+  expect(groups).toHaveTextContent("Nike");
+  expect(groups).toHaveTextContent("Nike trainers");
+  expect(groups).toHaveTextContent("Other stores in your order continue separately");
+  expect(groups).toHaveTextContent("No replacement or refund has been confirmed yet");
   expect(screen.getByRole("link", { name: "Review this item" })).toHaveAttribute("href", "/products/gucci-bag?reviewItem=item-1#reviews");
   expect(screen.queryByText("Request cancellation")).not.toBeInTheDocument();
 });

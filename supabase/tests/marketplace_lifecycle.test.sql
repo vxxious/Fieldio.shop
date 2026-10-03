@@ -302,6 +302,39 @@ select throws_ok($$delete from public.order_events where id = (select min(id) fr
 insert into public.notification_deliveries(event_key, recipient_email, template, status) values ('order:test:confirmed', 'buyer-one@fieldio.test', 'order-status', 'sent');
 select throws_ok($$insert into public.notification_deliveries(event_key, recipient_email, template, status) values ('order:test:confirmed', 'buyer-one@fieldio.test', 'order-status', 'sent')$$, '23505', null, 'retry cannot duplicate a notification delivery record');
 
+-- Transactional vendor notices are deduplicated and private to the affected store.
+select ok((select count(*) >= 1 from public.vendor_notifications where seller_owner_id = '02000000-0000-0000-0000-000000000001' and kind = 'payment_confirmed'), 'confirmed payment creates a vendor action notice');
+select is((select count(*) from public.vendor_notifications where event_key like 'payment-ready:%' and seller_owner_id = '02000000-0000-0000-0000-000000000001'),
+  (select count(distinct event_key) from public.vendor_notifications where event_key like 'payment-ready:%' and seller_owner_id = '02000000-0000-0000-0000-000000000001'), 'payment notices are deduplicated');
+select ok((select count(*) >= 1 from public.vendor_notifications where seller_owner_id = '02000000-0000-0000-0000-000000000001' and kind = 'case_opened'), 'case opening notifies the affected vendor');
+select ok((select count(*) >= 1 from public.vendor_notifications where seller_owner_id = '02000000-0000-0000-0000-000000000001' and kind = 'payout_held'), 'payout hold notifies the affected vendor');
+select ok((select count(*) >= 1 from public.vendor_notifications where seller_owner_id = '02000000-0000-0000-0000-000000000001' and kind = 'case_resolved'), 'case resolution notifies the affected vendor');
+select is((select count(*) from public.vendor_notifications where seller_owner_id = '02000000-0000-0000-0000-000000000001' and kind = 'review_published'), 1::bigint, 'published verified review notifies its vendor once');
+select ok((select bool_and(body !~* 'buyer-one@|buyer-two@|shipping road|telephone|phone') from public.vendor_notifications), 'vendor notices contain no private buyer contact details');
+set role authenticated;
+select pg_temp.set_test_user('02000000-0000-0000-0000-000000000001');
+select is((select count(*) from public.vendor_notifications where seller_owner_id <> '02000000-0000-0000-0000-000000000001'), 0::bigint, 'Vendor One cannot read another vendor notice');
+select throws_ok($$insert into public.vendor_notifications(seller_owner_id,event_key,kind,title,body,href) values ('02000000-0000-0000-0000-000000000001','forged','case_opened','Forged','Forged','/sell')$$, '42501', null, 'vendors cannot forge notices');
+select public.set_vendor_listing_paused('12000000-0000-0000-0000-000000000001', true);
+select is((select is_paused from public.seller_listings where id = '12000000-0000-0000-0000-000000000001'), true, 'Vendor One can pause their own approved listing');
+select is((select count(*) from public.products where id = '13000000-0000-0000-0000-000000000001'), 0::bigint, 'paused product is hidden from public product access');
+select is((select count(*) from public.shop_variant_availability(array['14000000-0000-0000-0000-000000000001'::uuid])), 0::bigint, 'paused variant cannot be purchased');
+select public.set_vendor_listing_paused('12000000-0000-0000-0000-000000000001', false);
+select is((select is_paused from public.seller_listings where id = '12000000-0000-0000-0000-000000000001'), false, 'Vendor One can resume the same approved listing');
+select is((select count(*) from public.products where id = '13000000-0000-0000-0000-000000000001'), 1::bigint, 'resumed product is available for public browsing');
+select pg_temp.set_test_user('02000000-0000-0000-0000-000000000002');
+select throws_ok($$select public.set_vendor_listing_paused('12000000-0000-0000-0000-000000000001', true)$$, '42501', 'LISTING_NOT_AVAILABLE', 'Vendor Two cannot pause Vendor One listing');
+select is((select count(*) from public.vendor_notifications where seller_owner_id = '02000000-0000-0000-0000-000000000001'), 0::bigint, 'Vendor Two cannot read Vendor One notices');
+select pg_temp.set_test_user('01000000-0000-0000-0000-000000000001');
+select is((select count(*) from public.vendor_notifications), 0::bigint, 'buyer cannot read private vendor notices');
+select pg_temp.set_test_user('03000000-0000-0000-0000-000000000001');
+select ok((select count(*) > 0 from public.vendor_notifications), 'authorised management can inspect vendor notices');
+reset role;
+select public.add_vendor_notification('02000000-0000-0000-0000-000000000001',
+  (select event_key from public.vendor_notifications where seller_owner_id = '02000000-0000-0000-0000-000000000001' and kind = 'review_published' limit 1),
+  'review_published', 'Retry', 'Retry', '/sell#seller-reviews');
+select is((select count(*) from public.vendor_notifications where seller_owner_id = '02000000-0000-0000-0000-000000000001' and kind = 'review_published'), 1::bigint, 'retrying a notice cannot duplicate a published review');
+
 -- Real concurrent reservation of the final unit: exactly one remote transaction wins.
 create or replace function public.lifecycle_test_reserve(p_user uuid, p_key uuid)
 returns boolean language plpgsql security definer set search_path = '' as $$

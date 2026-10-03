@@ -171,6 +171,7 @@ export function ProductPage() {
         <h1 id="product-name"><EditorialText text={product.name} /></h1>
         {Boolean(product.ratingCount) && <a className="product-rating-link" href="#reviews"><span aria-hidden="true">★</span>{product.averageRating?.toFixed(1)} · {product.ratingCount} {product.ratingCount === 1 ? "review" : "reviews"}</a>}
         <p className="product-price product-price-large">{formatMoney(selectedVariant?.priceOverride ?? product.price, product.currency)}</p>
+        {product.inquiryOnly && <p className="product-sourcing-note">Sourced on request. Fieldio confirms the final price, condition and availability before payment.</p>}
         {unavailable && <p role="status">{t("product.selectionUnavailable")}</p>}
         <p className="product-short">{product.shortDescription}</p>
         <fieldset className="variant-fieldset">

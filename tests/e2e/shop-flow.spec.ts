@@ -288,7 +288,12 @@ test("vendor attention and reserved inventory stay readable across breakpoints",
       categories: [],
       seller_order_fulfillments: [],
       seller_review_summary: { averageRating: 0, total: 0, breakdown: {} },
-      seller_payouts: [],
+      seller_payouts: [
+        { id: "payout-gbp", amount: 24000, currency: "GBP", status: "held", reference: null, note: null, created_at: "2026-09-24T00:00:00Z", paid_at: null, items: [] },
+        { id: "payout-usd", amount: 10000, currency: "USD", status: "approved", reference: "P-USD", note: null, created_at: "2026-09-23T00:00:00Z", paid_at: null, items: [] }
+      ],
+      payout_adjustments: [],
+      vendor_notifications: [{ id: 1, kind: "payment_confirmed", title: "Order ready for your response", body: "Payment is confirmed for order FLD-123.", href: "/sell#seller-fulfillments", created_at: "2026-09-24T00:00:00Z" }],
       marketplace_returns: [],
       marketplace_disputes: []
     };
@@ -298,6 +303,9 @@ test("vendor attention and reserved inventory stay readable across breakpoints",
   await page.goto("/sell");
   await expect(page.getByRole("heading", { name: "Needs attention" })).toBeVisible();
   await expect(page.getByRole("link", { name: /1 variant low on available stock/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Updates for your store" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "On hold" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Approved" })).toBeVisible();
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 800 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), `${width}px dashboard overflow`).toBeLessThanOrEqual(0);

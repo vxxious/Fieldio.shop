@@ -987,7 +987,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .seller-phone-field > small { grid-column: 1 / -1; }
 .seller-documents { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .seller-documents input[type=file] { width: 100%; padding: 12px; background: var(--surface); border: 1px solid var(--line); }
-.seller-consent { grid-template-columns: 22px 1fr; align-items: start; gap: 12px !important; }
+.seller-consent { grid-template-columns: 22px 1fr; align-items: start; gap: 12px !important; min-height: 44px; padding: 10px 0; }
 .seller-consent input { width: 20px; height: 20px; margin: 1px 0 0; }
 .seller-form > .primary-button { justify-self: start; min-width: 230px; }
 .seller-state { margin-top: 26px; padding: 18px 20px; border: 1px solid var(--line-dark); }
@@ -1024,7 +1024,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .seller-attention a span { min-width: 0; flex: 1; }
 .seller-attention a svg { width: 18px; height: 18px; flex: 0 0 auto; }
 .seller-attention > p { margin: 0; color: var(--muted); }
-.seller-listings, .seller-fulfillments, .seller-operations { scroll-margin-top: 120px; }
+.seller-listings, .seller-fulfillments, .seller-operations, .seller-reviews { scroll-margin-top: 120px; }
 .seller-logo-editor { display: grid; grid-template-columns: 110px 1fr; align-items: center; gap: 24px; padding: 28px 0; border-bottom: 1px solid var(--line); }
 .seller-logo-preview { width: 110px; height: 110px; display: grid; place-items: center; overflow: hidden; background: var(--image-field); border: 1px solid var(--line); }
 .seller-logo-preview img { width: 100%; height: 100%; object-fit: cover; }
@@ -1046,6 +1046,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .seller-listings article .text-link { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .seller-listings article .text-link svg { width: 16px; }
 .seller-listing-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px 20px; }
+.seller-listing-actions .text-link, .account-order-actions .text-link { display: inline-flex; align-items: center; min-height: 44px; }
 .seller-status { display: inline-block; padding: 4px 7px; color: var(--muted); border: 1px solid var(--line-dark); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
 .seller-status--approved { color: var(--success); border-color: var(--success); }
 .seller-status--rejected, .seller-status--suspended { color: var(--destructive); border-color: var(--destructive); }
@@ -1261,11 +1262,33 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .order-support input, .order-support select, .order-support textarea { width: 100%; min-height: 44px; padding: 10px; border: 1px solid var(--line-dark); background: var(--surface); }
 .order-support form .wide:last-child { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
 .seller-operations { width: var(--page); margin: 70px auto 0; }
+.seller-notifications { width: var(--page); margin: 64px auto 0; }
+.seller-notifications header { display: flex; justify-content: space-between; align-items: baseline; gap: 24px; border-bottom: 1px solid var(--ink); }
+.seller-notifications h2 { margin: 0 0 18px; font-size: clamp(28px, 4vw, 48px); }
+.seller-notifications header p, .seller-notifications > p { color: var(--muted); }
+.seller-notifications ul { margin: 0; padding: 0; list-style: none; }
+.seller-notifications li { border-bottom: 1px solid var(--line); }
+.seller-notifications a { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 16px; align-items: center; min-height: 56px; padding: 12px 0; color: inherit; text-decoration: none; }
+.seller-notifications a:hover strong, .seller-notifications a:focus-visible strong { text-decoration: underline; text-underline-offset: 4px; }
+.seller-notifications a span, .seller-notifications time { color: var(--muted); }
+.product-sourcing-note { color: var(--muted); font-size: 14px; line-height: 1.5; }
 .seller-operations > header { display: flex; justify-content: space-between; align-items: end; gap: 30px; padding-bottom: 22px; border-bottom: 1px solid var(--ink); }
 .seller-operations > header h2 { margin: 0; font-size: clamp(36px, 5vw, 64px); }
 .seller-operations > header p { max-width: 58ch; color: var(--muted); }
 .seller-operations > header > strong { display: grid; justify-items: end; font-size: 26px; }
 .seller-operations > header > strong span { color: var(--muted); font-size: 11px; font-weight: 400; }
+.seller-payout-balances { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; padding: 24px 0; border-bottom: 1px solid var(--line); }
+.seller-payout-balances > div { min-width: 0; }
+.seller-payout-balances h3 { margin: 0 0 12px; font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }
+.seller-payout-balances ul, .seller-payout-lines { margin: 0; padding: 0; list-style: none; }
+.seller-payout-balances li { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.seller-payout-balances li + li { margin-top: 8px; }
+.seller-payout-balances li strong { font-size: clamp(18px, 2vw, 26px); font-weight: 500; }
+.seller-payout-balances li span { color: var(--muted); font-size: 11px; }
+.seller-payout-lines { margin-top: 12px; border-top: 1px solid var(--line); }
+.seller-operations-grid .seller-payout-lines li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; }
+.seller-payout-lines span { min-width: 0; overflow-wrap: anywhere; }
+.seller-payout-adjustment { overflow-wrap: anywhere; }
 .seller-operations-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; padding-top: 28px; }
 .seller-operations-grid h3 { font-size: 20px; }
 .seller-operations-grid ul { margin: 0; padding: 0; list-style: none; }
@@ -1640,6 +1663,9 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .seller-operations > header { align-items: start; flex-direction: column; }
   .seller-operations > header > strong { justify-items: start; }
   .seller-operations-grid { grid-template-columns: 1fr; gap: 18px; }
+  .seller-payout-balances { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .seller-notifications header { display: block; }
+  .seller-notifications a { grid-template-columns: 1fr; gap: 4px; }
   .admin-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; margin-top: 0; }
   .admin-payment-card { grid-template-columns: 1fr; padding: 16px; }
   .admin-payment-card > * { grid-column: 1; }

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, expect, it, vi } from "vitest";
-import { availableStock, ContactDetailsForm, listingValuesFor, LiveInventoryEditor, sellerAttentionCounts, SellerFulfillments, SellerPage, withInventorySnapshots } from "../pages/SellerPage";
+import { availableStock, ContactDetailsForm, listingValuesFor, LiveInventoryEditor, sellerAttentionCounts, sellerPayoutTotals, SellerFulfillments, SellerOperations, SellerPage, VerificationForm, withInventorySnapshots, type SellerPayout } from "../pages/SellerPage";
 
 const authenticatedPost = vi.hoisted(() => vi.fn(async () => ({ fulfillment: { status: "processing" } })));
 
@@ -21,6 +21,27 @@ const stockListing = {
     { id: "matrix-large", color: "Black", size: "L", quantity: 3, published_variant_id: "own-large" }
   ]
 };
+
+it("separates payout states and currencies, including held payout lines", () => {
+  const base = { reference: null, note: null, created_at: "2026-09-24T08:00:00Z", paid_at: null, items: [] };
+  const payouts: SellerPayout[] = [
+    { ...base, id: "pending-gbp", amount: 20000, currency: "GBP", status: "pending", items: [{ fulfillment_id: "fulfilment-a", amount: 5000, status: "held" }] },
+    { ...base, id: "approved-usd", amount: 18000, currency: "USD", status: "approved" },
+    { ...base, id: "held-gbp", amount: 3000, currency: "GBP", status: "held" },
+    { ...base, id: "paid-gbp", amount: 8000, currency: "GBP", status: "paid", reference: "PAYOUT-123", paid_at: "2026-09-25T08:00:00Z" }
+  ];
+  const totals = sellerPayoutTotals(payouts);
+  expect(totals.get("pending")?.get("GBP")).toBe(20000);
+  expect(totals.get("approved")?.get("USD")).toBe(18000);
+  expect(totals.get("held")?.get("GBP")).toBe(8000);
+  expect(totals.get("paid")?.get("GBP")).toBe(8000);
+  expect(totals.get("pending")?.get("USD")).toBeUndefined();
+  render(<SellerOperations payouts={payouts} adjustments={[{ id: 1, payout_id: "paid-gbp", fulfillment_id: "fulfilment-a", kind: "refund", amount: 2000, currency: "GBP", reason: "Approved return", created_at: "2026-09-26T08:00:00Z" }]} fulfillments={[]} returns={[]} disputes={[]} />);
+  expect(screen.getByText(/Payout reference/)).toBeDefined();
+  expect(screen.getByText(/Approved return/)).toBeVisible();
+  expect(screen.getByText(/Order fulfilment/)).toBeVisible();
+  expect(screen.getAllByText(/\$180\.00/).length).toBeGreaterThan(0);
+});
 
 it("shows actionable orders only after payment confirmation and counts other real attention items", () => {
   const listings = [stockListing, { status: "rejected" as const, variants: [] }];
@@ -80,6 +101,14 @@ it("requires an account before a seller can apply", () => {
   expect(screen.getByText(/Every seller and vendor is verified/)).toBeVisible();
 });
 
+it("associates the seller declaration error with its checkbox", async () => {
+  render(<VerificationForm userId="seller-1" email="seller@example.com" application={null} defaultCountryCode="GB" onDone={async () => undefined} />);
+  fireEvent.click(screen.getByRole("button", { name: "Submit for verification" }));
+  const declaration = screen.getByRole("checkbox", { name: /I confirm these details/ });
+  await waitFor(() => expect(declaration).toHaveAttribute("aria-describedby", "seller-declaration-error"));
+  expect(screen.getByText("Accept the verification declaration.")).toHaveAttribute("id", "seller-declaration-error");
+});
+
 it("lets an approved seller edit separate call and WhatsApp details", () => {
   const application = {
     id: "application", kind: "vendor" as const, legal_name: "Ada Vendor", business_name: "Ada Studio", country_code: "NG",
@@ -107,7 +136,7 @@ it("converts stored listing amounts and options back into editable form values",
     category_id: "11111111-1111-4111-8111-111111111111", subcategory_id: "22222222-2222-4222-8222-222222222222",
     condition: "excellent", condition_notes: "No visible defects.", materials: "100% wool", item_reference: null,
     price: 125000, compare_at_price: 150000, currency: "GBP", colors: ["Black", "Cream"], sizes: ["S", "M"],
-    quantity: 2, weight_kg: 1.4, authenticity_confirmed: true, status: "rejected", review_reason: "Replace one image.",
+    quantity: 2, weight_kg: 1.4, authenticity_confirmed: true, status: "rejected", is_paused: false, review_reason: "Replace one image.",
     published_product_id: null, created_at: "2026-09-20T00:00:00Z", images: [], variants: [
       { id: "33333333-3333-4333-8333-333333333333", color: "Black", size: "S", quantity: 2 },
       { id: "44444444-4444-4444-8444-444444444444", color: "Cream", size: "M", quantity: 1 }
