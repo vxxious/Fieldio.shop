@@ -21,13 +21,14 @@ type EnquiryValues = z.infer<typeof enquirySchema>;
 const copy: Record<string, { title: TranslationKey; intro: TranslationKey; points: TranslationKey[] }> = {
   "/personal-shopping": { title: "service.personalTitle", intro: "service.personalIntro", points: ["service.personalPoint1", "service.personalPoint2", "service.personalPoint3", "service.personalPoint4"] },
   "/wholesale": { title: "service.wholesaleTitle", intro: "service.wholesaleIntro", points: ["service.wholesalePoint1", "service.wholesalePoint2", "service.wholesalePoint3", "service.wholesalePoint4"] },
-  "/contact": { title: "service.contactTitle", intro: "service.contactIntro", points: ["service.contactPoint1", "service.contactPoint2", "service.contactPoint4"] }
+  "/contact": { title: "service.contactTitle", intro: "service.contactIntro", points: ["service.contactPoint1", "service.contactPoint2", "service.contactPoint4", "service.contactReturns"] }
 };
 
 const contactEmails: Partial<Record<TranslationKey, string>> = {
   "service.contactPoint1": "hello@fieldio.shop",
   "service.contactPoint2": "orders@fieldio.shop",
-  "service.contactPoint4": "support@fieldio.shop"
+  "service.contactPoint4": "support@fieldio.shop",
+  "service.contactReturns": "returns@fieldio.shop"
 };
 
 export function ServicePage() {

@@ -294,6 +294,7 @@ const en = {
   "service.contactPoint2": "Order assistance",
   "service.contactPoint3": "Wholesale requests",
   "service.contactPoint4": "Shipping support",
+  "service.contactReturns": "Returns assistance",
   "service.continueWhatsApp": "Continue on WhatsApp",
   "service.wholesaleEnquiry": "Wholesale enquiry",
   "service.sendEnquiry": "Send an enquiry",
@@ -436,12 +437,12 @@ const hardeningTranslations: Partial<Record<LanguageCode, Dictionary>> = {
 
 const dictionaries: Record<LanguageCode, Dictionary> = {
   en,
-  fr: { ...fr, ...utilityTranslations.fr, ...experienceTranslations.fr, ...hardeningTranslations.fr, "nav.all": "Tout" },
-  de: { ...de, ...pageTranslations.de, ...utilityTranslations.de, ...experienceTranslations.de, ...hardeningTranslations.de, "nav.all": "Alle" },
-  es: { ...es, ...pageTranslations.es, ...utilityTranslations.es, ...experienceTranslations.es, ...hardeningTranslations.es, "nav.all": "Todo" },
-  it: { ...it, ...pageTranslations.it, ...utilityTranslations.it, ...experienceTranslations.it, ...hardeningTranslations.it, "nav.all": "Tutto" },
-  pt: { ...pt, ...pageTranslations.pt, ...utilityTranslations.pt, ...experienceTranslations.pt, ...hardeningTranslations.pt, "nav.all": "Tudo" },
-  ar: { ...ar, ...pageTranslations.ar, ...utilityTranslations.ar, ...experienceTranslations.ar, ...hardeningTranslations.ar, "nav.all": "الكل" }
+  fr: { ...fr, ...utilityTranslations.fr, ...experienceTranslations.fr, ...hardeningTranslations.fr, "nav.all": "Tout", "service.contactReturns": "Aide aux retours" },
+  de: { ...de, ...pageTranslations.de, ...utilityTranslations.de, ...experienceTranslations.de, ...hardeningTranslations.de, "nav.all": "Alle", "service.contactReturns": "Hilfe bei Rücksendungen" },
+  es: { ...es, ...pageTranslations.es, ...utilityTranslations.es, ...experienceTranslations.es, ...hardeningTranslations.es, "nav.all": "Todo", "service.contactReturns": "Ayuda con devoluciones" },
+  it: { ...it, ...pageTranslations.it, ...utilityTranslations.it, ...experienceTranslations.it, ...hardeningTranslations.it, "nav.all": "Tutto", "service.contactReturns": "Assistenza resi" },
+  pt: { ...pt, ...pageTranslations.pt, ...utilityTranslations.pt, ...experienceTranslations.pt, ...hardeningTranslations.pt, "nav.all": "Tudo", "service.contactReturns": "Apoio a devoluções" },
+  ar: { ...ar, ...pageTranslations.ar, ...utilityTranslations.ar, ...experienceTranslations.ar, ...hardeningTranslations.ar, "nav.all": "الكل", "service.contactReturns": "مساعدة في الإرجاع" }
 };
 
 export function translate(language: LanguageCode, key: TranslationKey): string {

@@ -474,7 +474,7 @@ test("contact form recovers from a lost network connection", async ({ page }) =>
 test("public contact addresses lead to the appropriate Fieldio inbox", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/contact");
-  for (const address of ["hello@fieldio.shop", "orders@fieldio.shop", "support@fieldio.shop"]) {
+  for (const address of ["hello@fieldio.shop", "orders@fieldio.shop", "support@fieldio.shop", "returns@fieldio.shop"]) {
     await expect(page.locator(".contact-channels").getByRole("link", { name: address })).toHaveAttribute("href", `mailto:${address}`);
   }
   await expect(page.locator(".site-footer").getByRole("link", { name: "Contact", exact: true })).toHaveAttribute("href", "/contact");
