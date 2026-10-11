@@ -744,6 +744,8 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .service-lead > p { max-width: 58ch; font-size: 16px; color: var(--muted); }
 .service-lead ul { list-style: none; padding: 0; margin: 40px 0; border-top: 1px solid var(--line-dark); }
 .service-lead li { padding: 15px 0; border-bottom: 1px solid var(--line-dark); font-size: 15px; }
+.contact-channels li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; }
+.contact-channels a { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; text-decoration: underline; text-underline-offset: 4px; overflow-wrap: anywhere; }
 .service-form { background: var(--surface); padding: clamp(25px, 4vw, 55px); align-self: start; display: flex; flex-direction: column; gap: 17px; }
 .service-form h2 { font-size: 32px; margin-bottom: 10px; }
 .service-form .primary-button { margin-top: 8px; }

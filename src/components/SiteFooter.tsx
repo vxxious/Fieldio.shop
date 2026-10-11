@@ -13,7 +13,7 @@ export function SiteFooter() {
         </div>
         <div className="footer-links">
           <div><h3>Shop</h3><Link to="/collections/new-arrivals">New arrivals</Link><Link to="/collections/luxury">Luxury sourcing</Link><Link to="/collections/men">Men</Link><Link to="/collections/women">Women</Link></div>
-          <div><h3>Services</h3><Link to="/personal-shopping">Personal shopping</Link><Link to="/wholesale">Wholesale</Link><Link to="/how-it-works">How Fieldio works</Link><Link to="/contact">Contact</Link></div>
+          <div><h3>Services</h3><Link to="/personal-shopping">Personal shopping</Link><Link to="/wholesale">Wholesale</Link><Link to="/how-it-works">How Fieldio works</Link><Link to="/contact">Contact</Link><a href="mailto:hello@fieldio.shop">hello@fieldio.shop</a></div>
           <div><h3>Information</h3><Link to="/about">About Fieldio</Link><Link to="/promise">Fieldio Promise</Link><Link to="/shipping">Shipping</Link><Link to="/returns">Returns</Link><Link to="/privacy">Privacy</Link><Link to="/terms">Terms</Link></div>
         </div>
         <div className="footer-meta">
