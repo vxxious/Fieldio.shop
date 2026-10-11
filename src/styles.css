@@ -1426,7 +1426,8 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
   .site-footer { display: block; padding: 45px 20px 28px; }
   .footer-brand > a { font-size: 72px; }
   .footer-links { grid-template-columns: 1fr 1fr; margin-top: 55px; row-gap: 38px; }
-  .footer-meta { margin-top: 50px; }
+  .footer-meta { flex-wrap: wrap; justify-content: flex-start; gap: 4px 20px; margin-top: 50px; padding-right: 0; }
+  .footer-meta span { flex-basis: 100%; }
   .cart-panel { width: 100%; }
   .drawer-header { height: 66px; padding: 0 16px; }
   .cart-list { padding: 0 16px; }

@@ -477,8 +477,18 @@ test("public contact addresses lead to the appropriate Fieldio inbox", async ({ 
   for (const address of ["hello@fieldio.shop", "orders@fieldio.shop", "support@fieldio.shop"]) {
     await expect(page.locator(".contact-channels").getByRole("link", { name: address })).toHaveAttribute("href", `mailto:${address}`);
   }
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await expect(page.locator(".site-footer").getByRole("link", { name: "hello@fieldio.shop" })).toHaveAttribute("href", "mailto:hello@fieldio.shop");
+  await expect(page.locator(".site-footer").getByRole("link", { name: "Contact", exact: true })).toHaveAttribute("href", "/contact");
+  await expect(page.locator(".site-footer").getByRole("link", { name: "hello@fieldio.shop" })).toHaveCount(0);
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 800 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    const instagram = await page.locator(".footer-meta a").boundingBox();
+    const copyright = await page.locator(".footer-meta span").boundingBox();
+    expect(instagram).not.toBeNull();
+    expect(copyright).not.toBeNull();
+    expect(copyright!.y).toBeGreaterThan(instagram!.y + instagram!.height);
+    expect(Math.abs(copyright!.x - instagram!.x)).toBeLessThan(1);
+  }
   await page.goto("/returns");
   await expect(page.getByRole("link", { name: "Email returns@fieldio.shop" })).toHaveAttribute("href", "mailto:returns@fieldio.shop");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
