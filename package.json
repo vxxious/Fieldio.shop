@@ -6,8 +6,8 @@
   "scripts": {
     "test:db:lifecycle": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-marketplace-lifecycle.ps1",
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:preview": "tsc -b && vite build --mode preview",
+    "build": "tsc -b && vite build && node scripts/rename-client-shell.mjs",
+    "build:preview": "tsc -b && vite build --mode preview && node scripts/rename-client-shell.mjs",
     "preview": "vite preview",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",

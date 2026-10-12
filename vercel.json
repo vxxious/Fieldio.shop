@@ -1,5 +1,5 @@
 {
-  "functions": { "api/render.ts": { "includeFiles": "dist/index.html" } },
+  "functions": { "api/render.ts": { "includeFiles": "dist/app-shell.html" } },
   "rewrites": [
     { "source": "/api/admin/:area", "destination": "/api/seller-listing-review?area=:area" },
     { "source": "/api/order-support", "destination": "/api/account?mode=support" },
