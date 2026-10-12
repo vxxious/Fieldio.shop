@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
   const sentryOrg = process.env.SENTRY_ORG ?? environment.SENTRY_ORG;
   const sentryProject = process.env.SENTRY_PROJECT ?? environment.SENTRY_PROJECT;
   const uploadSourceMaps = Boolean(sentryAuthToken && sentryOrg && sentryProject);
-  for (const key of ["SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SECRET_KEY", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "RESEND_API_KEY", "RESEND_FROM", "NEWSLETTER_TOKEN_SECRET", "APP_URL"]) if (environment[key] && !process.env[key]) process.env[key] = environment[key];
+  for (const key of ["VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY", "VITE_SUPABASE_ANON_KEY", "SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SECRET_KEY", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "RESEND_API_KEY", "RESEND_FROM", "NEWSLETTER_TOKEN_SECRET", "APP_URL"]) if (environment[key] && !process.env[key]) process.env[key] = environment[key];
   return {
   plugins: [
     react(),

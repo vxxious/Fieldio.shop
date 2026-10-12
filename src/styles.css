@@ -761,6 +761,17 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .policy-date { display: block; margin: 22px 0 0 auto; width: min(760px, 64%); color: var(--muted); font-size: 13px; }
 .policy-note { margin: 50px 0 20px auto; width: min(760px, 64%); color: var(--muted); font-size: 13px; }
 .content-page > .text-link { display: block; margin-left: 36%; }
+.server-public .content-page > section { padding: 42px 0; border-bottom: 1px solid var(--line); }
+.server-public .content-page > nav { display: flex; flex-wrap: wrap; gap: 16px; padding: 36px 0; }
+.server-public .content-page h1 { font-size: clamp(42px, 8vw, 108px); overflow-wrap: anywhere; }
+.server-product { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 70px); }
+.server-product > img { display: block; width: 100%; height: auto; object-fit: contain; }
+@media (max-width: 760px) {
+  .server-product { grid-template-columns: 1fr; }
+  .server-public .site-header { height: auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; padding-block: 12px; }
+  .server-public .fieldio-wordmark { order: -1; width: 100%; justify-content: center; }
+  .server-public .desktop-nav, .server-public .header-actions { display: flex !important; width: 100%; flex-wrap: wrap; justify-content: center; }
+}
 
 .gender-directory { width: min(100% - 40px, 1180px); margin: 0 auto; padding: clamp(62px, 8vw, 120px) 0 clamp(90px, 12vw, 170px); }
 .gender-directory > header { display: grid; grid-template-columns: 1fr minmax(280px, .65fr); gap: 50px; align-items: end; padding-bottom: 36px; border-bottom: 1px solid var(--ink); }

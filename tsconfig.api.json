@@ -13,5 +13,5 @@
     "skipLibCheck": true,
     "composite": true
   },
-  "include": ["api/**/*.ts"]
+  "include": ["api/**/*.ts", "src/data/content-pages.ts", "src/lib/translations.ts", "src/lib/regions.ts"]
 }
