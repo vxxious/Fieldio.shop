@@ -159,7 +159,7 @@ export function ProductPage() {
     <article className="product-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />
       <div className="product-main">
-        <div className="product-gallery" ref={galleryRef}>
+        <div className={`product-gallery${product.images.length > 1 ? " product-gallery--multiple" : ""}`} ref={galleryRef}>
           {product.images.map((image, index) => <img key={image.id} {...responsiveImage(image.url)} sizes="(max-width: 700px) 100vw, 50vw" alt={image.alt || product.name} loading={index ? "lazy" : "eager"} onLoad={() => { if (index === 0) setActiveImage(0); }} />)}
           {product.images.length === 1 && <div className="gallery-detail" aria-hidden="true"><img {...responsiveImage(product.images[0]?.url)} sizes="40vw" alt="" /></div>}
           {!product.images.length && <div className="image-placeholder">{t("product.photographySoon")}</div>}

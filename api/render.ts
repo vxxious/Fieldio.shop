@@ -17,13 +17,14 @@ function publicProduct(row: CatalogRow, db: CatalogDb): PublicProduct {
     ...(row.brand ? { brand: Array.isArray(row.brand) ? row.brand[0]?.name : row.brand.name } : {}) };
 }
 
-async function catalogProducts(db: CatalogDb | null, filter: { collection?: string; brandId?: string; store?: string; limit?: number } = {}): Promise<PublicProduct[]> {
+async function catalogProducts(db: CatalogDb | null, filter: { collection?: string; brandId?: string; categoryId?: string; store?: string; limit?: number } = {}): Promise<PublicProduct[]> {
   if (!db) return [];
   // shortcut: Server HTML lists the newest 24 pieces; add server pagination if full catalog browsing without JavaScript is needed.
   const select = filter.collection ? `${productSelect},collection_products!inner(collection:collections!inner(slug))` : productSelect;
   let query = db.from("products").select(select).eq("status", "active").lte("published_at", new Date().toISOString()).order("published_at", { ascending: false }).limit(filter.limit ?? 24);
   if (filter.collection) query = query.eq("collection_products.collection.slug", filter.collection);
   if (filter.brandId) query = query.eq("brand_id", filter.brandId);
+  if (filter.categoryId) query = query.eq("category_id", filter.categoryId);
   if (filter.store) query = query.eq("seller_store_slug", filter.store).eq("seller_verified", true);
   const { data, error } = await query;
   if (error) throw error;
@@ -67,10 +68,18 @@ export async function GET(request: Request) {
       const result = db ? await db.from("collections").select("name,intro,seo_title,seo_description,hero_image_url").eq("slug", match[2]!).eq("is_active", true).lte("published_at", new Date().toISOString()).maybeSingle() : null;
       if (result?.error) throw result.error;
       if (result?.data) { title = result.data.seo_title || `${result.data.name} | Fieldio`; description = result.data.seo_description || result.data.intro || description; image = result.data.hero_image_url || image; }
-      else if (!publicPages[pathname] && !["shoes", "accessories", "jewellery"].includes(match[2]!)) { status = 404; title = "Collection not found | Fieldio"; description = "This collection is not currently available on Fieldio."; }
+      else if (!publicPages[pathname] && !["shoes", "bags", "accessories", "jewellery"].includes(match[2]!)) { status = 404; title = "Collection not found | Fieldio"; description = "This collection is not currently available on Fieldio."; }
       heading = title.split(" | ")[0]!;
       pageSchema = { "@type": "CollectionPage", "@id": `${origin}${pathname}#webpage`, name: title, description, url: `${origin}${pathname}`, isPartOf: { "@id": `${origin}/#website` } };
-      if (status === 200) body = collectionBody(pathname, ["men", "women", "shoes", "accessories", "jewellery"].includes(match[2]!) ? [] : await catalogProducts(db, { collection: match[2] }));
+      if (status === 200) {
+        const categorySlug = match[2] === "shoes" ? "footwear" : match[2] === "bags" ? "bags" : null;
+        const category = db && categorySlug ? await db.from("categories").select("id").eq("slug", categorySlug).maybeSingle() : null;
+        if (category?.error) throw category.error;
+        let products: PublicProduct[] = [];
+        if (categorySlug && category?.data?.id) products = await catalogProducts(db, { categoryId: category.data.id });
+        else if (!categorySlug && !["men", "women", "accessories", "jewellery"].includes(match[2]!)) products = await catalogProducts(db, { collection: match[2] });
+        body = collectionBody(pathname, products);
+      }
     } else if (match?.[1] === "brands") {
       const result = db ? await db.from("brands").select("id,name,description").eq("slug", match[2]!).eq("is_active", true).maybeSingle() : null;
       if (result?.error) throw result.error;

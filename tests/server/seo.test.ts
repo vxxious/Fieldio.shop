@@ -51,10 +51,16 @@ it("serves a distinct Fieldio search identity and crawlable public sitemap", asy
   const women = await (await renderPage(new Request("https://fieldio.shop/api/render?path=/collections/women"))).text();
   expect(women).toContain('href="/collections/women?category=footwear"');
   expect(women).toContain('<meta name="robots" content="index,follow">');
+  const men = await (await renderPage(new Request("https://fieldio.shop/api/render?path=/collections/men"))).text();
+  expect(men).toContain('href="/collections/men?category=underwear"');
 
   const shoes = await (await renderPage(new Request("https://fieldio.shop/api/render?path=/collections/shoes"))).text();
   expect(shoes).toContain("Designer Shoes | Fieldio");
   expect(shoes).toContain('href="/collections/shoes?category=loafers"');
+
+  const bags = await renderPage(new Request("https://fieldio.shop/api/render?path=/collections/bags"));
+  expect(bags.status).toBe(200);
+  expect(await bags.text()).toContain("Designer Bags | Fieldio");
 
   const account = await (await renderPage(new Request("https://fieldio.shop/api/render?path=/account"))).text();
   expect(account).toContain('<meta name="robots" content="noindex,nofollow">');
@@ -73,7 +79,7 @@ it("serves a distinct Fieldio search identity and crawlable public sitemap", asy
   expect(sitemap).toContain("https://fieldio.shop/promise");
   expect(sitemap).toContain("https://fieldio.shop/how-it-works");
   expect(sitemap).not.toContain("/account");
-  expect(sitemap).not.toContain("/collections/bags");
+  expect(sitemap).toContain("https://fieldio.shop/collections/bags");
 });
 
 it("escapes public product content before placing it in server HTML", () => {

@@ -14,10 +14,10 @@ import { responsiveImage } from "../lib/images";
 import { supabase } from "../lib/supabase";
 
 const genderCategories = {
-  men: ["sale", "new-in", "tops", "bottoms", "outerwear", "tailoring", "accessories", "footwear", "all"],
+  men: ["sale", "new-in", "tops", "bottoms", "underwear", "outerwear", "tailoring", "accessories", "footwear", "all"],
   women: ["sale", "new-in", "dresses", "tops", "bottoms", "outerwear", "accessories", "footwear", "all"]
 } as const;
-const categoryLabels: Record<string, string> = { sale: "Sale", "new-in": "New in", tops: "Tops", bottoms: "Bottoms", outerwear: "Outerwear", tailoring: "Tailoring", dresses: "Dresses", accessories: "Accessories", footwear: "Footwear", all: "All pieces", sneakers: "Sneakers", boots: "Boots", pumps: "Pumps", loafers: "Loafers", "ballet-flats": "Ballet flats", mules: "Mules", slippers: "Slippers", "derby-oxford-shoes": "Derby & Oxford shoes", sandals: "Sandals", "slides-flip-flops": "Slides & flip-flops", espadrilles: "Espadrilles", sunglasses: "Sunglasses", belts: "Belts", "hats-caps": "Hats & caps", "wallets-cardholders": "Wallets & cardholders", scarves: "Scarves", "glasses-frames": "Glasses & frames", "hair-accessories": "Hair accessories", gloves: "Gloves", jewellery: "Jewellery", "fashion-jewellery": "All fashion jewellery", bracelets: "Bracelets", earrings: "Earrings", necklaces: "Necklaces", rings: "Rings", watches: "Watches", "fine-jewellery": "All fine jewellery", "demi-fine-jewellery": "All demi-fine jewellery", "fine-bracelets": "Fine bracelets", "fine-earrings": "Fine earrings", "fine-necklaces": "Fine necklaces", "fine-rings": "Fine rings", "fine-watches": "Fine watches" };
+const categoryLabels: Record<string, string> = { sale: "Sale", "new-in": "New in", tops: "Tops", bottoms: "Bottoms", underwear: "Underwear", outerwear: "Outerwear", tailoring: "Tailoring", dresses: "Dresses", accessories: "Accessories", footwear: "Footwear", all: "All pieces", sneakers: "Sneakers", boots: "Boots", pumps: "Pumps", loafers: "Loafers", "ballet-flats": "Ballet flats", mules: "Mules", slippers: "Slippers", "derby-oxford-shoes": "Derby & Oxford shoes", sandals: "Sandals", "slides-flip-flops": "Slides & flip-flops", espadrilles: "Espadrilles", sunglasses: "Sunglasses", belts: "Belts", "hats-caps": "Hats & caps", "wallets-cardholders": "Wallets & cardholders", scarves: "Scarves", "glasses-frames": "Glasses & frames", "hair-accessories": "Hair accessories", gloves: "Gloves", jewellery: "Jewellery", "fashion-jewellery": "All fashion jewellery", bracelets: "Bracelets", earrings: "Earrings", necklaces: "Necklaces", rings: "Rings", watches: "Watches", "fine-jewellery": "All fine jewellery", "demi-fine-jewellery": "All demi-fine jewellery", "fine-bracelets": "Fine bracelets", "fine-earrings": "Fine earrings", "fine-necklaces": "Fine necklaces", "fine-rings": "Fine rings", "fine-watches": "Fine watches" };
 
 const catalogDirectories = {
   shoes: {
@@ -83,7 +83,7 @@ export function CollectionPage() {
     if (queryError) throw queryError;
     return data;
   } });
-  const title = collection.data?.name ?? (slug ? slug === "luxury" ? "Luxury sourcing" : slug.replaceAll("-", " ") : "All products");
+  const title = collection.data?.name ?? (slug ? slug === "luxury" ? "Luxury sourcing" : slug.replaceAll("-", " ").replace(/^./, (letter) => letter.toUpperCase()) : "All products");
   const brand = params.get("brand") || "";
   const size = params.get("size") || "";
   const sort = params.get("sort") || "featured";

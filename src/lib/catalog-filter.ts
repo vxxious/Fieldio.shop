@@ -3,6 +3,7 @@ import type { Product } from "../types/catalog";
 const subcategoryTags: Record<string, string[]> = {
   tops: ["top", "tops", "shirt", "shirts", "t-shirt", "t-shirts", "polo", "polos", "knitwear", "sweatshirt", "sweatshirts"],
   bottoms: ["bottom", "bottoms", "pants", "trousers", "denim", "jeans", "shorts", "skirt", "skirts"],
+  underwear: ["underwear", "boxers", "briefs"],
   outerwear: ["outerwear", "coat", "coats", "jacket", "jackets", "blazer", "blazers"],
   dresses: ["dress", "dresses"],
   tailoring: ["tailoring", "suit", "suits", "blazer", "blazers"],

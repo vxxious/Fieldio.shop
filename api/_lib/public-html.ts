@@ -47,10 +47,10 @@ export function homeBody(products: PublicProduct[]) {
 
 export function collectionBody(pathname: string, products: PublicProduct[]) {
   const slug = pathname.split("/")[2];
-  const categoryLinks = slug === "men" || slug === "women" ? ["sale", "new-in", "tops", "bottoms", "outerwear", "accessories", "footwear", "all"].map((category) => link(`${pathname}?category=${category}`, category.replaceAll("-", " "))) : [];
+  const categoryLinks = slug === "men" || slug === "women" ? ["sale", "new-in", "tops", "bottoms", ...(slug === "men" ? ["underwear"] : []), "outerwear", "accessories", "footwear", "all"].map((category) => link(`${pathname}?category=${category}`, category.replaceAll("-", " "))) : [];
   const directoryLinks: Record<string, string[]> = { shoes: ["sneakers", "boots", "pumps", "loafers", "ballet-flats", "sandals"], accessories: ["sunglasses", "belts", "scarves", "jewellery"], jewellery: ["bracelets", "earrings", "necklaces", "rings", "watches"] };
   const directory = directoryLinks[slug || ""]?.map((category) => link(`${pathname}?category=${category}`, category.replaceAll("-", " "))) || [];
-  if (categoryLinks.length || directory.length) return `<nav aria-label="Categories">${[...categoryLinks, ...directory].join(" ")}</nav>${link("/brands", "Browse brands")}`;
+  if (categoryLinks.length || directory.length) return `<nav aria-label="Categories">${[...categoryLinks, ...directory].join(" ")}</nav>${products.length ? `<section><h2>Browse the edit</h2>${productCards(products)}</section>` : ""}${link("/brands", "Browse brands")}`;
   return `<section><h2>Browse the edit</h2>${productCards(products)}</section>${link("/personal-shopping", "Ask a personal shopper")}`;
 }
 

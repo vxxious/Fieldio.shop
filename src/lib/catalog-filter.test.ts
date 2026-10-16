@@ -42,6 +42,16 @@ describe("catalog filters", () => {
     expect(filterCatalog(fixtures, { collection: "shoes", subcategory: "pumps" }).map((product) => product.id)).toEqual(["pumps"]);
     expect(filterCatalog(fixtures, { collection: "shoes", subcategory: "derby-oxford-shoes" }).map((product) => product.id)).toEqual(["lace-ups"]);
   });
+  it("routes Zara boxers to men's underwear without mixing in jeans or jackets", () => {
+    const base = products[0]!;
+    const boxers = { ...base, id: "boxers", brand: "Zara", category: "Underwear", tags: ["zara", "men", "underwear", "boxers"] };
+    const jeans = { ...base, id: "jeans", brand: "Zara", category: "Bottoms", tags: ["zara", "men", "bottoms", "denim", "jeans"] };
+    const jacket = { ...base, id: "jacket", brand: "Zara", category: "Outerwear", tags: ["zara", "men", "outerwear", "jackets"] };
+    const fixtures = [boxers, jeans, jacket];
+    expect(filterCatalog(fixtures, { collection: "men", subcategory: "underwear" }).map((product) => product.id)).toEqual(["boxers"]);
+    expect(filterCatalog(fixtures, { collection: "men", subcategory: "bottoms" }).map((product) => product.id)).toEqual(["jeans"]);
+    expect(filterCatalog(fixtures, { collection: "men", subcategory: "outerwear" }).map((product) => product.id)).toEqual(["jacket"]);
+  });
 });
 
 describe("brand routes", () => {

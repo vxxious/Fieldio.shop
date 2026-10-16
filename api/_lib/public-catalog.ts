@@ -8,6 +8,7 @@ export const publicPages: Record<string, [string, string]> = {
   "/collections/women": ["Designer Womenswear | Fieldio", "Explore designer womenswear selected and personally sourced by Fieldio, with worldwide delivery support."],
   "/collections/men": ["Designer Menswear | Fieldio", "Explore designer menswear selected and personally sourced by Fieldio, with worldwide delivery support."],
   "/collections/shoes": ["Designer Shoes | Fieldio", "Browse sneakers, boots, loafers, and other footwear through the Fieldio fashion edit."],
+  "/collections/bags": ["Designer Bags | Fieldio", "Explore bags and travel pieces through the Fieldio fashion edit."],
   "/collections/accessories": ["Designer Accessories | Fieldio", "Explore accessories, eyewear, belts, scarves, and jewellery through Fieldio."],
   "/collections/jewellery": ["Designer Jewellery | Fieldio", "Explore fashion, demi-fine, and fine jewellery through the Fieldio edit."],
   "/brands": ["Designer Brands | Fieldio", "Explore designer brands available through Fieldio's personal fashion sourcing service."],
