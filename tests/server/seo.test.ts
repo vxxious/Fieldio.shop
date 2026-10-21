@@ -29,7 +29,8 @@ it("serves a distinct Fieldio search identity and crawlable public sitemap", asy
   expect(home).toContain('<link rel="canonical" href="https://fieldio.shop/">');
   expect(home).toContain("Fieldio is an independent designer fashion marketplace");
   expect(home).toContain('<a href="/about">About Fieldio</a>');
-  expect(home).toContain("A worldwide luxury desk");
+  expect(home).toContain("The Zara edit");
+  expect(home).toContain('href="/brands/zara"');
   expect(home).toContain("Sell with Fieldio");
   expect(home).not.toContain("Loading Fieldio");
 

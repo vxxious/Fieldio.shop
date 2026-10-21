@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
-import { brands, getBrandSlug } from "../data/catalog";
 import { usePageMeta } from "../hooks/usePageMeta";
 import { emptyCatalog, useCatalogProducts } from "../hooks/useCatalog";
+import { catalogPreview } from "../lib/config";
 import { createWhatsAppUrl } from "../lib/whatsapp";
 import { ArrowIcon } from "../components/Icons";
 import { ProductCard } from "../components/ProductCard";
@@ -13,13 +13,19 @@ import { Button } from "../components/ui/button";
 import { useLocale } from "../context/LocaleContext";
 
 const categories = [["All", "nav.all"], ["Women", "nav.women"], ["Men", "nav.men"]] as const;
-const featuredBrands = brands.filter((brand) => brand !== "Fieldio Edit").slice(0, 5);
+const zaraCategories = [
+  ["Trainers", "/collections/shoes?category=sneakers"],
+  ["Denim", "/collections/men?category=bottoms"],
+  ["Boxers", "/collections/men?category=underwear"],
+  ["Jackets", "/collections/men?category=outerwear"],
+  ["Travel bags", "/collections/bags"]
+] as const;
 
 export function HomePage() {
   const { t } = useLocale();
   const { data: catalog = emptyCatalog, isLoading, error } = useCatalogProducts();
   const { data: editorial = {} } = useEditorial("home");
-  const homeCatalog = [...catalog.filter((product) => product.featured), ...catalog.filter((product) => !product.featured)].slice(0, 6);
+  const homeCatalog = catalogPreview ? catalog.slice(0, 6) : catalog.filter((product) => product.brand === "Zara");
   usePageMeta({ title: "Fieldio Shop | Designer Fashion & Personal Shopping", description: "Fieldio is an independent designer fashion marketplace and personal shopping service for clothing, footwear, and accessories, with worldwide sourcing and delivery support.", canonical: "https://fieldio.shop/" });
 
   return (
@@ -36,7 +42,7 @@ export function HomePage() {
             </h1>
             <div className="home-hero-details">
               <p>An independent marketplace for designer fashion and personal sourcing, delivered worldwide.</p>
-              <Link className="home-hero-cta" to="/collections">Explore the edit <ArrowIcon /></Link>
+              <Link className="home-hero-cta" to="/brands/zara">Explore the Zara edit <ArrowIcon /></Link>
             </div>
           </div>
           <div className="home-hero-media">
@@ -53,7 +59,7 @@ export function HomePage() {
       </section>
 
       {error && <div className="catalog-notice" role="alert">The live catalog could not load. Refresh the page or ask Fieldio on WhatsApp.</div>}
-      {!isLoading && !error && !catalog.length && <div className="empty-state"><h2>Your next piece, personally sourced.</h2><p>The online edit is being prepared. Tell Fieldio what you are looking for.</p><Link to="/personal-shopping" className="text-link">Speak to a personal shopper</Link></div>}
+      {!isLoading && !error && !homeCatalog.length && <div className="empty-state"><h2>Your next piece, personally sourced.</h2><p>The online edit is being prepared. Tell Fieldio what you are looking for.</p><Link to="/personal-shopping" className="text-link">Speak to a personal shopper</Link></div>}
       {isLoading ? <div className="product-grid home-grid" aria-label="Loading products">{Array.from({ length: 4 }).map((_, index) => <div className="product-skeleton" key={index} />)}</div> : <section className="product-grid home-grid" aria-labelledby="home-featured-title"><h2 id="home-featured-title" className="sr-only">Featured products</h2>{homeCatalog.slice(0, 4).map((product) => <ProductCard key={product.id} product={product} />)}</section>}
 
       <Reveal className="account-bulletin-reveal">
@@ -72,13 +78,12 @@ export function HomePage() {
       <Reveal>
         <section className="brand-ledger" aria-labelledby="brands-title">
           <div className="brand-ledger-copy">
-            <h2 id="brands-title"><EditorialText text={t("home.luxuryTitle")} /></h2>
-            <p>From a specific Louis Vuitton piece to a hard-to-find runway size, Fieldio makes the search personal. Send the reference; we return with availability, condition, final price, and shipping options.</p>
-            <a href={createWhatsAppUrl("Hello Fieldio, I would like help sourcing a luxury item.")} target="_blank" rel="noreferrer" className="arrow-link">{t("home.sourceRequest")} <ArrowIcon /></a>
+            <h2 id="brands-title"><EditorialText text="The Zara edit" /></h2>
+            <p>Trainers, denim, boxers, jackets, and a travel bag. Explore the seven pieces, then ask Fieldio to confirm size, condition, availability, final price, and shipping before payment.</p>
+            <Link to="/brands/zara" className="arrow-link">View all Zara pieces <ArrowIcon /></Link>
           </div>
-          <div className="brand-list" aria-label="Brands available for sourcing">
-            {featuredBrands.map((brand) => <Link key={brand} to={`/brands/${getBrandSlug(brand)}`}><span>{brand}</span><ArrowIcon /></Link>)}
-            <Link className="brand-list-more" to="/brands"><span>View all brands</span><ArrowIcon /></Link>
+          <div className="brand-list" aria-label="Browse the Zara edit">
+            {zaraCategories.map(([label, href]) => <Link key={label} to={href}><span>{label}</span><ArrowIcon /></Link>)}
           </div>
         </section>
       </Reveal>

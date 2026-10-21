@@ -103,7 +103,12 @@ export async function GET(request: Request) {
     const privateRoute = /^\/(account|admin|checkout|wishlist|search)(\/|$)/.test(pathname);
     if (!publicPages[pathname] && !match && !privateRoute) { status = 404; title = "Page not found | Fieldio"; heading = "Page not found"; description = "The page you requested is not available on Fieldio."; }
     if (status === 200 && !match && !privateRoute) {
-      if (pathname === "/") { heading = "Designer fashion, personally sourced."; body = homeBody(await catalogProducts(db, { limit: 6 })); }
+      if (pathname === "/") {
+        heading = "Designer fashion, personally sourced.";
+        const zara = db ? await db.from("brands").select("id").eq("slug", "zara").maybeSingle() : null;
+        if (zara?.error) throw zara.error;
+        body = homeBody(zara?.data?.id ? await catalogProducts(db, { brandId: zara.data.id, limit: 7 }) : []);
+      }
       else if (pathname === "/collections") { heading = "All products"; body = collectionBody(pathname, await catalogProducts(db)); }
       else if (pathname === "/brands") {
         heading = "Brands";

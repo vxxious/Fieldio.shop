@@ -537,9 +537,9 @@ test("theme follows the system, persists a choice, and remains keyboard operable
 
 test("homepage account invitation opens account creation directly", async ({ page }) => {
   await page.goto("/");
-  const brandLedger = page.getByRole("region", { name: "A worldwide luxury desk" });
-  await expect(brandLedger.locator(".brand-list > a")).toHaveCount(6);
-  await expect(brandLedger.getByRole("link", { name: "View all brands" })).toHaveAttribute("href", "/brands");
+  const brandLedger = page.getByRole("region", { name: "The Zara edit" });
+  await expect(brandLedger.locator(".brand-list > a")).toHaveCount(5);
+  await expect(brandLedger.getByRole("link", { name: "View all Zara pieces" })).toHaveAttribute("href", "/brands/zara");
   const invitation = page.getByRole("region", { name: "Keep your edit close." });
   await expect(invitation).toContainText("save your wishlist, details, and order requests");
   await invitation.getByRole("link", { name: "Create account" }).click();
