@@ -42,7 +42,7 @@ export function HomePage() {
             </h1>
             <div className="home-hero-details">
               <p>An independent marketplace for designer fashion and personal sourcing, delivered worldwide.</p>
-              <Link className="home-hero-cta" to="/brands/zara">Explore the Zara edit <ArrowIcon /></Link>
+              <Link className="home-hero-cta" to="/collections">Explore the edit <ArrowIcon /></Link>
             </div>
           </div>
           <div className="home-hero-media">

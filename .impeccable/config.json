@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "src/pages/HomePage.tsx"
+        ],
+        "createdAt": "2026-11-12T23:30:11.201Z",
+        "reason": "Agent: responsiveImage generates valid src and srcSet; both fallback WebP variants exist on disk"
+      }
+    ]
+  }
+}
