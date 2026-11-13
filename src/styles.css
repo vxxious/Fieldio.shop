@@ -272,11 +272,15 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .mobile-menu-footer { margin-top: auto; border-top: 1px solid var(--line); padding-top: 20px; font-size: 12px; }
 .mobile-menu-footer .mobile-utility-links { margin: 0 0 18px; gap: 24px; }
 .mobile-menu-footer-bar { min-height: 58px; display: flex; align-items: stretch; justify-content: space-between; border-top: 1px solid var(--line); }
-.mobile-menu-region, .mobile-menu-instagram { min-height: 52px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 0; color: var(--ink); font-size: 13px; }
+.mobile-menu-region { min-height: 52px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 0; color: var(--ink); font-size: 13px; }
 .mobile-menu-region svg { width: 16px; height: 16px; margin-inline-start: 2px; }
-.mobile-menu-instagram { padding-inline: 12px 0; }
-.mobile-menu-instagram svg { width: 20px; height: 20px; }
-.mobile-menu-region:hover, .mobile-menu-instagram:hover { text-decoration: underline; text-underline-offset: 4px; }
+.mobile-menu-region:hover { text-decoration: underline; text-underline-offset: 4px; }
+.social-links { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.social-links a { min-height: 44px; display: inline-flex; align-items: center; gap: 7px; color: inherit; font-size: 13px; text-decoration: none; }
+.social-links a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.social-links svg { width: 19px; height: 19px; flex: none; }
+.mobile-menu-footer-bar .social-links { flex-wrap: nowrap; gap: 0; }
+.mobile-menu-footer-bar .social-links a { width: 44px; min-height: 52px; justify-content: center; }
 
 .region-layer { position: fixed; inset: 0; z-index: 130; background: rgba(17, 18, 15, 0.44); }
 .region-panel { position: absolute; inset-block: 0; inset-inline-start: 0; width: min(100%, 540px); overflow-y: auto; overscroll-behavior: contain; background: var(--paper); padding: 24px clamp(22px, 4vw, 46px) 36px; outline: none; }
@@ -765,6 +769,8 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .service-lead li { padding: 15px 0; border-bottom: 1px solid var(--line-dark); font-size: 15px; }
 .contact-channels li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; }
 .contact-channels a { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; text-decoration: underline; text-underline-offset: 4px; overflow-wrap: anywhere; }
+.contact-follow .social-links a { text-decoration: none; }
+.contact-follow .social-links a:hover { text-decoration: underline; }
 .service-form { background: var(--surface); padding: clamp(25px, 4vw, 55px); align-self: start; display: flex; flex-direction: column; gap: 17px; }
 .service-form h2 { font-size: 32px; margin-bottom: 10px; }
 .service-form .primary-button { margin-top: 8px; }

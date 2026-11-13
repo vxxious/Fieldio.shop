@@ -3,7 +3,8 @@ import { useRef, type RefObject } from "react";
 import { NavLink } from "react-router-dom";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { useLocale } from "../context/LocaleContext";
-import { ChevronIcon, CloseIcon, InstagramIcon } from "./Icons";
+import { ChevronIcon, CloseIcon } from "./Icons";
+import { SocialLinks } from "./SocialLinks";
 import { Wordmark } from "./Wordmark";
 
 interface MobileMenuProps {
@@ -68,10 +69,7 @@ export function MobileMenu({ isOpen, onClose, onOpenRegion, triggerRef }: Mobile
                   <span>{region.currency}</span>
                   <ChevronIcon />
                 </button>
-                <a className="mobile-menu-instagram" href="https://www.instagram.com/fieldio_wrd/" target="_blank" rel="noreferrer" onClick={onClose} aria-label="Fieldio on Instagram">
-                  <InstagramIcon />
-                  <span>Instagram</span>
-                </a>
+                <SocialLinks compact onClick={onClose} />
               </div>
             </div>
           </motion.nav>
