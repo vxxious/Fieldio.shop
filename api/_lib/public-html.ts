@@ -8,6 +8,8 @@ export interface PublicProduct {
   short_description: string;
   description: string;
   price: number | null;
+  originalPrice?: number | null;
+  savingPercent?: number | null;
   currency: string;
   image?: string;
   imageAlt?: string;
@@ -22,7 +24,8 @@ function productCards(products: PublicProduct[]) {
   return `<section class="product-grid" aria-label="Products">${products.map((product) => {
     const href = `/products/${encodeURIComponent(product.slug)}`;
     const price = product.price === null ? "Price on request" : new Intl.NumberFormat("en-GB", { style: "currency", currency: product.currency }).format(product.price / 100);
-    return `<article class="product-card"><div class="product-card-media">${product.image ? `<a href="${href}"><img src="${escapeMarkup(product.image)}" alt="${escapeMarkup(product.imageAlt || product.name)}" loading="lazy"></a>` : ""}</div><div class="product-card-info"><div><h3>${link(href, product.name)}</h3>${product.brand ? paragraph(product.brand) : ""}</div><p>${escapeMarkup(price)}</p></div></article>`;
+    const original = product.originalPrice === null || product.originalPrice === undefined ? "" : `<s>${escapeMarkup(new Intl.NumberFormat("en-GB", { style: "currency", currency: product.currency }).format(product.originalPrice / 100))}</s><span class="product-saving">${product.savingPercent}% off</span>`;
+    return `<article class="product-card"><div class="product-card-media">${product.image ? `<a href="${href}"><img src="${escapeMarkup(product.image)}" alt="${escapeMarkup(product.imageAlt || product.name)}" loading="lazy"></a>` : ""}</div><div class="product-card-info"><div><h3>${link(href, product.name)}</h3>${product.brand ? paragraph(product.brand) : ""}</div><p class="product-price">${escapeMarkup(price)}${original}</p></div></article>`;
   }).join("")}</section>`;
 }
 
@@ -41,8 +44,8 @@ export function contentBody(pathname: string) {
   return `${page.updated ? `<time datetime="${page.updated.dateTime}">${escapeMarkup(page.updated.label)}</time>` : ""}<div class="content-sections">${sections}</div>${page.updated ? paragraph("This launch-stage policy copy should be reviewed by Fieldio’s legal adviser before a final effective date is published.") : ""}${contact}`;
 }
 
-export function homeBody(products: PublicProduct[]) {
-  return `<section><h2>The Fieldio Edit</h2>${paragraph("An independent marketplace for designer fashion and personal sourcing, delivered worldwide.")}${link("/collections", "Explore the edit")}</section><section><h2>Zara pieces</h2>${productCards(products)}</section><section><h2>The Zara edit</h2>${paragraph("Trainers, denim, boxers, jackets, and a travel bag. Ask Fieldio to confirm size, condition, availability, final price, and shipping before payment.")}${link("/brands/zara", "View all Zara pieces")}</section><section><h2>Your personal shopper, wherever you are.</h2>${paragraph("Share a product link, screenshot, name, or brief. Fieldio sources across luxury, sportswear, accessories, and everyday fashion, then coordinates worldwide delivery.")}${link("/how-it-works", "How Fieldio works")}</section><section><h2>Sell with Fieldio</h2>${paragraph("Independent boutiques, collectors, and trusted vendors can submit authentic fashion for review.")}${link("/sell", "Create a seller account")}</section>`;
+export function homeBody(products: PublicProduct[], newProducts: PublicProduct[], saleProducts: PublicProduct[]) {
+  return `<section><h2>The Fieldio Edit</h2>${paragraph("An independent marketplace for designer fashion and personal sourcing, delivered worldwide.")}${link("/collections", "Explore the edit")}</section><section><h2>New in</h2>${productCards(newProducts)}${link("/collections/new-arrivals", "View all new arrivals")}</section><section><h2>Sale</h2>${productCards(saleProducts)}${link("/collections/sale", "View all offers")}</section><section><h2>Zara pieces</h2>${productCards(products)}</section><section><h2>The Zara edit</h2>${paragraph("Trainers, denim, boxers, jackets, and a travel bag. Ask Fieldio to confirm size, condition, availability, final price, and shipping before payment.")}${link("/brands/zara", "View all Zara pieces")}</section><section><h2>Your personal shopper, wherever you are.</h2>${paragraph("Share a product link, screenshot, name, or brief. Fieldio sources across luxury, sportswear, accessories, and everyday fashion, then coordinates worldwide delivery.")}${link("/how-it-works", "How Fieldio works")}</section><section><h2>Sell with Fieldio</h2>${paragraph("Independent boutiques, collectors, and trusted vendors can submit authentic fashion for review.")}${link("/sell", "Create a seller account")}</section>`;
 }
 
 export function collectionBody(pathname: string, products: PublicProduct[]) {
@@ -67,7 +70,7 @@ export function storeBody(storeName: string, products: PublicProduct[]) {
 }
 
 export function productBody(product: PublicProduct & { sku: string; materials?: string | null; care?: string | null; seller?: string | null; sellerSlug?: string | null; inquiryOnly?: boolean }) {
-  return `<section class="server-product">${product.image ? `<img src="${escapeMarkup(product.image)}" alt="${escapeMarkup(product.imageAlt || product.name)}" width="600" loading="eager">` : ""}<div>${product.brand ? paragraph(product.brand) : ""}<p>${product.price === null ? "Price on request" : escapeMarkup(new Intl.NumberFormat("en-GB", { style: "currency", currency: product.currency }).format(product.price / 100))}</p>${paragraph(product.short_description)}${product.inquiryOnly ? paragraph("Sourced on request. Fieldio confirms the final price, condition and availability before payment.") : ""}<h2>Description</h2>${paragraph(product.description)}${product.materials ? `<h2>Materials</h2>${paragraph(product.materials)}` : ""}${product.care ? `<h2>Care</h2>${paragraph(product.care)}` : ""}${product.seller && product.sellerSlug ? `<h2>Seller</h2>${link(`/stores/${encodeURIComponent(product.sellerSlug)}`, product.seller)}` : ""}${paragraph("Availability, delivery and return terms are confirmed before payment.")}${link("/contact", `Enquire about ${product.name}`)}</div></section>`;
+  return `<section class="server-product">${product.image ? `<img src="${escapeMarkup(product.image)}" alt="${escapeMarkup(product.imageAlt || product.name)}" width="600" loading="eager">` : ""}<div>${product.brand ? paragraph(product.brand) : ""}<p>${product.price === null ? "Price on request" : escapeMarkup(new Intl.NumberFormat("en-GB", { style: "currency", currency: product.currency }).format(product.price / 100))}${product.originalPrice != null ? `<s>${escapeMarkup(new Intl.NumberFormat("en-GB", { style: "currency", currency: product.currency }).format(product.originalPrice / 100))}</s><span class="product-saving">${product.savingPercent}% off</span>` : ""}</p>${paragraph(product.short_description)}${product.inquiryOnly ? paragraph("Sourced on request. Fieldio confirms the final price, condition and availability before payment.") : ""}<h2>Description</h2>${paragraph(product.description)}${product.materials ? `<h2>Materials</h2>${paragraph(product.materials)}` : ""}${product.care ? `<h2>Care</h2>${paragraph(product.care)}` : ""}${product.seller && product.sellerSlug ? `<h2>Seller</h2>${link(`/stores/${encodeURIComponent(product.sellerSlug)}`, product.seller)}` : ""}${paragraph("Availability, delivery and return terms are confirmed before payment.")}${link("/contact", `Enquire about ${product.name}`)}</div></section>`;
 }
 
 const servicePages: Record<string, { title: TranslationKey; intro: TranslationKey; points: TranslationKey[] }> = {

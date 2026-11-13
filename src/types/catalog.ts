@@ -33,6 +33,8 @@ export interface Product {
   description: string;
   shortDescription: string;
   price: number | null;
+  originalPrice?: number | null;
+  savingPercent?: number | null;
   currency: Currency;
   images: ProductImage[];
   variants: ProductVariant[];

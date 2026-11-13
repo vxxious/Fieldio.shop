@@ -132,7 +132,7 @@ it("lets an approved seller edit separate call and WhatsApp details", () => {
 
 it("converts stored listing amounts and options back into editable form values", () => {
   const values = listingValuesFor({
-    id: "listing", title: "Wool coat", description: "A carefully kept wool coat in excellent condition.", audience: "women",
+    id: "listing", title: "Wool coat", description: "A carefully kept wool coat in excellent condition.", audience: "women", brand_id: null,
     category_id: "11111111-1111-4111-8111-111111111111", subcategory_id: "22222222-2222-4222-8222-222222222222",
     condition: "excellent", condition_notes: "No visible defects.", materials: "100% wool", item_reference: null,
     price: 125000, compare_at_price: 150000, currency: "GBP", colors: ["Black", "Cream"], sizes: ["S", "M"],

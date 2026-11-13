@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { usePageMeta } from "../hooks/usePageMeta";
-import { emptyCatalog, useCatalogProducts } from "../hooks/useCatalog";
+import { useDiscoveryProducts } from "../hooks/useDiscoveryProducts";
+import { products as previewProducts } from "../data/catalog";
 import { catalogPreview } from "../lib/config";
 import { createWhatsAppUrl } from "../lib/whatsapp";
 import { ArrowIcon } from "../components/Icons";
@@ -23,9 +24,13 @@ const zaraCategories = [
 
 export function HomePage() {
   const { t } = useLocale();
-  const { data: catalog = emptyCatalog, isLoading, error } = useCatalogProducts();
+  const zara = useDiscoveryProducts({ kind: "brand", brandSlug: "zara", limit: 4 });
+  const newIn = useDiscoveryProducts({ kind: "new", limit: 8 });
+  const sale = useDiscoveryProducts({ kind: "sale", limit: 8 });
   const { data: editorial = {} } = useEditorial("home");
-  const homeCatalog = catalogPreview ? catalog.slice(0, 6) : catalog.filter((product) => product.brand === "Zara");
+  const homeCatalog = catalogPreview ? previewProducts.slice(0, 4) : zara.data?.products ?? [];
+  const isLoading = !catalogPreview && zara.isPending;
+  const error = zara.error;
   usePageMeta({ title: "Fieldio Shop | Designer Fashion & Personal Shopping", description: "Fieldio is an independent designer fashion marketplace and personal shopping service for clothing, footwear, and accessories, with worldwide sourcing and delivery support.", canonical: "https://fieldio.shop/" });
 
   return (
@@ -99,10 +104,13 @@ export function HomePage() {
         </section>
       </Reveal>
 
-      {homeCatalog.length > 4 && <section className="product-grid secondary-grid" aria-label="More from the edit">
-        {homeCatalog.slice(4).map((product) => <ProductCard key={product.id} product={product} />)}
-      </section>}
-      {catalog.length > homeCatalog.length && <Link className="home-catalog-more arrow-link" to="/collections">View the complete edit <ArrowIcon /></Link>}
+      {([ ["New in", newIn, "/collections/new-arrivals"], ["Sale", sale, "/collections/sale"] ] as const).map(([label, query, href]) => <section className="home-discovery" key={label} aria-label={label}>
+        <div className="home-discovery-heading"><h2>{label}</h2><Link className="arrow-link" to={href}>View all <ArrowIcon /></Link></div>
+        {query.error ? <div className="catalog-notice" role="alert">{label} could not load. <button className="text-link" onClick={() => void query.refetch()}>Try again</button></div>
+          : query.isPending ? <div className="product-grid" aria-label={`Loading ${label.toLowerCase()}`}>{Array.from({ length: 4 }).map((_, index) => <div className="product-skeleton" key={index} />)}</div>
+          : query.data?.products.length ? <div className="product-grid">{query.data.products.map((product) => <ProductCard key={product.id} product={product} />)}</div>
+          : <p className="home-discovery-empty">No {label.toLowerCase()} pieces are live right now.</p>}
+      </section>)}
 
       <Reveal>
         <section className="personal-shopping-home">

@@ -19,10 +19,11 @@ export const adminResources: AdminResource[] = [
   { table: "products", title: "Products", roles: catalogRoles, columns: ["name", "sku", "status", "price", "currency"], fields: [
     ...namedFields, field("sku", "SKU", "text", true), reference("brand_id", "Brand"), reference("category_id", "Category"),
     field("short_description", "Short description", "textarea", true), field("description", "Description", "textarea", true),
-    field("price", "Price (blank for request)", "money"), { key: "currency", label: "Currency", options: ["GBP", "EUR", "USD"], required: true },
-    { key: "status", label: "Status", options: ["draft", "active", "archived"], required: true }, field("published_at", "Publish date", "datetime-local"),
-    field("materials", "Materials", "textarea"), field("care_information", "Care information", "textarea"), field("tags", "Tags, comma separated", "tags"),
-    ...["featured", "is_new_arrival", "is_sale", "inquiry_only"].map((key) => field(key, key.replaceAll("_", " "), "boolean")), field("seo_title", "SEO title"), field("seo_description", "SEO description", "textarea")
+    field("price", "Selling price (blank for request)", "money"), field("compare_at_price", "Original price (optional slash price)", "money"), { key: "currency", label: "Currency", options: ["GBP", "EUR", "USD"], required: true },
+    field("sale_starts_at", "Offer starts (optional)", "datetime-local"), field("sale_ends_at", "Offer ends (optional)", "datetime-local"),
+    { key: "status", label: "Status", options: ["draft", "active", "archived"], required: true },
+    field("materials", "Materials", "textarea"), field("care_information", "Care information", "textarea"), field("tags", "Tags (include men, women or unisex)", "tags"),
+    ...["featured", "inquiry_only"].map((key) => field(key, key.replaceAll("_", " "), "boolean")), field("seo_title", "SEO title"), field("seo_description", "SEO description", "textarea")
   ] },
   { table: "product_variants", title: "Sizes & variants", roles: catalogRoles, columns: ["sku", "name", "size", "color", "product_id"], fields: [reference("product_id", "Product", true), field("sku", "Variant SKU", "text", true), field("name", "Variant name", "text", true), field("size", "Size"), field("color", "Colour"), field("price_override", "Override price", "money"), field("is_active", "Active", "boolean")] },
   { table: "inventory", title: "Inventory", roles: [...catalogRoles, "fulfilment"], key: "variant_id", columns: ["variant_id", "quantity", "reserved_quantity", "allow_backorder"], fields: [reference("variant_id", "Variant", true), field("quantity", "Quantity", "number", true), field("reserved_quantity", "Reserved quantity", "number", true), field("allow_backorder", "Allow backorders", "boolean")] },

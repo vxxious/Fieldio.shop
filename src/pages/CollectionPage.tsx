@@ -5,6 +5,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { EditorialText } from "../components/EditorialText";
 import { ArrowIcon } from "../components/Icons";
 import { ProductCard } from "../components/ProductCard";
+import { DiscoveryListing } from "../components/DiscoveryListing";
 import { collectionEditorials } from "../data/collection-editorials";
 import { emptyCatalog, useCatalogProducts } from "../hooks/useCatalog";
 import { usePageMeta } from "../hooks/usePageMeta";
@@ -71,7 +72,7 @@ function CatalogDirectory({ directory, backTo }: { directory: (typeof catalogDir
   </main>;
 }
 
-export function CollectionPage() {
+function LegacyCollectionPage() {
   const { t } = useLocale();
   const { slug } = useParams();
   const [params, setParams] = useSearchParams();
@@ -131,4 +132,28 @@ export function CollectionPage() {
     <div className="collection-filters collection-filters-desktop"><label>{t("collection.brand")}<select value={brand} onChange={(e) => update("brand", e.target.value)}><option value="">{t("collection.allBrands")}</option>{brands.map((value) => <option key={value}>{value}</option>)}</select></label><label>{t("collection.size")}<select value={size} onChange={(e) => update("size", e.target.value)}><option value="">{t("collection.allSizes")}</option>{sizes.map((value) => <option key={value}>{value}</option>)}</select></label><label>{t("collection.sort")}<select value={sort} onChange={(e) => update("sort", e.target.value)}><option value="featured">{t("collection.featured")}</option><option value="name">{t("collection.name")}</option><option value="price-low">{t("collection.low")}</option><option value="price-high">{t("collection.high")}</option></select></label>{(brand || size) && <button className="text-link" onClick={() => setParams({ sort })}>{t("collection.clear")}</button>}<p aria-live="polite">{visibleProducts.length} {visibleProducts.length === 1 ? t("collection.piece") : t("collection.pieces")}</p></div>
     {error ? <div className="empty-state" role="alert"><h2>The edit could not load.</h2><button className="primary-button" onClick={() => void refetch()}>Try again</button></div> : isLoading ? <div className="product-grid">{Array.from({ length: 4 }).map((_, index) => <div className="product-skeleton" key={index} />)}</div> : visibleProducts.length ? <section className="product-grid"><h2 className="sr-only">Products</h2>{visibleProducts.map((product) => <ProductCard key={product.id} product={product} />)}</section> : <div className="empty-state"><h2>No pieces in this edit yet.</h2><p>Adjust your filters or ask a Fieldio personal shopper to source something specific.</p><div className="empty-actions">{(brand || size) && <button className="text-link" onClick={() => setParams({ sort })}>Clear filters</button>}<Link className="primary-button" to="/personal-shopping">Ask a personal shopper</Link></div></div>}
   </div>;
+}
+
+function DiscoveryCollectionPage({ slug, subcategory }: { slug: string; subcategory: string }) {
+  const gender = slug === "men" || slug === "women" ? slug : undefined;
+  const kind = slug === "sale" || subcategory === "sale" ? "sale" : "new";
+  const label = kind === "sale" ? "Sale" : "New in";
+  const title = gender ? `${gender === "men" ? "Men" : "Women"} / ${label}` : label;
+  const editorial = collectionEditorials[slug] ?? collectionEditorials.all!;
+  usePageMeta({ title: `${title} | Fieldio`, description: `Explore ${title.toLowerCase()} through the Fieldio fashion edit.`, canonical: `https://fieldio.shop/collections/${slug}` });
+  return <div className="collection-page">
+    <header className={`collection-editorial collection-editorial--${editorial.layout}`}>
+      <div className="collection-editorial-copy"><h1><EditorialText text={title} /></h1><p>{kind === "sale" ? "Current offers from the Fieldio edit." : "Recently published pieces from Fieldio and approved sellers."}</p>{gender && <Link className="text-link" to={`/collections/${gender}`}>Browse {gender} categories</Link>}</div>
+      <div className="collection-editorial-media"><img {...responsiveImage(editorial.image)} sizes="(max-width: 760px) 100vw, 62vw" alt={editorial.imageAlt} /></div>
+    </header>
+    <DiscoveryListing kind={kind} {...(gender ? { gender } : {})} />
+  </div>;
+}
+
+export function CollectionPage() {
+  const { slug = "" } = useParams();
+  const [params] = useSearchParams();
+  const subcategory = params.get("category") || "";
+  if (slug === "new-arrivals" || slug === "sale" || ((slug === "men" || slug === "women") && (subcategory === "new-in" || subcategory === "sale"))) return <DiscoveryCollectionPage slug={slug} subcategory={subcategory} />;
+  return <LegacyCollectionPage />;
 }

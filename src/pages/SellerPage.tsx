@@ -21,8 +21,9 @@ interface Store { id: string; name: string; slug: string; description: string; l
 interface ListingImage { id: string; storage_path: string; alt_text: string; position: number; preview_url: string; }
 interface ListingVariant { id?: string; color: string; size: string; quantity: number; published_variant_id?: string | null; reserved_quantity?: number | null; low_stock_threshold?: number | null; }
 interface InventorySnapshot { variant_id: string; quantity: number; reserved_quantity: number; low_stock_threshold: number; }
-interface Listing { id: string; title: string; description: string; audience: ListingValues["audience"]; category_id: string; subcategory_id: string; condition: ListingValues["condition"]; condition_notes: string; materials: string; item_reference: string | null; price: number; compare_at_price: number | null; currency: string; colors: string[]; sizes: string[]; quantity: number; weight_kg: number; authenticity_confirmed: boolean; status: ListingStatus; is_paused: boolean; review_reason: string | null; published_product_id: string | null; published_product_slug?: string; created_at: string; images: ListingImage[]; variants: ListingVariant[]; }
+interface Listing { id: string; title: string; description: string; audience: ListingValues["audience"]; brand_id: string | null; category_id: string; subcategory_id: string; condition: ListingValues["condition"]; condition_notes: string; materials: string; item_reference: string | null; price: number; compare_at_price: number | null; sale_starts_at?: string | null; sale_ends_at?: string | null; currency: string; colors: string[]; sizes: string[]; quantity: number; weight_kg: number; authenticity_confirmed: boolean; status: ListingStatus; is_paused: boolean; review_reason: string | null; published_product_id: string | null; published_product_slug?: string; created_at: string; images: ListingImage[]; variants: ListingVariant[]; }
 interface Category { id: string; parent_id: string | null; name: string; }
+interface Brand { id: string; name: string; }
 interface VendorReview { id: string; rating: number; review_text: string; reviewer_name: string; purchased_variant: string | null; purchased_size: string | null; purchased_color: string | null; created_at: string; product: { name: string } | null; images: Array<{ id: string; storage_path: string; position: number; url: string }>; }
 interface VendorReviewSummary { averageRating: number; total: number; breakdown: Record<string, number>; }
 type FulfillmentStatus = "pending" | "confirmed" | "accepted" | "rejected" | "processing" | "shipped" | "delivered" | "cancelled";
@@ -106,7 +107,7 @@ const listingVariantSchema = z.object({
 
 export const listingSchema = z.object({
   title: z.string().trim().min(2, "Enter a product name.").max(160), description: z.string().trim().min(20, "Add at least 20 characters.").max(5000),
-  audience: z.enum(["women", "men", "unisex"], { message: "Choose who this product is for." }),
+  audience: z.enum(["women", "men", "unisex"], { message: "Choose who this product is for." }), brand_id: z.union([z.literal(""), z.string().uuid()]),
   category_id: z.string().uuid("Choose a category."), subcategory_id: z.string().uuid("Choose a subcategory."), condition: z.enum(["new_with_tags", "new_without_tags", "excellent", "very_good", "good", "fair"]),
   condition_notes: z.string().trim().min(10, "Describe the product's condition in at least 10 characters.").max(1000), materials: z.string().trim().min(2, "Add the material or composition.").max(500), item_reference: z.string().trim().max(120),
   price: z.number().positive("Enter a price."), compare_at_price: z.union([z.literal(""), z.number().positive()]), currency: z.string().trim().length(3).transform((value) => value.toUpperCase()),
@@ -128,12 +129,12 @@ type ListingValues = z.infer<typeof listingSchema>;
 export const subcategoriesFor = (categories: Category[], categoryId: string | undefined) => categories.filter((item) => item.parent_id === categoryId);
 export const requiresDefectEvidence = (condition: ListingValues["condition"]) => condition === "good" || condition === "fair";
 export const listingValuesFor = (listing: Listing | null, currency: string): Partial<ListingValues> => listing ? {
-  title: listing.title, description: listing.description, audience: listing.audience, category_id: listing.category_id, subcategory_id: listing.subcategory_id,
+  title: listing.title, description: listing.description, audience: listing.audience, brand_id: listing.brand_id ?? "", category_id: listing.category_id, subcategory_id: listing.subcategory_id,
   condition: listing.condition, condition_notes: listing.condition_notes, materials: listing.materials, item_reference: listing.item_reference ?? "",
   price: listing.price / 100, compare_at_price: listing.compare_at_price === null ? "" : listing.compare_at_price / 100, currency: listing.currency,
   variants: listing.variants.length ? listing.variants.map(({ id, color, size, quantity }) => ({ id, color, size, quantity })) : [{ color: listing.colors.join(" / ") || "Default", size: listing.sizes[0] || "One size", quantity: listing.quantity }],
   weight_kg: listing.weight_kg, authenticity_confirmed: listing.authenticity_confirmed
-} : { audience: "women", condition: "excellent", currency, variants: [{ color: "", size: "", quantity: 1 }], compare_at_price: "", condition_notes: "", materials: "", item_reference: "", authenticity_confirmed: false };
+} : { audience: "women", brand_id: "", condition: "excellent", currency, variants: [{ color: "", size: "", quantity: 1 }], compare_at_price: "", condition_notes: "", materials: "", item_reference: "", authenticity_confirmed: false };
 
 async function uploadFile(bucket: string, path: string, file: File) {
   const { error } = await supabase!.storage.from(bucket).upload(path, file, { contentType: file.type, upsert: false });
@@ -257,7 +258,7 @@ export function ContactDetailsForm({ application, store, onCancel, onDone }: { a
   </form></section>;
 }
 
-function ListingForm({ userId, store, categories, currency, listing, onCancel, onSubmitted }: { userId: string; store: Store; categories: Category[]; currency: string; listing: Listing | null; onCancel: () => void; onSubmitted: (title: string) => Promise<void> }) {
+function ListingForm({ userId, store, categories, brands, currency, listing, onCancel, onSubmitted }: { userId: string; store: Store; categories: Category[]; brands: Brand[]; currency: string; listing: Listing | null; onCancel: () => void; onSubmitted: (title: string) => Promise<void> }) {
   const [images, setImages] = useState<File[]>([]);
   const [existingImages, setExistingImages] = useState(listing?.images ?? []);
   const [reviewing, setReviewing] = useState(false);
@@ -299,7 +300,7 @@ function ListingForm({ userId, store, categories, currency, listing, onCancel, o
       const colors = [...new Set(values.variants.map((variant) => variant.color.trim()))];
       const sizes = [...new Set(values.variants.map((variant) => variant.size.trim()))];
       const quantity = values.variants.reduce((total, variant) => total + variant.quantity, 0);
-      const details = { title: values.title, description: values.description, audience: values.audience, category_id: values.category_id, subcategory_id: values.subcategory_id, condition: values.condition, condition_notes: values.condition_notes, materials: values.materials, item_reference: values.item_reference || null, price: Math.round(values.price * 100), compare_at_price: values.compare_at_price === "" ? null : Math.round(values.compare_at_price * 100), currency: values.currency, colors, sizes, quantity, weight_kg: values.weight_kg, authenticity_confirmed: values.authenticity_confirmed };
+      const details = { title: values.title, description: values.description, audience: values.audience, brand_id: values.brand_id || null, category_id: values.category_id, subcategory_id: values.subcategory_id, condition: values.condition, condition_notes: values.condition_notes, materials: values.materials, item_reference: values.item_reference || null, price: Math.round(values.price * 100), compare_at_price: values.compare_at_price === "" ? null : Math.round(values.compare_at_price * 100), currency: values.currency, colors, sizes, quantity, weight_kg: values.weight_kg, authenticity_confirmed: values.authenticity_confirmed };
       const listingResult = listing
         ? await supabase!.from("seller_listings").update(details).eq("id", listingId)
         : await supabase!.from("seller_listings").insert({ id: listingId, owner_id: userId, store_id: store.id, ...details });
@@ -343,6 +344,7 @@ function ListingForm({ userId, store, categories, currency, listing, onCancel, o
     <fieldset className="seller-media"><legend>Product images</legend><div className="seller-media-actions"><label><ImageIcon /><span>Choose from gallery</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onChange={(event) => addImages(event.target.files)} /></label><label><ImageIcon /><span>Take a photo</span><input type="file" accept="image/jpeg,image/png,image/webp,image/avif" capture="environment" onChange={(event) => addImages(event.target.files)} /></label></div>{previews.length > 0 && <div className="seller-media-preview">{previews.map((url, index) => <figure key={`${url}-${index}`}><img src={url} alt={`Product preview ${index + 1}`} /><button type="button" onClick={() => index < existingImages.length ? setExistingImages((current) => current.filter((_, imageIndex) => imageIndex !== index)) : setImages((current) => current.filter((_, imageIndex) => imageIndex !== index - existingImages.length))}>Remove</button></figure>)}</div>}<small>1–8 JPG, PNG, WebP, or AVIF images. Maximum 10 MB each.</small></fieldset>
     <label><span>Product name</span><input {...register("title")} aria-invalid={!!errors.title} aria-describedby={errors.title ? "listing-title-error" : undefined} /><FieldError id="listing-title-error" message={errors.title?.message} /></label>
     <label><span>Description</span><textarea rows={6} {...register("description")} aria-invalid={!!errors.description} aria-describedby={errors.description ? "listing-description-error" : undefined} /><FieldError id="listing-description-error" message={errors.description?.message} /></label>
+    <label><span>Brand</span><select {...register("brand_id")}><option value="">My store ({store.name})</option>{brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}</select><small>Choose the product's actual brand. Fieldio verifies this before approval.</small></label>
     <div className="seller-form-row"><label><span>Who is it for?</span><select {...register("audience")} aria-invalid={!!errors.audience} aria-describedby={errors.audience ? "listing-audience-error" : undefined}><option value="women">Women</option><option value="men">Men</option><option value="unisex">Unisex</option></select><FieldError id="listing-audience-error" message={errors.audience?.message} /></label><label><span>Category</span><select {...register("category_id")} aria-invalid={!!errors.category_id} aria-describedby={errors.category_id ? "listing-category-error" : undefined}><option value="">Select category</option>{roots.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><FieldError id="listing-category-error" message={errors.category_id?.message} /></label></div>
     <label><span>Subcategory</span><select {...register("subcategory_id")} disabled={!selectedCategory || !subcategories.length} aria-invalid={!!errors.subcategory_id} aria-describedby={errors.subcategory_id ? "listing-subcategory-error" : undefined}><option value="">{selectedCategory ? "Select subcategory" : "Choose a category first"}</option>{subcategories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><FieldError id="listing-subcategory-error" message={errors.subcategory_id?.message} /></label>
     <div className="seller-form-row"><label><span>Condition</span><select {...register("condition")}><option value="new_with_tags">New with tags</option><option value="new_without_tags">New without tags</option><option value="excellent">Excellent · minimal wear</option><option value="very_good">Very good · light visible wear</option><option value="good">Good · visible disclosed wear</option><option value="fair">Fair · significant disclosed wear</option></select><small>{requiresDefectEvidence(selectedCondition) ? "Add a clear close-up image of every visible flaw." : "Choose the lowest grade that accurately describes the item."}</small></label><label><span>Currency</span><input maxLength={3} readOnly {...register("currency")} /><small>Set from your selected region.</small></label></div>
@@ -385,7 +387,7 @@ function StoreLogoEditor({ userId, store, onDone }: { userId: string; store: Sto
   return <div className="seller-logo-editor"><div className="seller-logo-preview">{logoUrl ? <img src={`${logoUrl}?v=${encodeURIComponent(store.updated_at)}`} alt={`${store.name} logo`} /> : <StoreIcon />}</div><div><strong>Brand logo</strong><p>Shown on your public Fieldio storefront.</p><div><label className="secondary-button">{working ? "Updating…" : logoUrl ? "Replace logo" : "Upload logo"}<input type="file" accept="image/jpeg,image/png,image/webp,image/avif" disabled={working} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; void uploadLogo(file); }} /></label>{logoUrl && <button className="text-link" type="button" disabled={working} onClick={() => void removeLogo()}>Remove</button>}</div><small>Square images work best. Maximum 5 MB.</small>{status && <p className="form-message" role="status">{status}</p>}</div></div>;
 }
 
-function SellerDashboard({ userId, store, listings, fulfillments, heldPayouts, openCases, pausingId, pauseError, onAdd, onEdit, onManage, onTogglePause, onEditContacts, onStoreUpdated }: { userId: string; store: Store; listings: Listing[]; fulfillments: VendorFulfillment[]; heldPayouts: number; openCases: number; pausingId: string | null; pauseError: string; onAdd: () => void; onEdit: (listing: Listing) => void; onManage: (listing: Listing) => void; onTogglePause: (listing: Listing) => void; onEditContacts: () => void; onStoreUpdated: () => Promise<void> }) {
+function SellerDashboard({ userId, store, listings, fulfillments, heldPayouts, openCases, pausingId, pauseError, onAdd, onEdit, onManage, onDiscount, onTogglePause, onEditContacts, onStoreUpdated }: { userId: string; store: Store; listings: Listing[]; fulfillments: VendorFulfillment[]; heldPayouts: number; openCases: number; pausingId: string | null; pauseError: string; onAdd: () => void; onEdit: (listing: Listing) => void; onManage: (listing: Listing) => void; onDiscount: (listing: Listing) => void; onTogglePause: (listing: Listing) => void; onEditContacts: () => void; onStoreUpdated: () => Promise<void> }) {
   const attention = sellerAttentionCounts(listings, fulfillments, heldPayouts, openCases);
   const items = [
     { count: attention.response, label: attention.response === 1 ? "order needs your response" : "orders need your response", href: "#seller-fulfillments" },
@@ -401,8 +403,44 @@ function SellerDashboard({ userId, store, listings, fulfillments, heldPayouts, o
     <section className="seller-attention" aria-labelledby="seller-attention-title"><h2 id="seller-attention-title">Needs attention</h2>{items.length ? <ul>{items.map(({ count, label, href }) => <li key={label}><a href={href}><strong>{count}</strong><span>{label}</span><ArrowIcon aria-hidden="true" /></a></li>)}</ul> : <p>Nothing needs your attention right now.</p>}</section>
     <StoreLogoEditor userId={userId} store={store} onDone={onStoreUpdated} />
     <div className="seller-summary"><div><strong>{listings.length}</strong><span>Total listings</span></div><div><strong>{listings.filter((item) => item.status === "pending").length}</strong><span>In review</span></div><div><strong>{listings.filter((item) => item.status === "approved" && !item.is_paused).length}</strong><span>Live</span></div></div>
-    <section id="seller-listings" className="seller-listings"><h2>Your products</h2>{pauseError && <p className="form-message" role="alert">{pauseError}</p>}{listings.length ? listings.map((listing) => <article key={listing.id}><div><h3>{listing.title}</h3><p>{listing.currency} {(listing.price / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} · <span className={`seller-status seller-status--${listing.status}`}>{listing.is_paused ? "Paused" : listing.status === "approved" ? "Live" : listing.status}</span></p>{listing.review_reason && <small>{listing.review_reason}</small>}</div><div className="seller-listing-actions">{listing.status === "rejected" && <button className="text-link" type="button" onClick={() => onEdit(listing)}>Edit and resubmit</button>}{listing.status === "approved" && <><button className="text-link" type="button" onClick={() => onManage(listing)}>Manage inventory</button><button className="text-link" type="button" disabled={pausingId === listing.id} onClick={() => onTogglePause(listing)}>{pausingId === listing.id ? "Updating…" : listing.is_paused ? "Resume selling" : "Pause selling"}</button></>}{listing.published_product_slug && !listing.is_paused && <Link className="text-link" to={`/products/${listing.published_product_slug}`}>View in shop <ArrowIcon /></Link>}</div></article>) : <div className="seller-empty"><StoreIcon /><h3>Your store is ready.</h3><p>Add your first product. Fieldio will review it before publication.</p><button className="text-link" onClick={onAdd}>Add a product</button></div>}</section>
+    <section id="seller-listings" className="seller-listings"><h2>Your products</h2>{pauseError && <p className="form-message" role="alert">{pauseError}</p>}{listings.length ? listings.map((listing) => <article key={listing.id}><div><h3>{listing.title}</h3><p>{listing.currency} {(listing.price / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })} · <span className={`seller-status seller-status--${listing.status}`}>{listing.is_paused ? "Paused" : listing.status === "approved" ? "Live" : listing.status}</span></p>{listing.review_reason && <small>{listing.review_reason}</small>}</div><div className="seller-listing-actions">{listing.status === "rejected" && <button className="text-link" type="button" onClick={() => onEdit(listing)}>Edit and resubmit</button>}{listing.status === "approved" && <><button className="text-link" type="button" onClick={() => onManage(listing)}>Manage inventory</button><button className="text-link" type="button" onClick={() => onDiscount(listing)}>Manage price & offer</button><button className="text-link" type="button" disabled={pausingId === listing.id} onClick={() => onTogglePause(listing)}>{pausingId === listing.id ? "Updating…" : listing.is_paused ? "Resume selling" : "Pause selling"}</button></>}{listing.published_product_slug && !listing.is_paused && <Link className="text-link" to={`/products/${listing.published_product_slug}`}>View in shop <ArrowIcon /></Link>}</div></article>) : <div className="seller-empty"><StoreIcon /><h3>Your store is ready.</h3><p>Add your first product. Fieldio will review it before publication.</p><button className="text-link" onClick={onAdd}>Add a product</button></div>}</section>
   </section>;
+}
+
+function localDateTime(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
+function VendorPriceEditor({ listing, onCancel, onDone }: { listing: Listing; onCancel: () => void; onDone: () => Promise<void> }) {
+  const [price, setPrice] = useState(String(listing.price / 100));
+  const [original, setOriginal] = useState(listing.compare_at_price === null ? "" : String(listing.compare_at_price / 100));
+  const [starts, setStarts] = useState(localDateTime(listing.sale_starts_at));
+  const [ends, setEnds] = useState(localDateTime(listing.sale_ends_at));
+  const [status, setStatus] = useState("");
+  const [working, setWorking] = useState(false);
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    const salePrice = Math.round(Number(price) * 100);
+    const originalPrice = original ? Math.round(Number(original) * 100) : null;
+    if (!Number.isSafeInteger(salePrice) || salePrice <= 0 || (originalPrice !== null && (!Number.isSafeInteger(originalPrice) || originalPrice <= salePrice)) || (!originalPrice && (starts || ends)) || (starts && ends && starts >= ends)) {
+      setStatus("Enter a valid price. An offer needs a higher original price and an end after its start."); return;
+    }
+    setWorking(true); setStatus("");
+    try {
+      const result = await supabase!.rpc("set_vendor_discount", { p_listing_id: listing.id, p_price: salePrice, p_compare_at_price: originalPrice, p_starts_at: starts ? new Date(starts).toISOString() : null, p_ends_at: ends ? new Date(ends).toISOString() : null });
+      if (result.error) throw result.error;
+      await onDone(); onCancel();
+    } catch (error) { setStatus(error instanceof Error ? error.message : "The price could not be updated."); }
+    finally { setWorking(false); }
+  }
+  return <section className="seller-panel"><header><button type="button" className="text-link" onClick={onCancel}>← Seller dashboard</button><h1>Price & offer</h1><p>{listing.title}. Offers apply to all variants and expire automatically.</p></header><form className="seller-form" onSubmit={(event) => void save(event)}>
+    <div className="seller-form-row seller-price-row"><label><span>Selling price ({listing.currency})</span><input type="number" min="0.01" step="0.01" required value={price} onChange={(event) => setPrice(event.target.value)} /></label><label><span>Original price ({listing.currency})</span><input type="number" min="0.01" step="0.01" value={original} onChange={(event) => setOriginal(event.target.value)} /><small>Leave blank for no offer.</small></label></div>
+    <div className="seller-form-row"><label><span>Offer starts (optional)</span><input type="datetime-local" value={starts} onChange={(event) => setStarts(event.target.value)} /></label><label><span>Offer ends (optional)</span><input type="datetime-local" value={ends} onChange={(event) => setEnds(event.target.value)} /></label></div>
+    {original && <button type="button" className="text-link" onClick={() => { setPrice(original); setOriginal(""); setStarts(""); setEnds(""); }}>Remove offer and restore original price</button>}
+    {status && <p className="form-message" role="alert">{status}</p>}<button className="primary-button" disabled={working}>{working ? "Saving…" : "Save price"}</button>
+  </form></section>;
 }
 
 export function LiveInventoryEditor({ listing, onCancel, onDone }: { listing: Listing; onCancel: () => void; onDone: () => Promise<void> }) {
@@ -555,20 +593,21 @@ export function SellerPage() {
   const { session, loading } = useSession();
   const { region } = useLocale();
   const cache = useQueryClient();
-  const [mode, setMode] = useState<"dashboard" | "listing" | "inventory" | "contacts">("dashboard");
+  const [mode, setMode] = useState<"dashboard" | "listing" | "inventory" | "discount" | "contacts">("dashboard");
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
   const [submittedTitle, setSubmittedTitle] = useState("");
   const [pausingId, setPausingId] = useState<string | null>(null);
   const [pauseError, setPauseError] = useState("");
   usePageMeta({ title: "Sell with Fieldio", description: "Apply to sell verified fashion through your Fieldio store.", canonical: "https://fieldio.shop/sell" });
   const query = useQuery({ queryKey: ["seller-account", session?.user.id], enabled: Boolean(session && supabase), queryFn: async () => {
-    const [application, store, listings, categories] = await Promise.all([
+    const [application, store, listings, categories, brands] = await Promise.all([
       supabase!.from("seller_applications").select("*").eq("owner_id", session!.user.id).maybeSingle(),
       supabase!.from("seller_stores").select("*").eq("owner_id", session!.user.id).maybeSingle(),
-      supabase!.from("seller_listings").select("id,title,description,audience,category_id,subcategory_id,condition,condition_notes,materials,item_reference,price,compare_at_price,currency,colors,sizes,quantity,weight_kg,authenticity_confirmed,status,is_paused,review_reason,published_product_id,created_at,images:seller_listing_images(id,storage_path,alt_text,position),variants:seller_listing_variants(id,color,size,quantity,published_variant_id)").eq("owner_id", session!.user.id).order("created_at", { ascending: false }),
-      supabase!.from("categories").select("id,parent_id,name").eq("is_active", true).order("name")
+      supabase!.from("seller_listings").select("id,title,description,audience,brand_id,category_id,subcategory_id,condition,condition_notes,materials,item_reference,price,compare_at_price,currency,colors,sizes,quantity,weight_kg,authenticity_confirmed,status,is_paused,review_reason,published_product_id,created_at,images:seller_listing_images(id,storage_path,alt_text,position),variants:seller_listing_variants(id,color,size,quantity,published_variant_id)").eq("owner_id", session!.user.id).order("created_at", { ascending: false }),
+      supabase!.from("categories").select("id,parent_id,name").eq("is_active", true).order("name"),
+      supabase!.from("brands").select("id,name").eq("is_active", true).order("name")
     ]);
-    const error = application.error || store.error || listings.error || categories.error;
+    const error = application.error || store.error || listings.error || categories.error || brands.error;
     if (error) throw error;
     const fulfillments = application.data?.status === "approved" ? await supabase!.rpc("seller_order_fulfillments") : { data: [], error: null };
     if (fulfillments.error) throw fulfillments.error;
@@ -577,8 +616,9 @@ export function SellerPage() {
     const inventory = variantIds.length ? await supabase!.from("inventory").select("variant_id,quantity,reserved_quantity,low_stock_threshold").in("variant_id", variantIds) : { data: [], error: null };
     if (inventory.error) throw inventory.error;
     const productIds = listingRows.flatMap((listing) => listing.published_product_id ? [listing.published_product_id] : []);
-    const publishedProducts = productIds.length ? await supabase!.from("products").select("id,slug").in("id", productIds).eq("status", "active") : { data: [], error: null };
+    const publishedProducts = productIds.length ? await supabase!.from("products").select("id,slug,sale_starts_at,sale_ends_at").in("id", productIds).eq("status", "active") : { data: [], error: null };
     if (publishedProducts.error) throw publishedProducts.error;
+    const productById = new Map((publishedProducts.data ?? []).map((product) => [product.id, product]));
     const slugByProductId = new Map((publishedProducts.data ?? []).map((product) => [product.id, product.slug]));
     const reviews = productIds.length ? await supabase!.from("product_reviews").select("id,rating,review_text,reviewer_name,purchased_variant,purchased_size,purchased_color,created_at,product:products(name),images:product_review_images(id,storage_path,position)").in("product_id", productIds).eq("status", "published").order("created_at", { ascending: false }).limit(8) : { data: [], error: null };
     const reviewSummary = await supabase!.rpc("seller_review_summary");
@@ -600,10 +640,10 @@ export function SellerPage() {
     const reviewRows = (reviews.data ?? []) as unknown as VendorReview[];
     const signedReviewImages = await signReviewImages(supabase!, reviewRows.flatMap((review) => review.images));
     const reviewImagesById = new Map(signedReviewImages.map((image) => [image.id, image]));
-    const ownListings = listingRows.map((listing) => ({ ...listing, published_product_slug: listing.published_product_id ? slugByProductId.get(listing.published_product_id) : undefined, images: listing.images.map((image) => ({ ...image, preview_url: previewByPath.get(image.storage_path) ?? "" })) })) as Listing[];
-    return { application: application.data as SellerApplication | null, store: store.data as Store | null, listings: withInventorySnapshots(ownListings, (inventory.data ?? []) as InventorySnapshot[]), categories: categories.data as Category[], fulfillments: (fulfillments.data ?? []) as VendorFulfillment[], reviews: reviewRows.map((review) => ({ ...review, images: review.images.map((image) => reviewImagesById.get(image.id) ?? { ...image, url: "" }) })), reviewSummary: reviewSummary.data as unknown as VendorReviewSummary, payouts: (payouts.data ?? []) as SellerPayout[], adjustments: (adjustments.data ?? []) as SellerPayoutAdjustment[], notifications: (notifications.data ?? []) as VendorNotification[], returns: (returns.data ?? []) as SellerCase[], disputes: (disputes.data ?? []) as SellerCase[], heldPayouts: heldPayouts.count ?? 0, openCases: (openReturns.count ?? 0) + (openDisputes.count ?? 0) };
+    const ownListings = listingRows.map((listing) => ({ ...listing, published_product_slug: listing.published_product_id ? slugByProductId.get(listing.published_product_id) : undefined, sale_starts_at: listing.published_product_id ? productById.get(listing.published_product_id)?.sale_starts_at : null, sale_ends_at: listing.published_product_id ? productById.get(listing.published_product_id)?.sale_ends_at : null, images: listing.images.map((image) => ({ ...image, preview_url: previewByPath.get(image.storage_path) ?? "" })) })) as Listing[];
+    return { application: application.data as SellerApplication | null, store: store.data as Store | null, listings: withInventorySnapshots(ownListings, (inventory.data ?? []) as InventorySnapshot[]), categories: categories.data as Category[], brands: brands.data as Brand[], fulfillments: (fulfillments.data ?? []) as VendorFulfillment[], reviews: reviewRows.map((review) => ({ ...review, images: review.images.map((image) => reviewImagesById.get(image.id) ?? { ...image, url: "" }) })), reviewSummary: reviewSummary.data as unknown as VendorReviewSummary, payouts: (payouts.data ?? []) as SellerPayout[], adjustments: (adjustments.data ?? []) as SellerPayoutAdjustment[], notifications: (notifications.data ?? []) as VendorNotification[], returns: (returns.data ?? []) as SellerCase[], disputes: (disputes.data ?? []) as SellerCase[], heldPayouts: heldPayouts.count ?? 0, openCases: (openReturns.count ?? 0) + (openDisputes.count ?? 0) };
   } });
-  const refresh = async () => { await cache.invalidateQueries({ queryKey: ["seller-account", session?.user.id] }); };
+  const refresh = async () => { await Promise.all([cache.invalidateQueries({ queryKey: ["seller-account", session?.user.id] }), cache.invalidateQueries({ queryKey: ["catalog"] })]); };
   const togglePause = async (listing: Listing) => {
     setPausingId(listing.id); setPauseError("");
     try {
@@ -619,7 +659,7 @@ export function SellerPage() {
   if (!supabase) return <div className="seller-gate"><h1>Seller services unavailable</h1><p>Please try again later or contact Fieldio.</p><Link className="primary-button" to="/contact">Contact Fieldio</Link></div>;
   if (query.isPending) return <div className="route-loading" role="status">Loading seller account…</div>;
   if (query.error || !query.data) return <div className="seller-gate"><h1>Your seller account could not load.</h1><p>Check your connection and try again.</p><button className="primary-button" onClick={() => void query.refetch()}>Try again</button></div>;
-  const { application, store, listings, categories, fulfillments, reviews, reviewSummary, payouts, adjustments, notifications, returns, disputes, heldPayouts, openCases } = query.data;
+  const { application, store, listings, categories, brands, fulfillments, reviews, reviewSummary, payouts, adjustments, notifications, returns, disputes, heldPayouts, openCases } = query.data;
   if (!application || application.status === "draft" || application.status === "rejected") return <VerificationForm userId={session.user.id} email={session.user.email ?? ""} application={application} defaultCountryCode={region.code} onDone={refresh} />;
   if (application.status === "pending") return <div className="seller-gate"><CheckSealIcon /><h1>Verification in review</h1><p>We are checking your identity and seller details. You will be able to create your store after approval.</p><Link className="text-link" to="/account">Return to account</Link></div>;
   if (application.status === "suspended") return <div className="seller-gate"><h1>Seller access paused</h1><p>{application.review_reason || "Contact Fieldio for help with your seller account."}</p><Link className="primary-button" to="/contact">Contact Fieldio</Link></div>;
@@ -627,7 +667,8 @@ export function SellerPage() {
   if (store.status === "suspended") return <div className="seller-gate"><h1>Store access paused</h1><p>Contact Fieldio to review your store status.</p><Link className="primary-button" to="/contact">Contact Fieldio</Link></div>;
   if (submittedTitle) return <SubmittedState title={submittedTitle} onAdd={() => { setSubmittedTitle(""); setMode("listing"); }} />;
   if (mode === "contacts") return <ContactDetailsForm application={application} store={store} onCancel={() => setMode("dashboard")} onDone={refresh} />;
-  if (mode === "listing") return <ListingForm userId={session.user.id} store={store} categories={categories} currency={region.currency} listing={editingListing} onCancel={() => { setEditingListing(null); setMode("dashboard"); }} onSubmitted={async (title) => { await refresh(); setEditingListing(null); setSubmittedTitle(title); }} />;
+  if (mode === "listing") return <ListingForm userId={session.user.id} store={store} categories={categories} brands={brands} currency={region.currency} listing={editingListing} onCancel={() => { setEditingListing(null); setMode("dashboard"); }} onSubmitted={async (title) => { await refresh(); setEditingListing(null); setSubmittedTitle(title); }} />;
   if (mode === "inventory" && editingListing) return <LiveInventoryEditor listing={editingListing} onCancel={() => { setEditingListing(null); setMode("dashboard"); }} onDone={refresh} />;
-  return <><SellerDashboard userId={session.user.id} store={store} listings={listings} fulfillments={fulfillments} heldPayouts={heldPayouts} openCases={openCases} pausingId={pausingId} pauseError={pauseError} onAdd={() => { setEditingListing(null); setMode("listing"); }} onEdit={(listing) => { setEditingListing(listing); setMode("listing"); }} onManage={(listing) => { setEditingListing(listing); setMode("inventory"); }} onTogglePause={(listing) => void togglePause(listing)} onEditContacts={() => setMode("contacts")} onStoreUpdated={refresh} /><SellerNotifications notifications={notifications} /><SellerFulfillments fulfillments={fulfillments} onUpdated={refresh} /><SellerOperations payouts={payouts} adjustments={adjustments} fulfillments={fulfillments} returns={returns} disputes={disputes} /><SellerReviews reviews={reviews} summary={reviewSummary} /></>;
+  if (mode === "discount" && editingListing) return <VendorPriceEditor listing={editingListing} onCancel={() => { setEditingListing(null); setMode("dashboard"); }} onDone={refresh} />;
+  return <><SellerDashboard userId={session.user.id} store={store} listings={listings} fulfillments={fulfillments} heldPayouts={heldPayouts} openCases={openCases} pausingId={pausingId} pauseError={pauseError} onAdd={() => { setEditingListing(null); setMode("listing"); }} onEdit={(listing) => { setEditingListing(listing); setMode("listing"); }} onManage={(listing) => { setEditingListing(listing); setMode("inventory"); }} onDiscount={(listing) => { setEditingListing(listing); setMode("discount"); }} onTogglePause={(listing) => void togglePause(listing)} onEditContacts={() => setMode("contacts")} onStoreUpdated={refresh} /><SellerNotifications notifications={notifications} /><SellerFulfillments fulfillments={fulfillments} onUpdated={refresh} /><SellerOperations payouts={payouts} adjustments={adjustments} fulfillments={fulfillments} returns={returns} disputes={disputes} /><SellerReviews reviews={reviews} summary={reviewSummary} /></>;
 }

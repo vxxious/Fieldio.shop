@@ -10,7 +10,7 @@ vi.mock("node:fs/promises", async () => ({
 
 import { GET as renderPage } from "../../api/render";
 import { GET as renderSitemap } from "../../api/sitemap";
-import { productBody } from "../../api/_lib/public-html";
+import { homeBody, productBody } from "../../api/_lib/public-html";
 import { publicPages } from "../../api/_lib/public-catalog";
 
 it("ships crawlable Fieldio content before the client bundle starts", () => {
@@ -32,6 +32,8 @@ it("serves a distinct Fieldio search identity and crawlable public sitemap", asy
   expect(home).toContain('<a href="/collections">Explore the edit</a>');
   expect(home).toContain("The Zara edit");
   expect(home).toContain('href="/brands/zara"');
+  expect(home).toContain('href="/collections/new-arrivals"');
+  expect(home).toContain('href="/collections/sale"');
   expect(home).toContain("Sell with Fieldio");
   expect(home).not.toContain("Loading Fieldio");
 
@@ -78,6 +80,7 @@ it("serves a distinct Fieldio search identity and crawlable public sitemap", asy
   expect(sitemapResponse.headers.get("content-type")).toContain("application/xml");
   expect(sitemap).toContain("https://fieldio.shop/collections/men");
   expect(sitemap).toContain("https://fieldio.shop/collections/shoes");
+  expect(sitemap).toContain("https://fieldio.shop/collections/sale");
   expect(sitemap).toContain("https://fieldio.shop/promise");
   expect(sitemap).toContain("https://fieldio.shop/how-it-works");
   expect(sitemap).not.toContain("/account");
@@ -90,6 +93,12 @@ it("escapes public product content before placing it in server HTML", () => {
   expect(html).not.toContain("<b>Untrusted</b>");
   expect(html).toContain("&lt;script&gt;");
   expect(html).toContain("£125.00");
+});
+
+it("renders active offer prices in raw homepage and product HTML", () => {
+  const product = { slug: "offer", sku: "OFFER", name: "Offer piece", short_description: "Current offer", description: "Current offer", price: 8000, originalPrice: 10000, savingPercent: 20, currency: "GBP" };
+  expect(homeBody([], [], [product])).toContain("20% off");
+  expect(productBody(product)).toContain("<s>");
 });
 
 it("gives every static public route its own crawlable metadata and server content", async () => {

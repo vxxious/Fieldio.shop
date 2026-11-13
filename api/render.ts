@@ -7,12 +7,12 @@ import { captureServerException } from "./_lib/monitoring.js";
 import { contentPages } from "../src/data/content-pages.js";
 
 type CatalogDb = NonNullable<ReturnType<typeof publicClient>>;
-type CatalogRow = { slug: string; name: string; short_description: string; description: string; price: number | null; currency: string; brand: { name: string } | { name: string }[] | null; images: Array<{ public_url: string | null; storage_path: string; alt_text: string; position: number }> };
-const productSelect = "slug,name,short_description,description,price,currency,brand:brands(name),images:product_images(public_url,storage_path,alt_text,position)";
+type CatalogRow = { slug: string; name: string; short_description: string; description: string; price: number | null; original_price: number | null; saving_percent: number | null; currency: string; brand: { name: string } | { name: string }[] | null; images: Array<{ public_url: string | null; storage_path: string; alt_text: string; position: number }> };
+const productSelect = "slug,name,short_description,description,price:effective_price,original_price,saving_percent,currency,brand:brands(name),images:product_images(public_url,storage_path,alt_text,position)";
 
 function publicProduct(row: CatalogRow, db: CatalogDb): PublicProduct {
   const image = [...row.images].sort((a, b) => a.position - b.position)[0];
-  return { slug: row.slug, name: row.name, short_description: row.short_description, description: row.description, price: row.price, currency: row.currency,
+  return { slug: row.slug, name: row.name, short_description: row.short_description, description: row.description, price: row.price, originalPrice: row.original_price, savingPercent: row.saving_percent, currency: row.currency,
     ...(image ? { image: image.public_url || db.storage.from("product-images").getPublicUrl(image.storage_path).data.publicUrl, imageAlt: image.alt_text } : {}),
     ...(row.brand ? { brand: Array.isArray(row.brand) ? row.brand[0]?.name : row.brand.name } : {}) };
 }
@@ -20,9 +20,12 @@ function publicProduct(row: CatalogRow, db: CatalogDb): PublicProduct {
 async function catalogProducts(db: CatalogDb | null, filter: { collection?: string; brandId?: string; categoryId?: string; store?: string; limit?: number } = {}): Promise<PublicProduct[]> {
   if (!db) return [];
   // shortcut: Server HTML lists the newest 24 pieces; add server pagination if full catalog browsing without JavaScript is needed.
-  const select = filter.collection ? `${productSelect},collection_products!inner(collection:collections!inner(slug))` : productSelect;
-  let query = db.from("products").select(select).eq("status", "active").lte("published_at", new Date().toISOString()).order("published_at", { ascending: false }).limit(filter.limit ?? 24);
-  if (filter.collection) query = query.eq("collection_products.collection.slug", filter.collection);
+  const isDynamicCollection = filter.collection === "new-arrivals" || filter.collection === "sale";
+  const select = filter.collection && !isDynamicCollection ? `${productSelect},collection_products!inner(collection:collections!inner(slug))` : productSelect;
+  let query = db.from("discovery_products").select(select).order("published_at", { ascending: false }).limit(filter.limit ?? 24);
+  if (filter.collection === "new-arrivals") query = query.eq("new_in_active", true);
+  else if (filter.collection === "sale") query = query.eq("sale_active", true);
+  else if (filter.collection) query = query.eq("collection_products.collection.slug", filter.collection);
   if (filter.brandId) query = query.eq("brand_id", filter.brandId);
   if (filter.categoryId) query = query.eq("category_id", filter.categoryId);
   if (filter.store) query = query.eq("seller_store_slug", filter.store).eq("seller_verified", true);
@@ -48,7 +51,7 @@ export async function GET(request: Request) {
     const db = publicClient();
     const match = /^\/(products|collections|brands|stores)\/([a-z0-9-]+)$/.exec(pathname);
     if (match?.[1] === "products") {
-      const result = db ? await db.from("products").select("slug,name,sku,seo_title,seo_description,short_description,description,price,currency,materials,care_information,inquiry_only,seller_store_name,seller_store_slug,seller_verified,average_rating,rating_count,brand:brands(name),category:categories(name),images:product_images(public_url,storage_path,alt_text,position)").eq("slug", match[2]!).eq("status", "active").lte("published_at", new Date().toISOString()).maybeSingle() : null;
+      const result = db ? await db.from("discovery_products").select("slug,name,sku,seo_title,seo_description,short_description,description,price:effective_price,original_price,saving_percent,currency,materials,care_information,inquiry_only,seller_store_name,seller_store_slug,seller_verified,average_rating,rating_count,brand:brands(name),category:categories(name),images:product_images(public_url,storage_path,alt_text,position)").eq("slug", match[2]!).maybeSingle() : null;
       if (result?.error) throw result.error;
       if (!result?.data) { status = 404; title = "Piece not found | Fieldio"; heading = "Piece not found"; description = "This item may have moved or left the Fieldio edit."; }
       else {
@@ -107,7 +110,12 @@ export async function GET(request: Request) {
         heading = "Designer fashion, personally sourced.";
         const zara = db ? await db.from("brands").select("id").eq("slug", "zara").maybeSingle() : null;
         if (zara?.error) throw zara.error;
-        body = homeBody(zara?.data?.id ? await catalogProducts(db, { brandId: zara.data.id, limit: 7 }) : []);
+        const [zaraProducts, newProducts, saleProducts] = await Promise.all([
+          zara?.data?.id ? catalogProducts(db, { brandId: zara.data.id, limit: 4 }) : Promise.resolve([]),
+          catalogProducts(db, { collection: "new-arrivals", limit: 8 }),
+          catalogProducts(db, { collection: "sale", limit: 8 })
+        ]);
+        body = homeBody(zaraProducts, newProducts, saleProducts);
       }
       else if (pathname === "/collections") { heading = "All products"; body = collectionBody(pathname, await catalogProducts(db)); }
       else if (pathname === "/brands") {

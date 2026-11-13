@@ -4,6 +4,7 @@ export const publicPages: Record<string, [string, string]> = {
   "/": ["Fieldio Shop | Designer Fashion & Personal Shopping", "Fieldio is an independent designer fashion marketplace and personal shopping service for clothing, footwear, and accessories, with worldwide sourcing and delivery support."],
   "/collections": ["Designer Fashion Collections | Fieldio", "Explore Fieldio's curated edit of designer clothing, footwear, and accessories for women and men."],
   "/collections/new-arrivals": ["New Designer Fashion Arrivals | Fieldio", "Discover the latest designer fashion selected by Fieldio, with personal sourcing and worldwide delivery support."],
+  "/collections/sale": ["Designer Fashion Sale | Fieldio", "Explore current offers on designer fashion from Fieldio and approved sellers."],
   "/collections/luxury": ["Luxury Fashion Sourcing | Fieldio", "Request luxury clothing, footwear, and accessories through Fieldio personal shopping and worldwide delivery support."],
   "/collections/women": ["Designer Womenswear | Fieldio", "Explore designer womenswear selected and personally sourced by Fieldio, with worldwide delivery support."],
   "/collections/men": ["Designer Menswear | Fieldio", "Explore designer menswear selected and personally sourced by Fieldio, with worldwide delivery support."],

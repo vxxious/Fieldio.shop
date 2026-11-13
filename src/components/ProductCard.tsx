@@ -64,7 +64,7 @@ export function ProductCard({ product, quickAdd = false }: { product: Product; q
           <Link to={`/products/${product.slug}`}>
             <p className="product-brand">{product.brand}</p>
             <h3>{product.name}</h3>
-            <p className="product-price">{formatMoney(product.price, product.currency)}</p>
+            <p className="product-price">{formatMoney(product.price, product.currency)}{product.isSale && product.originalPrice != null && <><s>{formatMoney(product.originalPrice, product.currency)}</s><span className="product-saving">{product.savingPercent}% off</span></>}</p>
           </Link>
           <p className="product-card-options">{productSizeSummary(product)}{product.condition ? ` · ${productCondition(product)}` : ""}</p>
           {product.sellerVerified && product.sellerStoreSlug && <Link className="product-card-seller" to={`/stores/${product.sellerStoreSlug}`}>Verified seller{product.sellerCountryCode ? ` · ${product.sellerCountryCode}` : ""}</Link>}

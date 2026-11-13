@@ -7,18 +7,21 @@ export const emptyCatalog: Product[] = [];
 
 interface CatalogRow {
   id: string;
+  brand_id: string | null;
   sku: string;
   slug: string;
   name: string;
   description: string;
   short_description: string;
   price: number | null;
+  original_price: number | null;
+  saving_percent: number | null;
+  new_in_active: boolean;
+  sale_active: boolean;
   currency: string;
   materials: string | null;
   care_information: string | null;
   featured: boolean;
-  is_new_arrival: boolean;
-  is_sale: boolean;
   inquiry_only: boolean;
   condition?: string | null;
   seller_verified?: boolean;
@@ -53,14 +56,16 @@ export function toProduct(row: CatalogRow, availability: Map<string, number | nu
     description: row.description,
     shortDescription: row.short_description,
     price: row.price,
+    originalPrice: row.original_price,
+    savingPercent: row.saving_percent,
     currency: row.currency as Currency,
     images: [...row.images].sort((a, b) => a.position - b.position).map((image) => ({ id: image.id, url: image.public_url?.replace(/^https:\/\/fieldio\.shop(?=\/)/, "") ?? supabase!.storage.from("product-images").getPublicUrl(image.storage_path).data.publicUrl, alt: image.alt_text, position: image.position })),
-    variants: row.variants.filter((variant) => variant.is_active).map((variant) => ({ id: variant.id, sku: variant.sku, name: variant.name, ...(variant.size ? { size: variant.size } : {}), ...(variant.color ? { color: variant.color } : {}), priceOverride: variant.price_override, inventory: row.inquiry_only ? null : availability.has(variant.id) ? availability.get(variant.id)! : 0 })),
+    variants: row.variants.filter((variant) => variant.is_active).map((variant) => ({ id: variant.id, sku: variant.sku, name: variant.name, ...(variant.size ? { size: variant.size } : {}), ...(variant.color ? { color: variant.color } : {}), priceOverride: row.sale_active ? null : variant.price_override, inventory: row.inquiry_only ? null : availability.has(variant.id) ? availability.get(variant.id)! : 0 })),
     materials: row.materials ?? "Confirmed on request.",
     care: row.care_information ?? "Confirmed on request.",
     featured: row.featured,
-    isNewArrival: row.is_new_arrival,
-    isSale: row.is_sale,
+    isNewArrival: row.new_in_active,
+    isSale: row.sale_active,
     tags: row.tags,
     seoTitle: row.seo_title ?? `${row.name} | Fieldio`,
     seoDescription: row.seo_description ?? row.short_description,
@@ -78,25 +83,10 @@ export function toProduct(row: CatalogRow, availability: Map<string, number | nu
   };
 }
 
-const legacyCatalogSelect = "id,sku,slug,name,description,short_description,price,currency,materials,care_information,featured,is_new_arrival,is_sale,inquiry_only,tags,seo_title,seo_description,created_at,updated_at,brand:brands(name),category:categories(name),images:product_images(id,public_url,storage_path,alt_text,position),variants:product_variants(id,sku,name,size,color,price_override,is_active),collection_products(collection:collections(name,slug))";
-const catalogSelect = legacyCatalogSelect.replace("inquiry_only,tags", "inquiry_only,condition,seller_verified,seller_store_name,seller_store_slug,seller_country_code,seller_store_logo_path,average_rating,rating_count,tags");
-const trustColumns = ["condition", "seller_verified", "seller_store_name", "seller_store_slug", "seller_country_code", "seller_store_logo_path", "average_rating", "rating_count"];
+export const catalogSelect = "id,brand_id,sku,slug,name,description,short_description,price:effective_price,original_price,saving_percent,new_in_active,sale_active,currency,materials,care_information,featured,inquiry_only,condition,seller_verified,seller_store_name,seller_store_slug,seller_country_code,seller_store_logo_path,average_rating,rating_count,tags,seo_title,seo_description,created_at,updated_at,brand:brands(name),category:categories(name),images:product_images(id,public_url,storage_path,alt_text,position),variants:product_variants(id,sku,name,size,color,price_override,is_active),collection_products(collection:collections(name,slug))";
 
-export function isMissingCatalogTrustColumn(error: { code?: string; message?: string }): boolean {
-  return ["42703", "PGRST204"].includes(error.code ?? "") && trustColumns.some((column) => error.message?.includes(column));
-}
-
-async function queryCatalog(select: string) {
-  const response = await supabase!.from("products").select(select).eq("status", "active").order("published_at", { ascending: false });
-  return { data: response.data as unknown as CatalogRow[] | null, error: response.error };
-}
-
-async function fetchCatalog(): Promise<Product[]> {
-  if (!supabase) return catalogPreview ? previewProducts : [];
-  let response = await queryCatalog(catalogSelect);
-  if (response.error && isMissingCatalogTrustColumn(response.error)) response = await queryCatalog(legacyCatalogSelect);
-  if (response.error) throw response.error;
-  const variantIds = (response.data ?? []).flatMap((product) => product.variants.filter((variant) => variant.is_active && !product.inquiry_only).map((variant) => variant.id));
+export async function hydrateCatalog(rows: CatalogRow[]): Promise<Product[]> {
+  const variantIds = rows.flatMap((product) => product.variants.filter((variant) => variant.is_active && !product.inquiry_only).map((variant) => variant.id));
   const availability = new Map<string, number | null>();
   const batches = Array.from({ length: Math.ceil(variantIds.length / 200) }, (_, index) => variantIds.slice(index * 200, (index + 1) * 200));
   const results = await Promise.all(batches.map((ids) => supabase!.rpc("shop_variant_availability", { p_variant_ids: ids })));
@@ -104,7 +94,14 @@ async function fetchCatalog(): Promise<Product[]> {
     if (result.error) throw result.error;
     for (const row of (result.data ?? []) as Array<{ variant_id: string; available_quantity: number | null }>) availability.set(row.variant_id, row.available_quantity);
   }
-  const products = (response.data ?? []).map((row) => toProduct(row, availability));
+  return rows.map((row) => toProduct(row, availability));
+}
+
+async function fetchCatalog(): Promise<Product[]> {
+  if (!supabase) return catalogPreview ? previewProducts : [];
+  const response = await supabase.from("discovery_products").select(catalogSelect).order("published_at", { ascending: false });
+  if (response.error) throw response.error;
+  const products = await hydrateCatalog((response.data ?? []) as unknown as CatalogRow[]);
   return products.length || !catalogPreview ? products : previewProducts;
 }
 
@@ -113,6 +110,15 @@ export function useCatalogProducts() {
 }
 
 export function useCatalogProduct(slug: string) {
-  const query = useCatalogProducts();
-  return { ...query, product: query.data?.find((product) => product.slug === slug) };
+  const query = useQuery({ queryKey: ["catalog", "product", slug], enabled: Boolean(slug && supabase), queryFn: async () => {
+    const response = await supabase!.from("discovery_products").select(catalogSelect).eq("slug", slug).maybeSingle();
+    if (response.error) throw response.error;
+    if (!response.data) return { product: undefined, related: [] as Product[] };
+    const row = response.data as unknown as CatalogRow & { brand_id: string | null };
+    const relatedResponse = row.brand_id ? await supabase!.from("discovery_products").select(catalogSelect).eq("brand_id", row.brand_id).neq("id", row.id).order("published_at", { ascending: false }).limit(5) : null;
+    if (relatedResponse?.error) throw relatedResponse.error;
+    const products = await hydrateCatalog([row, ...((relatedResponse?.data ?? []) as unknown as CatalogRow[])]);
+    return { product: products[0], related: products.slice(1) };
+  } });
+  return { ...query, product: query.data?.product, data: query.data?.related };
 }

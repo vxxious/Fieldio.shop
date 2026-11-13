@@ -1,17 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { isMissingCatalogTrustColumn, toProduct } from "./useCatalog";
-
-describe("catalog schema compatibility", () => {
-  it("retries only when a new trust column is missing", () => {
-    expect(isMissingCatalogTrustColumn({ code: "PGRST204", message: "Could not find the seller_verified column" })).toBe(true);
-    expect(isMissingCatalogTrustColumn({ code: "42501", message: "permission denied" })).toBe(false);
-  });
-});
+import { toProduct } from "./useCatalog";
 
 describe("public variant availability", () => {
   it("uses only the safe availability response for purchasable stock", () => {
     const row = {
-      id: "product", sku: "P1", slug: "p1", name: "Coat", description: "Coat", short_description: "Coat", price: 10000, currency: "GBP",
+      id: "product", brand_id: null, sku: "P1", slug: "p1", name: "Coat", description: "Coat", short_description: "Coat", price: 10000, original_price: null, saving_percent: null, new_in_active: false, sale_active: false, currency: "GBP",
       materials: null, care_information: null, featured: false, is_new_arrival: false, is_sale: false, inquiry_only: false,
       tags: [], seo_title: null, seo_description: null, created_at: "2026-09-01", updated_at: "2026-09-01",
       brand: null, category: null, images: [], collection_products: [],
