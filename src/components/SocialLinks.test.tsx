@@ -29,7 +29,9 @@ it("links to Fieldio's social profiles with accessible brand icons", () => {
 
 it("shows social profiles on Contact without adding them to other enquiry pages", () => {
   render(<MemoryRouter initialEntries={["/contact"]}><ServicePage /></MemoryRouter>);
-  expect(screen.getByText("Follow Fieldio for new arrivals and updates")).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Follow the Fieldio edit" })).toBeVisible();
+  expect(screen.getAllByText("@fieldio_wrd")).toHaveLength(2);
+  expect(screen.getByText("@fieldiowrd")).toBeVisible();
   expect(screen.getByRole("link", { name: "Fieldio on TikTok" })).toBeVisible();
   cleanup();
   render(<MemoryRouter initialEntries={["/wholesale"]}><ServicePage /></MemoryRouter>);

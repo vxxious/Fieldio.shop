@@ -769,8 +769,15 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .service-lead li { padding: 15px 0; border-bottom: 1px solid var(--line-dark); font-size: 15px; }
 .contact-channels li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; }
 .contact-channels a { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; text-decoration: underline; text-underline-offset: 4px; overflow-wrap: anywhere; }
-.contact-follow .social-links a { text-decoration: none; }
-.contact-follow .social-links a:hover { text-decoration: underline; }
+.contact-follow { margin-bottom: 40px; }
+.contact-follow h2 { margin: 0 0 10px; font-size: clamp(28px, 3vw, 38px); letter-spacing: -0.035em; }
+.contact-follow p { max-width: 48ch; margin: 0 0 22px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.contact-follow .social-links { display: block; border-top: 1px solid var(--line-dark); }
+.contact-follow .social-links a { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto 20px; align-items: center; gap: 12px; min-height: 68px; border-bottom: 1px solid var(--line-dark); font-size: 15px; text-decoration: none; }
+.contact-follow .social-links svg { width: 20px; height: 20px; }
+.contact-follow .social-links-handle { color: var(--muted); font-size: 13px; }
+.contact-follow .social-links a:hover { text-decoration: none; }
+.contact-follow .social-links a:hover .social-links-name { text-decoration: underline; text-underline-offset: 4px; }
 .service-form { background: var(--surface); padding: clamp(25px, 4vw, 55px); align-self: start; display: flex; flex-direction: column; gap: 17px; }
 .service-form h2 { font-size: 32px; margin-bottom: 10px; }
 .service-form .primary-button { margin-top: 8px; }
