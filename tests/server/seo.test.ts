@@ -30,8 +30,8 @@ it("serves a distinct Fieldio search identity and crawlable public sitemap", asy
   expect(home).toContain("Fieldio is an independent designer fashion marketplace");
   expect(home).toContain('<a href="/about">About Fieldio</a>');
   expect(home).toContain('<a href="/collections">Explore the edit</a>');
-  expect(home).toContain("The Zara edit");
-  expect(home).toContain('href="/brands/zara"');
+  expect(home).toContain("Explore the Fieldio edit");
+  expect(home).toContain('href="/brands"');
   expect(home).toContain('href="/collections/new-arrivals"');
   expect(home).toContain('href="/collections/sale"');
   expect(home).toContain("Sell with Fieldio");

@@ -482,8 +482,12 @@ test("public contact addresses lead to the appropriate Fieldio inbox", async ({ 
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 800 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    const instagram = await page.locator(".footer-meta a").boundingBox();
-    const copyright = await page.locator(".footer-meta span").boundingBox();
+    const footerSocials = page.locator(".footer-meta .social-links");
+    for (const name of ["Instagram", "TikTok", "X"]) {
+      await expect(footerSocials.getByRole("link", { name: `Fieldio on ${name}` })).toBeVisible();
+    }
+    const instagram = await footerSocials.getByRole("link", { name: "Fieldio on Instagram" }).boundingBox();
+    const copyright = await page.locator(".footer-meta > span").boundingBox();
     expect(instagram).not.toBeNull();
     expect(copyright).not.toBeNull();
     expect(copyright!.y).toBeGreaterThan(instagram!.y + instagram!.height);
@@ -537,9 +541,10 @@ test("theme follows the system, persists a choice, and remains keyboard operable
 
 test("homepage account invitation opens account creation directly", async ({ page }) => {
   await page.goto("/");
-  const brandLedger = page.getByRole("region", { name: "The Zara edit" });
+  const brandLedger = page.getByRole("region", { name: "Explore the Fieldio edit" });
   await expect(brandLedger.locator(".brand-list > a")).toHaveCount(5);
-  await expect(brandLedger.getByRole("link", { name: "View all Zara pieces" })).toHaveAttribute("href", "/brands/zara");
+  await expect(brandLedger.getByRole("link", { name: "Browse all pieces" })).toHaveAttribute("href", "/collections");
+  await expect(brandLedger.getByRole("link", { name: "Brands" })).toHaveAttribute("href", "/brands");
   const invitation = page.getByRole("region", { name: "Keep your edit close." });
   await expect(invitation).toContainText("save your wishlist, details, and order requests");
   await invitation.getByRole("link", { name: "Create account" }).click();

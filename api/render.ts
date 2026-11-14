@@ -108,14 +108,12 @@ export async function GET(request: Request) {
     if (status === 200 && !match && !privateRoute) {
       if (pathname === "/") {
         heading = "Designer fashion, personally sourced.";
-        const zara = db ? await db.from("brands").select("id").eq("slug", "zara").maybeSingle() : null;
-        if (zara?.error) throw zara.error;
-        const [zaraProducts, newProducts, saleProducts] = await Promise.all([
-          zara?.data?.id ? catalogProducts(db, { brandId: zara.data.id, limit: 4 }) : Promise.resolve([]),
+        const [featuredProducts, newProducts, saleProducts] = await Promise.all([
+          catalogProducts(db, { limit: 4 }),
           catalogProducts(db, { collection: "new-arrivals", limit: 8 }),
           catalogProducts(db, { collection: "sale", limit: 8 })
         ]);
-        body = homeBody(zaraProducts, newProducts, saleProducts);
+        body = homeBody(featuredProducts, newProducts, saleProducts);
       }
       else if (pathname === "/collections") { heading = "All products"; body = collectionBody(pathname, await catalogProducts(db)); }
       else if (pathname === "/brands") {

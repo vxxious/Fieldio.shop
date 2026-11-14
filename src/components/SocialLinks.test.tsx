@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, expect, it, vi } from "vitest";
 import { ServicePage } from "../pages/ServicePage";
 import { SocialLinks } from "./SocialLinks";
+import { SiteFooter } from "./SiteFooter";
 
 vi.mock("../context/LocaleContext", () => ({ useLocale: () => ({ t: (key: string) => key }) }));
 afterEach(cleanup);
@@ -36,4 +37,14 @@ it("shows social profiles on Contact without adding them to other enquiry pages"
   cleanup();
   render(<MemoryRouter initialEntries={["/wholesale"]}><ServicePage /></MemoryRouter>);
   expect(screen.queryByRole("link", { name: "Fieldio on TikTok" })).toBeNull();
+});
+
+it("shows all three social icons in the footer", () => {
+  render(<MemoryRouter><SiteFooter /></MemoryRouter>);
+  const footer = screen.getByRole("contentinfo");
+  for (const name of ["Instagram", "TikTok", "X"]) {
+    const link = footer.querySelector(`a[aria-label="Fieldio on ${name}"]`);
+    expect(link).not.toBeNull();
+    expect(link!.querySelector("svg")).not.toBeNull();
+  }
 });

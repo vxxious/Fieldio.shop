@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Newsletter } from "./Newsletter";
-import { InstagramIcon } from "./Icons";
+import { SocialLinks } from "./SocialLinks";
 
 export function SiteFooter() {
   return (
@@ -17,7 +17,7 @@ export function SiteFooter() {
           <div><h3>Information</h3><Link to="/about">About Fieldio</Link><Link to="/promise">Fieldio Promise</Link><Link to="/shipping">Shipping</Link><Link to="/returns">Returns</Link><Link to="/privacy">Privacy</Link><Link to="/terms">Terms</Link></div>
         </div>
         <div className="footer-meta">
-          <a href="https://www.instagram.com/fieldio_wrd/" target="_blank" rel="noreferrer"><InstagramIcon /> @fieldio_wrd</a>
+          <SocialLinks compact />
           <button type="button" className="footer-privacy" onClick={() => window.dispatchEvent(new Event("fieldio:privacy-choices"))}>Privacy choices</button>
           <span>© {new Date().getFullYear()} Fieldio</span>
         </div>

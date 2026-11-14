@@ -3,7 +3,7 @@ import { catalogSelect, hydrateCatalog } from "./useCatalog";
 import { supabase } from "../lib/supabase";
 
 export interface DiscoveryFilters {
-  kind: "new" | "sale" | "brand";
+  kind: "all" | "new" | "sale" | "brand";
   brandId?: string;
   brandSlug?: string;
   gender?: string;
