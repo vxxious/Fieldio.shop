@@ -393,7 +393,7 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .secondary-grid .product-card-media { aspect-ratio: 4 / 3; }
 .home-catalog-more { width: var(--page); margin: 28px auto 0; justify-content: flex-end; }
 .home-discovery { margin: 0 auto clamp(70px, 9vw, 130px); }
-.home-discovery-heading { width: var(--page); margin: 0 auto 24px; padding-top: 22px; border-top: 1px solid var(--line-dark); display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.home-discovery-heading { width: var(--page); margin: 0 auto 24px; padding-top: 22px; border-top: 1px solid var(--line-dark); display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
 .home-discovery-heading h2 { margin: 0; font-size: clamp(36px, 4.2vw, 62px); }
 .home-discovery-heading .arrow-link { margin: 0; white-space: nowrap; }
 .home-discovery-empty { width: var(--page); margin: 0 auto; color: var(--muted); }
