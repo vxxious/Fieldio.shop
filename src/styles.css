@@ -393,10 +393,12 @@ button:disabled { cursor: not-allowed; opacity: 0.42; }
 .secondary-grid .product-card-media { aspect-ratio: 4 / 3; }
 .home-catalog-more { width: var(--page); margin: 28px auto 0; justify-content: flex-end; }
 .home-discovery { margin: 0 auto clamp(70px, 9vw, 130px); }
-.home-discovery-heading { width: var(--page); margin: 0 auto 24px; padding-top: 22px; border-top: 1px solid var(--line-dark); display: flex; align-items: end; justify-content: space-between; gap: 20px; }
+.home-discovery-heading { width: var(--page); margin: 0 auto 24px; padding-top: 22px; border-top: 1px solid var(--line-dark); display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .home-discovery-heading h2 { margin: 0; font-size: clamp(36px, 4.2vw, 62px); }
 .home-discovery-heading .arrow-link { margin: 0; white-space: nowrap; }
 .home-discovery-empty { width: var(--page); margin: 0 auto; color: var(--muted); }
+.home-discovery:has(.home-discovery-empty) { margin-bottom: clamp(36px, 6vw, 64px); }
+.home-discovery:has(.home-discovery-empty) .home-discovery-heading { margin-bottom: 16px; }
 .discovery-filters { gap: 12px 20px; margin-bottom: 28px; }
 .discovery-filters label { font-size: 13px; min-width: 110px; }
 .discovery-filters select, .discovery-filters input { min-height: 44px; max-width: 180px; padding: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 14px; }
