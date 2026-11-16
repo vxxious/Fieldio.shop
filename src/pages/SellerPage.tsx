@@ -605,7 +605,7 @@ export function SellerPage() {
       supabase!.from("seller_stores").select("*").eq("owner_id", session!.user.id).maybeSingle(),
       supabase!.from("seller_listings").select("id,title,description,audience,brand_id,category_id,subcategory_id,condition,condition_notes,materials,item_reference,price,compare_at_price,currency,colors,sizes,quantity,weight_kg,authenticity_confirmed,status,is_paused,review_reason,published_product_id,created_at,images:seller_listing_images(id,storage_path,alt_text,position),variants:seller_listing_variants(id,color,size,quantity,published_variant_id)").eq("owner_id", session!.user.id).order("created_at", { ascending: false }),
       supabase!.from("categories").select("id,parent_id,name").eq("is_active", true).order("name"),
-      supabase!.from("brands").select("id,name").eq("is_active", true).order("name")
+      supabase!.from("brands").select("id,name").eq("is_active", true).eq("is_catalogued", true).order("name")
     ]);
     const error = application.error || store.error || listings.error || categories.error || brands.error;
     if (error) throw error;

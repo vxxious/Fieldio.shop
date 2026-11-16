@@ -26,7 +26,7 @@ export function useDiscoveryProducts(filters: DiscoveryFilters | null) {
       const selected = filters!;
       let brandId = selected.brandId;
       if (selected.brandSlug) {
-        const brand = await supabase!.from("brands").select("id").eq("slug", selected.brandSlug).eq("is_active", true).maybeSingle();
+        const brand = await supabase!.from("brands").select("id").eq("slug", selected.brandSlug).eq("is_active", true).eq("is_catalogued", true).maybeSingle();
         if (brand.error) throw brand.error;
         if (!brand.data) return { products: [], total: 0 };
         brandId = brand.data.id;
@@ -55,7 +55,7 @@ export function useDiscoveryProducts(filters: DiscoveryFilters | null) {
 export function useDiscoveryOptions() {
   return useQuery({ queryKey: ["catalog", "discovery-options"], enabled: Boolean(supabase), staleTime: 300_000, queryFn: async () => {
     const [brands, categories] = await Promise.all([
-      supabase!.from("brands").select("id,name,slug").eq("is_active", true).order("name"),
+      supabase!.from("brands").select("id,name,slug,description,seo_title,seo_description").eq("is_active", true).eq("is_catalogued", true).order("name"),
       supabase!.from("categories").select("id,name,slug").eq("is_active", true).order("name")
     ]);
     if (brands.error || categories.error) throw brands.error || categories.error;

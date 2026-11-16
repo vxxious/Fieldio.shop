@@ -62,7 +62,7 @@ export function brandDirectoryBody(brands: Array<{ name: string; slug: string }>
 }
 
 export function brandBody(brandName: string, products: PublicProduct[]) {
-  return `<section><h2>${escapeMarkup(brandName)} pieces</h2>${productCards(products)}</section>${link("/personal-shopping", `Ask Fieldio to source ${brandName}`)}`;
+  return `<section><h2>${escapeMarkup(brandName)} pieces</h2>${products.length ? productCards(products) : paragraph("No pieces in this edit yet. Adjust the filters or ask Fieldio to source something specific.")}</section>${link("/personal-shopping", `Ask Fieldio to source ${brandName}`)}`;
 }
 
 export function storeBody(storeName: string, products: PublicProduct[]) {

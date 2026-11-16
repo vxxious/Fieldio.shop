@@ -30,7 +30,7 @@ it("uses named catalog choices and human price inputs", async () => {
   screen.getByRole("button", { name: "Add record" }).click();
   expect(await screen.findByRole("option", { name: "Louis Vuitton" })).toBeInTheDocument();
   expect(screen.getByRole("option", { name: "Bags" })).toBeInTheDocument();
-  expect(screen.getByLabelText("Price (blank for request)")).toHaveAttribute("step", "0.01");
+  expect(screen.getByLabelText("Selling price (blank for request)")).toHaveAttribute("step", "0.01");
 });
 
 it("keeps unsaved admin edits when record replacement is cancelled", async () => {

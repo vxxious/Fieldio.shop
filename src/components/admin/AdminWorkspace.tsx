@@ -89,7 +89,7 @@ export function AdminWorkspace({ resource, canDelete = false, onDirtyChange }: {
     const values: Row = {};
     for (const field of resource.fields) {
       const value = row[field.key];
-      values[field.key] = field.type === "boolean" ? value ?? field.key === "is_active" : field.type === "json" ? JSON.stringify(value ?? {}, null, 2) : field.type === "tags" ? (Array.isArray(value) ? value.join(", ") : "") : field.type === "datetime-local" ? (value ? String(value).slice(0, 16) : "") : field.type === "money" && typeof value === "number" ? value / 100 : value ?? field.options?.[0] ?? (field.type === "number" && field.required ? 0 : "");
+      values[field.key] = field.type === "boolean" ? value ?? ["is_active", "is_catalogued"].includes(field.key) : field.type === "json" ? JSON.stringify(value ?? {}, null, 2) : field.type === "tags" ? (Array.isArray(value) ? value.join(", ") : "") : field.type === "datetime-local" ? (value ? String(value).slice(0, 16) : "") : field.type === "money" && typeof value === "number" ? value / 100 : value ?? field.options?.[0] ?? (field.type === "number" && field.required ? 0 : "");
     }
     reset(values);
   }

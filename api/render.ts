@@ -5,6 +5,7 @@ import { brandBody, brandDirectoryBody, collectionBody, contentBody, homeBody, p
 import { checkRateLimit } from "./_lib/server.js";
 import { captureServerException } from "./_lib/monitoring.js";
 import { contentPages } from "../src/data/content-pages.js";
+import { brandSeo } from "../src/lib/brand-seo.js";
 
 type CatalogDb = NonNullable<ReturnType<typeof publicClient>>;
 type CatalogRow = { slug: string; name: string; short_description: string; description: string; price: number | null; original_price: number | null; saving_percent: number | null; currency: string; brand: { name: string } | { name: string }[] | null; images: Array<{ public_url: string | null; storage_path: string; alt_text: string; position: number }> };
@@ -84,13 +85,16 @@ export async function GET(request: Request) {
         body = collectionBody(pathname, products);
       }
     } else if (match?.[1] === "brands") {
-      const result = db ? await db.from("brands").select("id,name,description").eq("slug", match[2]!).eq("is_active", true).maybeSingle() : null;
+      const result = db ? await db.from("brands").select("id,name,description,seo_title,seo_description").eq("slug", match[2]!).eq("is_active", true).eq("is_catalogued", true).maybeSingle() : null;
       if (result?.error) throw result.error;
-      const name = result?.data?.name || match[2]!.replaceAll("-", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-      title = `${name} sourcing | Fieldio`; description = result?.data?.description || `Request ${name} pieces through Fieldio personal shopping and worldwide delivery support.`;
-      heading = name;
-      pageSchema = { "@type": "CollectionPage", "@id": `${origin}${pathname}#webpage`, name: title, description, url: `${origin}${pathname}`, isPartOf: { "@id": `${origin}/#website` } };
-      body = brandBody(name, result?.data?.id ? await catalogProducts(db, { brandId: result.data.id }) : []);
+      if (!result?.data) { status = 404; title = "Brand not found | Fieldio"; heading = "Brand not found"; description = "This brand is not currently in the Fieldio edit."; }
+      else {
+        const brand = result.data;
+        ({ title, description } = brandSeo(brand.name, brand.description, brand.seo_title, brand.seo_description));
+        heading = brand.name;
+        pageSchema = { "@type": "CollectionPage", "@id": `${origin}${pathname}#webpage`, name: title, description, url: `${origin}${pathname}`, isPartOf: { "@id": `${origin}/#website` }, about: { "@type": "Brand", name: brand.name } };
+        body = brandBody(brand.name, await catalogProducts(db, { brandId: brand.id }));
+      }
     } else if (match?.[1] === "stores") {
       const result = db ? await db.from("products").select("seller_store_name,seller_country_code").eq("seller_store_slug", match[2]!).eq("seller_verified", true).eq("status", "active").lte("published_at", new Date().toISOString()).limit(1).maybeSingle() : null;
       if (result?.error) throw result.error;
@@ -118,7 +122,7 @@ export async function GET(request: Request) {
       else if (pathname === "/collections") { heading = "All products"; body = collectionBody(pathname, await catalogProducts(db)); }
       else if (pathname === "/brands") {
         heading = "Brands";
-        const result = db ? await db.from("brands").select("name,slug").eq("is_active", true).order("name").limit(500) : null;
+        const result = db ? await db.from("brands").select("name,slug").eq("is_active", true).eq("is_catalogued", true).order("name").limit(500) : null;
         if (result?.error) throw result.error;
         body = brandDirectoryBody(result?.data ?? []);
       } else if (pathname === "/sell") body = sellerBody();

@@ -11,9 +11,9 @@ export async function GET(request: Request) {
     if (db) for (const table of ["products", "collections", "brands"] as const) {
       for (let page = 0; ; page++) {
         let query = db.from(table).select("slug,updated_at").order("slug").range(page * 500, page * 500 + 499);
-        if (table === "products") query = query.eq("status", "active").lte("published_at", now);
+        if (table === "products") query = query.eq("status", "active").lte("published_at", now).not("sku", "ilike", "TEST-%");
         else if (table === "collections") query = query.eq("is_active", true).lte("published_at", now);
-        else query = query.eq("is_active", true);
+        else query = query.eq("is_active", true).eq("is_catalogued", true);
         const { data, error } = await query;
         if (error) throw error;
         data.forEach(({ slug, updated_at }) => paths.set(`/${table}/${slug}`, updated_at));

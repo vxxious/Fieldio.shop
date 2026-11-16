@@ -161,29 +161,6 @@ export const products: Product[] = [
   }
 ];
 
-export const brands = [
-  "Louis Vuitton",
-  "Gucci",
-  "Yves Saint Laurent",
-  "Prada",
-  "Dior",
-  "Chanel",
-  "Hermès",
-  "Bottega Veneta",
-  "Balenciaga",
-  "Burberry",
-  "Versace",
-  "Fendi",
-  "Lacoste",
-  "Adidas",
-  "The North Face",
-  "Zara",
-  "Nike",
-  "Vans",
-  "Pull&Bear",
-  "Fieldio Edit"
-] as const;
-
 export function getBrandSlug(brand: string): string {
   return brand
     .normalize("NFD")

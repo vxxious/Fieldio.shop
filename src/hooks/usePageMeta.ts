@@ -5,6 +5,7 @@ interface PageMeta {
   description: string;
   canonical?: string;
   image?: string;
+  noIndex?: boolean;
 }
 
 function setMeta(name: string, content: string): void {
@@ -17,7 +18,7 @@ function setMeta(name: string, content: string): void {
   element.content = content;
 }
 
-export function usePageMeta({ title, description, canonical, image = "https://fieldio.shop/og-image.jpg" }: PageMeta): void {
+export function usePageMeta({ title, description, canonical, image = "https://fieldio.shop/og-image.jpg", noIndex = false }: PageMeta): void {
   useEffect(() => {
     document.title = title;
     setMeta("description", description);
@@ -31,8 +32,8 @@ export function usePageMeta({ title, description, canonical, image = "https://fi
     setMeta("twitter:description", description);
     setMeta("twitter:image", image);
     setMeta("twitter:image:alt", `${title}. ${description}`);
-    setMeta("robots", /^\/(account|admin|checkout|wishlist)(\/|$)/.test(window.location.pathname) ? "noindex,nofollow" : "index,follow");
+    setMeta("robots", noIndex || /^\/(account|admin|checkout|wishlist)(\/|$)/.test(window.location.pathname) ? "noindex,nofollow" : "index,follow");
     const canonicalElement = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (canonicalElement && canonical) canonicalElement.href = canonical;
-  }, [canonical, description, image, title]);
+  }, [canonical, description, image, noIndex, title]);
 }
