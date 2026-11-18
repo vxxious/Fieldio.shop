@@ -14,7 +14,7 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["iPhone 13"] } }
   ],
   webServer: {
-    command: "npm run build:preview && npm run preview -- --host 127.0.0.1",
+    command: "npm run build:preview && node scripts/e2e-preview.mjs",
     port: 4173,
     reuseExistingServer: false
   }

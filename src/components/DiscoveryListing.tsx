@@ -2,6 +2,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useDiscoveryOptions, useDiscoveryProducts } from "../hooks/useDiscoveryProducts";
 import { ProductCard } from "./ProductCard";
 import { regionOptions } from "../lib/regions";
+import { discoveryEmpty } from "../lib/discovery-empty";
 
 const currencies = [...new Set(regionOptions.map((region) => region.currency))].sort();
 
@@ -31,6 +32,8 @@ export function DiscoveryListing({ kind, brandSlug, gender: fixedGender }: { kin
   });
   const go = (nextPage: number) => setParams((current) => { const next = new URLSearchParams(current); next.set("page", String(nextPage)); return next; });
   const pageNumbers = [...new Set([1, page - 1, page, page + 1, pageCount])].filter((number) => number >= 1 && number <= pageCount).sort((left, right) => left - right);
+  const hasFilters = ["gender", "brand", "productCategory", "currency", "min", "max"].some((key) => params.has(key));
+  const emptyCopy = kind === "brand" || fixedGender || hasFilters ? null : discoveryEmpty[kind];
 
   return <>
     <div className="collection-filters discovery-filters" aria-label="Filter products">
@@ -47,7 +50,8 @@ export function DiscoveryListing({ kind, brandSlug, gender: fixedGender }: { kin
     {discovery.error ? <div className="empty-state" role="alert"><h2>The edit could not load.</h2><button className="primary-button" onClick={() => void discovery.refetch()}>Try again</button></div>
       : discovery.isPending ? <div className="product-grid" aria-label="Loading products">{Array.from({ length: 4 }).map((_, index) => <div className="product-skeleton" key={index} />)}</div>
       : products.length ? <section className="product-grid"><h2 className="sr-only">Products</h2>{products.map((product) => <ProductCard key={product.id} product={product} />)}</section>
-      : <div className="empty-state"><h2>{page > 1 && total ? "No pieces on this page." : "No pieces in this edit yet."}</h2><p>Adjust the filters or ask Fieldio to source something specific.</p><Link className="text-link" to="/personal-shopping">Ask a personal shopper</Link></div>}
+      : kind === "brand" ? <div className="empty-state"><h2>{page > 1 && total ? "No pieces on this page." : "No pieces in this edit yet."}</h2><p>Adjust the filters or ask Fieldio to source something specific.</p><Link className="text-link" to="/personal-shopping">Ask a personal shopper</Link></div>
+      : <div className="empty-state"><h2>{page > 1 && total ? "No pieces on this page." : emptyCopy?.title ?? (hasFilters ? "No pieces match these filters." : "No pieces in this edit yet.")}</h2><p>{emptyCopy?.description ?? "Try another selection or explore the full Fieldio edit."}</p><div className="empty-actions"><Link className="text-link" to="/collections">Browse all pieces</Link><Link className="text-link" to="/personal-shopping">Ask a personal shopper</Link></div></div>}
     {pageCount > 1 && <nav className="discovery-pagination" aria-label="Product pages"><button type="button" disabled={page <= 1} onClick={() => go(page - 1)}>Previous</button>{pageNumbers.map((number) => <button key={number} type="button" aria-current={number === page ? "page" : undefined} onClick={() => go(number)}>{number}</button>)}<button type="button" disabled={page >= pageCount} onClick={() => go(page + 1)}>Next</button></nav>}
   </>;
 }

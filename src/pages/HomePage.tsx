@@ -12,6 +12,7 @@ import { useEditorial } from "../hooks/useEditorial";
 import { EditorialText } from "../components/EditorialText";
 import { Button } from "../components/ui/button";
 import { useLocale } from "../context/LocaleContext";
+import { discoveryEmpty } from "../lib/discovery-empty";
 
 const categories = [["All", "nav.all"], ["Women", "nav.women"], ["Men", "nav.men"]] as const;
 const editCategories = [
@@ -31,6 +32,7 @@ export function HomePage() {
   const homeCatalog = catalogPreview ? previewProducts.slice(0, 4) : featured.data?.products ?? [];
   const isLoading = !catalogPreview && featured.isPending;
   const error = featured.error;
+  const hasNewIn = Boolean(newIn.data?.products.length);
   usePageMeta({ title: "Fieldio Shop | Designer Fashion & Personal Shopping", description: "Fieldio is an independent designer fashion marketplace and personal shopping service for clothing, footwear, and accessories, with worldwide sourcing and delivery support.", canonical: "https://fieldio.shop/" });
 
   return (
@@ -99,17 +101,17 @@ export function HomePage() {
           <div className="campaign-copy">
             <h2><EditorialText text={editorial.campaign?.heading || t("home.campaignTitle")} /></h2>
             <p>Women, men, accessories, and luxury sourcing—one considered edit, delivered worldwide.</p>
-            <Button asChild size="lg" className="light-button"><Link to="/collections/new-arrivals">{t("home.viewNew")}</Link></Button>
+            <Button asChild size="lg" className="light-button"><Link to={hasNewIn ? "/collections/new-arrivals" : "/collections"}>{hasNewIn ? t("home.viewNew") : "Browse all pieces"}</Link></Button>
           </div>
         </section>
       </Reveal>
 
-      {([ ["New in", newIn, "/collections/new-arrivals"], ["Sale", sale, "/collections/sale"] ] as const).map(([label, query, href]) => <section className="home-discovery" key={label} aria-label={label}>
-        <div className="home-discovery-heading"><h2>{label}</h2><Link className="arrow-link" to={href}>View all <ArrowIcon /></Link></div>
+      {([ ["New in", "new", newIn, "/collections/new-arrivals"], ["Sale", "sale", sale, "/collections/sale"] ] as const).map(([label, kind, query, href]) => <section className="home-discovery" key={label} aria-label={label}>
+        <div className="home-discovery-heading"><h2>{label}</h2>{Boolean(query.data?.products.length) && <Link className="arrow-link" to={href}>View all <ArrowIcon /></Link>}</div>
         {query.error ? <div className="catalog-notice" role="alert">{label} could not load. <button className="text-link" onClick={() => void query.refetch()}>Try again</button></div>
           : query.isPending ? <div className="product-grid" aria-label={`Loading ${label.toLowerCase()}`}>{Array.from({ length: 4 }).map((_, index) => <div className="product-skeleton" key={index} />)}</div>
           : query.data?.products.length ? <div className="product-grid">{query.data.products.map((product) => <ProductCard key={product.id} product={product} />)}</div>
-          : <p className="home-discovery-empty">No {label.toLowerCase()} pieces are live right now.</p>}
+          : <div className="home-discovery-empty"><p>{discoveryEmpty[kind].title} {discoveryEmpty[kind].description}</p><div className="empty-actions"><Link className="arrow-link" to="/collections">Browse all pieces <ArrowIcon /></Link><Link className="text-link" to="/personal-shopping">Ask a personal shopper</Link></div></div>}
       </section>)}
 
       <Reveal>

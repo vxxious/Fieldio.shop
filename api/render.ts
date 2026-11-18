@@ -73,7 +73,7 @@ export async function GET(request: Request) {
       if (result?.error) throw result.error;
       if (result?.data) { title = result.data.seo_title || `${result.data.name} | Fieldio`; description = result.data.seo_description || result.data.intro || description; image = result.data.hero_image_url || image; }
       else if (!publicPages[pathname] && !["shoes", "bags", "accessories", "jewellery"].includes(match[2]!)) { status = 404; title = "Collection not found | Fieldio"; description = "This collection is not currently available on Fieldio."; }
-      heading = title.split(" | ")[0]!;
+      heading = match[2] === "new-arrivals" ? "New in" : title.split(" | ")[0]!;
       pageSchema = { "@type": "CollectionPage", "@id": `${origin}${pathname}#webpage`, name: title, description, url: `${origin}${pathname}`, isPartOf: { "@id": `${origin}/#website` } };
       if (status === 200) {
         const categorySlug = match[2] === "shoes" ? "footwear" : match[2] === "bags" ? "bags" : null;

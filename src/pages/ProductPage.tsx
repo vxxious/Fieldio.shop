@@ -160,8 +160,8 @@ export function ProductPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />
       <div className="product-main">
         <div className={`product-gallery${product.images.length > 1 ? " product-gallery--multiple" : ""}`} ref={galleryRef}>
-          {product.images.map((image, index) => <img key={image.id} {...responsiveImage(image.url)} sizes="(max-width: 700px) 100vw, 50vw" alt={image.alt || product.name} loading={index ? "lazy" : "eager"} onLoad={() => { if (index === 0) setActiveImage(0); }} />)}
-          {product.images.length === 1 && <div className="gallery-detail" aria-hidden="true"><img {...responsiveImage(product.images[0]?.url)} sizes="40vw" alt="" /></div>}
+          {product.images.map((image, index) => <img key={image.id} {...responsiveImage(image.url)} sizes="(max-width: 700px) 100vw, 50vw" width={1200} height={1800} alt={image.alt || product.name} loading={index ? "lazy" : "eager"} fetchPriority={index ? "low" : "high"} onLoad={() => { if (index === 0) setActiveImage(0); }} />)}
+          {product.images.length === 1 && <div className="gallery-detail" aria-hidden="true"><img {...responsiveImage(product.images[0]?.url)} sizes="40vw" width={1200} height={1800} alt="" loading="lazy" /></div>}
           {!product.images.length && <div className="image-placeholder">{t("product.photographySoon")}</div>}
           {product.images.length > 1 && <p className="gallery-position" aria-live="polite">{activeImage + 1} / {product.images.length}<span>{t("product.swipe")}</span></p>}
         </div>
@@ -180,9 +180,10 @@ export function ProductPage() {
             {product.variants.map((variant) => <label key={variant.id} className={effectiveVariantId === variant.id ? "selected" : ""}><input type="radio" name="variant" value={variant.id} disabled={variant.inventory === 0} checked={effectiveVariantId === variant.id} onChange={() => changeVariant(variant.id)} /><span>{variantOptionLabel(variant)}{variant.inventory === 0 ? ` · ${t("product.soldOut")}` : ""}</span></label>)}
           </div>
         </fieldset>
+        <p id="product-account-requirement" className="account-requirement">A Fieldio account is required to add to bag.</p>
         <div className="purchase-controls" ref={purchaseControlsRef}>
           <div className="quantity-stepper"><button type="button" disabled={quantity <= 1} onClick={() => changeQuantity(quantity - 1)} aria-label={`Decrease quantity for ${product.name}`}><MinusIcon /></button><output aria-label={`Quantity ${quantity}`}>{String(quantity).padStart(2, "0")}</output><button type="button" disabled={quantity >= Math.min(10, selectedVariant?.inventory ?? 10)} onClick={() => changeQuantity(quantity + 1)} aria-label={`Increase quantity for ${product.name}`}><PlusIcon /></button></div>
-          <Button className="primary-button add-button" type="button" disabled={unavailable || !product.variants.length} onClick={(event) => void addToCart(event.currentTarget)}>{t("product.addBag")}</Button>
+          <Button className="primary-button add-button" type="button" aria-describedby="product-account-requirement" disabled={unavailable || !product.variants.length} onClick={(event) => void addToCart(event.currentTarget)}>{t("product.addBag")}</Button>
           <button className="icon-button wishlist-product" type="button" aria-label={t(wished ? "product.removeWishlist" : "product.addWishlist")} aria-pressed={wished} onClick={async () => { if (await requireAccount()) toggleWishlist(product.id); }}><HeartIcon fill={wished ? "currentColor" : "none"} /></button>
         </div>
         <a className="whatsapp-enquiry" target="_blank" rel="noreferrer" href={createProductEnquiryUrl(product.name, product.sku, window.location.href)}>{t("product.askWhatsApp")}</a>
@@ -215,7 +216,7 @@ export function ProductPage() {
       <ProductReviews productId={product.id} productName={product.name} averageRating={product.averageRating} ratingCount={product.ratingCount} />
       <RelatedProductsRail products={related} />
       <p className="sr-only" aria-live="polite">Selected {selectedLabel}, quantity {quantity}. Bag contains {bagCount} {bagCount === 1 ? "item" : "items"}; total {bagTotalLabel}.</p>
-      {showMobilePurchase && <div className="mobile-purchase-bar"><div><p>{product.name}</p><span>{selectedLabel} · Qty {quantity}</span><span>{t("nav.bag")} {bagCount} · {bagTotalLabel}</span></div><Button className="primary-button" type="button" disabled={!selectedVariant || unavailable} onClick={(event) => void addToCart(event.currentTarget, "sticky_bar")}>{t("product.addBag")}</Button></div>}
+      {showMobilePurchase && <div className="mobile-purchase-bar"><div><p>{product.name}</p><span>{selectedLabel} · Qty {quantity}</span><span>{t("nav.bag")} {bagCount} · {bagTotalLabel}</span></div><Button className="primary-button" type="button" aria-describedby="product-account-requirement" disabled={!selectedVariant || unavailable} onClick={(event) => void addToCart(event.currentTarget, "sticky_bar")}>{t("product.addBag")}</Button></div>}
     </article>
   );
 }

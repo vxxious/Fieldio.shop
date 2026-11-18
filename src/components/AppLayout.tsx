@@ -59,10 +59,10 @@ export function AppLayout() {
     <div className="app-shell">
       <a href="#main-content" className="skip-link">Skip to content</a>
       <OfflineNotice />
-      <AnalyticsConsent />
       <SmoothScroll />
       <WishlistSync />
       <SiteHeader />
+      <AnalyticsConsent />
       {catalogPreview && <p className="preview-notice" role="note">Design preview · Images and pieces are illustrative. The live catalog will contain Fieldio-approved products.</p>}
       <AnimatePresence mode="wait" initial={false}>
         <motion.main

@@ -66,10 +66,10 @@ const catalogDirectories = {
 } as const;
 
 function CatalogDirectory({ directory, backTo }: { directory: (typeof catalogDirectories)[keyof typeof catalogDirectories]; backTo?: string }) {
-  return <main className="catalog-directory">
+  return <div className="catalog-directory">
     <header><div>{backTo && <Link className="catalog-directory-back" to={backTo}><ArrowIcon /> Back to accessories</Link>}<h1><EditorialText text={directory.title} /></h1></div><p>{directory.intro}</p></header>
     <div className="catalog-directory-groups">{directory.groups.map((group) => <section key={group.title}><h2>{group.title}</h2><nav aria-label={group.title}>{group.links.map(([label, href]) => <Link key={href} to={href}><span>{label}</span><ArrowIcon /></Link>)}</nav></section>)}</div>
-  </main>;
+  </div>;
 }
 
 function LegacyCollectionPage() {
@@ -78,7 +78,9 @@ function LegacyCollectionPage() {
   const [params, setParams] = useSearchParams();
   const heroRef = useRef<HTMLElement>(null);
   const filterDialogRef = useRef<HTMLDialogElement>(null);
-  const { data: products = emptyCatalog, isLoading, error, refetch } = useCatalogProducts();
+  const subcategory = params.get("category") || "";
+  const isDirectory = !subcategory && (slug === "men" || slug === "women" || Boolean(slug && slug in catalogDirectories));
+  const { data: products = emptyCatalog, isLoading, error, refetch } = useCatalogProducts(!isDirectory);
   const collection = useQuery({ queryKey: ["catalog", "collection", slug], enabled: Boolean(slug && supabase), queryFn: async () => {
     const { data, error: queryError } = await supabase!.from("collections").select("name,intro,hero_image_url,hero_image_alt,seo_title,seo_description").eq("slug", slug!).eq("is_active", true).maybeSingle();
     if (queryError) throw queryError;
@@ -88,7 +90,6 @@ function LegacyCollectionPage() {
   const brand = params.get("brand") || "";
   const size = params.get("size") || "";
   const sort = params.get("sort") || "featured";
-  const subcategory = params.get("category") || "";
   const gender = slug === "men" || slug === "women" ? slug : null;
   const visibleProducts = filterCatalog(products, { ...(slug ? { collection: slug } : {}), subcategory, brand, size, sort });
   const brands = [...new Set(products.map((product) => product.brand))].sort();

@@ -17,8 +17,9 @@ vi.mock("../../api/_lib/server", () => ({
   handleApiError: () => Response.json({ error: "failed" }, { status: 500 })
 }));
 
+const { POST } = await import("../../api/account");
+
 it("removes owned review media before deleting the review", async () => {
-  const { POST } = await import("../../api/account");
   const response = await POST(new Request("https://fieldio.shop/api/account", { method: "POST" }));
   expect(response.status).toBe(200);
   expect(remove).toHaveBeenCalledWith(["buyer/review/photo.webp"]);

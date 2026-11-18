@@ -67,3 +67,27 @@ it("preserves brand discovery while filtering by product category", () => {
   render(<MemoryRouter initialEntries={[`/brands/prada?productCategory=${categoryId}`]}><DiscoveryListing kind="brand" brandSlug="prada" /></MemoryRouter>);
   expect(discoveryQuery).toHaveBeenLastCalledWith(expect.objectContaining({ kind: "brand", brandSlug: "prada", categoryId, page: 1 }));
 });
+
+it.each([
+  ["new", "No new arrivals right now."],
+  ["sale", "No current offers."]
+] as const)("gives an empty %s collection useful next steps", (kind, title) => {
+  discoveryQuery.mockReturnValueOnce({ data: { products: [], total: 0 }, error: null, isPending: false, refetch: vi.fn() });
+  render(<MemoryRouter initialEntries={[kind === "new" ? "/collections/new-arrivals" : "/collections/sale"]}><DiscoveryListing kind={kind} /></MemoryRouter>);
+  expect(screen.getByRole("heading", { name: title })).toBeVisible();
+  expect(screen.getByRole("link", { name: "Browse all pieces" })).toHaveAttribute("href", "/collections");
+  expect(screen.getByRole("link", { name: "Ask a personal shopper" })).toHaveAttribute("href", "/personal-shopping");
+});
+
+it("distinguishes an empty filtered result from an empty collection", () => {
+  discoveryQuery.mockReturnValueOnce({ data: { products: [], total: 0 }, error: null, isPending: false, refetch: vi.fn() });
+  render(<MemoryRouter initialEntries={["/collections/sale?gender=men"]}><DiscoveryListing kind="sale" /></MemoryRouter>);
+  expect(screen.getByRole("heading", { name: "No pieces match these filters." })).toBeVisible();
+});
+
+it("preserves the existing brand empty state", () => {
+  discoveryQuery.mockReturnValueOnce({ data: { products: [], total: 0 }, error: null, isPending: false, refetch: vi.fn() });
+  render(<MemoryRouter initialEntries={["/brands/prada"]}><DiscoveryListing kind="brand" brandSlug="prada" /></MemoryRouter>);
+  expect(screen.getByRole("heading", { name: "No pieces in this edit yet." })).toBeVisible();
+  expect(screen.queryByRole("link", { name: "Browse all pieces" })).not.toBeInTheDocument();
+});

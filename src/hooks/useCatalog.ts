@@ -105,8 +105,8 @@ async function fetchCatalog(): Promise<Product[]> {
   return products.length || !catalogPreview ? products : previewProducts;
 }
 
-export function useCatalogProducts() {
-  return useQuery({ queryKey: ["catalog", "products"], queryFn: fetchCatalog });
+export function useCatalogProducts(enabled = true) {
+  return useQuery({ queryKey: ["catalog", "products"], queryFn: fetchCatalog, enabled });
 }
 
 export function useCatalogProduct(slug: string) {

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { loadEnv } from "vite";
+import { products as previewProducts } from "../../src/data/catalog";
 
 const previewEnv = loadEnv("preview", process.cwd(), "VITE_");
 const supabaseUrl = process.env.VITE_SUPABASE_URL || previewEnv.VITE_SUPABASE_URL;
@@ -14,11 +15,54 @@ const buyer = {
   created_at: "2026-09-01T00:00:00.000Z",
   factors: []
 };
+const catalogRows = previewProducts.map((product) => ({
+  id: product.id,
+  brand_id: product.brand === "Fieldio Edit" ? "fieldio-edit" : "louis-vuitton",
+  sku: product.sku,
+  slug: product.slug,
+  name: product.name,
+  description: product.description,
+  short_description: product.shortDescription,
+  price: 12000,
+  original_price: null,
+  saving_percent: null,
+  new_in_active: false,
+  sale_active: false,
+  currency: product.currency,
+  materials: product.materials,
+  care_information: product.care,
+  featured: product.featured,
+  inquiry_only: false,
+  tags: product.tags,
+  seo_title: product.seoTitle,
+  seo_description: product.seoDescription,
+  created_at: product.createdAt,
+  updated_at: product.updatedAt,
+  brand: { name: product.brand },
+  category: { name: product.category },
+  images: product.images.map((image) => ({ id: image.id, public_url: image.url, storage_path: "", alt_text: image.alt, position: image.position })),
+  variants: product.variants.map((variant) => ({ id: variant.id, sku: variant.sku, name: variant.name, size: variant.size ?? null, color: variant.color ?? null, price_override: null, is_active: true })),
+  collection_products: []
+}));
 
 test.beforeEach(async ({ page }) => {
   const savedWishlist = new Set<string>();
   await page.route("http://127.0.0.1:54321/rest/v1/**", (route) => {
-    const path = new URL(route.request().url()).pathname;
+    const { pathname: path, searchParams } = new URL(route.request().url());
+    if (path.endsWith("/discovery_products")) {
+      const slug = searchParams.get("slug")?.replace(/^eq\./, "");
+      const brandId = searchParams.get("brand_id")?.replace(/^eq\./, "");
+      const excludedId = searchParams.get("id")?.replace(/^neq\./, "");
+      const rows = slug ? catalogRows.find((product) => product.slug === slug) ?? null
+        : brandId ? catalogRows.filter((product) => product.brand_id === brandId && product.id !== excludedId)
+          : [];
+      const count = Array.isArray(rows) ? rows.length : Number(Boolean(rows));
+      return route.fulfill({ status: 200, contentType: "application/json", headers: { "Content-Range": count ? `0-${count - 1}/${count}` : "*/0" }, body: JSON.stringify(rows) });
+    }
+    if (path.endsWith("/rpc/shop_variant_availability")) {
+      const { p_variant_ids = [] } = route.request().postDataJSON() as { p_variant_ids?: string[] };
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(p_variant_ids.map((variant_id) => ({ variant_id, available_quantity: 4 }))) });
+    }
     if (path.endsWith("/wishlist_items")) {
       if (route.request().method() === "POST") {
         const item = route.request().postDataJSON() as { product_id?: string };
@@ -52,9 +96,9 @@ async function signInBuyer(page: Page) {
   });
 }
 
-async function openFirstProduct(page: Page) {
+async function openFeaturedProduct(page: Page) {
   await page.goto("/");
-  const link = page.locator(".product-card-media a").first();
+  const link = page.locator(".product-card-media a").nth(1);
   await expect(link).toBeVisible();
   await link.click();
   await expect(page).toHaveURL(/\/products\//);
@@ -64,7 +108,7 @@ test("a 300px reload stays styled before and after hydration", async ({ page }) 
   await page.setViewportSize({ width: 300, height: 600 });
   await page.route("**/", async (route) => {
     const response = await route.fetch();
-    const html = (await response.text()).replace(/<script type="module" src="\/src\/main\.tsx"><\/script>|<script type="module" crossorigin src="\/assets\/index-[^"]+"><\/script>/, "");
+    const html = (await response.text()).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
     await route.fulfill({ response, body: html });
   });
   await page.goto("/");
@@ -140,16 +184,19 @@ test("customer can build a request from product to checkout", async ({ page, isM
 test("public shopping uses safe variant availability without reading inventory rows", async ({ page }) => {
   let availabilityCalls = 0;
   let operationalInventoryRequested = false;
-  await page.route("http://127.0.0.1:54321/rest/v1/products?*", (route) => {
-    operationalInventoryRequested ||= new URL(route.request().url()).searchParams.get("select")?.includes("inventory(") ?? false;
-    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{
+  await page.route("http://127.0.0.1:54321/rest/v1/discovery_products?*", (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    operationalInventoryRequested ||= params.get("select")?.includes("inventory(") ?? false;
+    if (params.get("slug") !== "eq.privacy-test-coat") return route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
       id: "privacy-product", sku: "PRIVACY-P1", slug: "privacy-test-coat", name: "Privacy Test Coat", description: "A tailored black coat.", short_description: "A tailored black coat.", price: 12000, currency: "GBP",
-      materials: null, care_information: null, featured: false, is_new_arrival: false, is_sale: false, inquiry_only: false,
+      brand_id: "privacy-brand", original_price: null, saving_percent: null, new_in_active: false, sale_active: false,
+      materials: null, care_information: null, featured: false, inquiry_only: false,
       tags: [], seo_title: null, seo_description: null, created_at: "2026-09-01T00:00:00Z", updated_at: "2026-09-01T00:00:00Z",
       brand: { name: "Fieldio" }, category: { name: "Clothing" }, images: [{ id: "image", public_url: "/images/luxury-travel.png", storage_path: "", alt_text: "Black coat", position: 0 }],
       variants: [{ id: "privacy-variant", sku: "PRIVACY-V1", name: "Black / M", size: "M", color: "Black", price_override: null, is_active: true }],
       collection_products: []
-    }]) });
+    }) });
   });
   await page.route("http://127.0.0.1:54321/rest/v1/rpc/shop_variant_availability", (route) => {
     availabilityCalls += 1;
@@ -249,12 +296,12 @@ test("homepage keeps top-level shopping grouped by gender", async ({ page }) => 
 test("product cards and details do not show request-only labels", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("Request only", { exact: true })).toHaveCount(0);
-  await openFirstProduct(page);
+  await openFeaturedProduct(page);
   await expect(page.getByText("Request only", { exact: true })).toHaveCount(0);
 });
 
 test("product reviews load without overflow and keep touch-safe controls", async ({ page }) => {
-  await openFirstProduct(page);
+  await openFeaturedProduct(page);
   const reviews = page.locator("#reviews");
   await reviews.scrollIntoViewIfNeeded();
   await expect(reviews.getByRole("heading", { name: "Customer reviews" })).toBeVisible();
@@ -332,7 +379,7 @@ test("mobile purchase bar appears only after the in-flow controls are passed", a
     state.__fieldioEvents = [];
     window.addEventListener("fieldio:analytics", (event) => state.__fieldioEvents.push((event as CustomEvent<{ name: string }>).detail.name));
   });
-  await openFirstProduct(page);
+  await openFeaturedProduct(page);
   await expect(page.locator(".mobile-purchase-bar")).toHaveCount(0);
   const variant = page.locator('input[type="radio"]:not([disabled])').first();
   if (!await variant.isChecked()) await variant.check();
@@ -344,12 +391,14 @@ test("mobile purchase bar appears only after the in-flow controls are passed", a
   await expect.poll(() => page.evaluate(() => (window as Window & { __fieldioEvents: string[] }).__fieldioEvents)).toContain("quantity_change");
 });
 
-test("related rail supports keyboard browsing and quick request", async ({ page }) => {
+test("related rail supports keyboard browsing and quick request", async ({ page, isMobile }) => {
+  if (!isMobile) await page.setViewportSize({ width: 900, height: 900 });
   await signInBuyer(page);
-  await openFirstProduct(page);
+  await openFeaturedProduct(page);
   const rail = page.getByRole("list", { name: /Related products/ });
   await rail.scrollIntoViewIfNeeded();
   await rail.focus();
+  expect(await rail.evaluate((element) => element.scrollWidth)).toBeGreaterThan(await rail.evaluate((element) => element.clientWidth));
   const before = await rail.evaluate((element) => element.scrollLeft);
   await page.keyboard.press("ArrowRight");
   await expect.poll(() => rail.evaluate((element) => element.scrollLeft)).toBeGreaterThan(before);
@@ -361,7 +410,7 @@ test("related rail supports keyboard browsing and quick request", async ({ page 
 });
 
 test("Shadcn product accordion remains accessible within the motion system", async ({ page }) => {
-  await openFirstProduct(page);
+  await openFeaturedProduct(page);
   const trigger = page.getByRole("button", { name: "Materials & care" });
   await expect(trigger).toHaveAttribute("data-slot", "accordion-trigger");
   await trigger.click();
@@ -371,13 +420,13 @@ test("Shadcn product accordion remains accessible within the motion system", asy
 });
 
 test("route transitions restore keyboard context and announce the destination", async ({ page }) => {
-  await openFirstProduct(page);
+  await openFeaturedProduct(page);
   await expect(page.locator("#main-content")).toBeFocused();
   await expect(page.locator("#status-region")).toContainText("Navigated to");
 });
 
 test("product purchase content stops before the details section", async ({ page }) => {
-  await openFirstProduct(page);
+  await openFeaturedProduct(page);
   const details = page.locator(".product-editorial-details");
   await expect(details).toBeVisible();
   const detailsTop = await details.evaluate((element) => element.getBoundingClientRect().top + window.scrollY);
@@ -391,7 +440,7 @@ test("product purchase content stops before the details section", async ({ page 
 
 test("bag traps focus after quantity changes and restores its trigger", async ({ page }) => {
   await signInBuyer(page);
-  await openFirstProduct(page);
+  await openFeaturedProduct(page);
   const variant = page.locator('input[type="radio"]:not([disabled])').first();
   if (!await variant.isChecked()) await variant.check();
   const trigger = page.getByRole("button", { name: "Add to bag" }).first();
@@ -564,6 +613,10 @@ test("guest protected routes redirect once and preserve their original destinati
 });
 
 test("brand directory searches and filters the available brands", async ({ page }) => {
+  await page.route("http://127.0.0.1:54321/rest/v1/brands?*", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([
+    { id: "gucci", name: "Gucci", slug: "gucci", description: null, seo_title: null, seo_description: null },
+    { id: "prada", name: "Prada", slug: "prada", description: null, seo_title: null, seo_description: null }
+  ]) }));
   await page.goto("/brands");
   const search = page.getByRole("searchbox", { name: "Search brands" });
   await expect(search).toBeVisible();
@@ -642,7 +695,7 @@ test("region choice localizes the storefront and persists", async ({ page }, tes
 
   if (testInfo.project.name === "mobile") {
     await page.getByRole("button", { name: "Open menu" }).click();
-    await expect(page.getByRole("link", { name: "Fieldio on Instagram" })).toHaveAttribute("href", "https://www.instagram.com/fieldio_wrd/");
+    await expect(page.getByRole("dialog", { name: "Mobile navigation" }).getByRole("link", { name: "Fieldio on Instagram" })).toHaveAttribute("href", "https://www.instagram.com/fieldio_wrd/");
   }
   await page.getByRole("button", { name: /Change region and language/ }).click();
   const panel = page.getByRole("dialog", { name: "Region and language" });
@@ -656,5 +709,5 @@ test("region choice localizes the storefront and persists", async ({ page }, tes
 
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("lang", "fr-FR");
-  await expect(page.getByText("La sélection Fieldio")).toBeVisible();
+  await expect(page.getByText("Sourcing et expédition dans le monde entier")).toBeVisible();
 });

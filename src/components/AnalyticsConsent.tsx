@@ -1,5 +1,6 @@
 import { Analytics } from "@vercel/analytics/react";
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { trackEvent } from "../lib/analytics";
 
 const consentKey = "fieldio-analytics-consent";
@@ -11,6 +12,7 @@ function readChoice(): Choice {
 }
 
 export function AnalyticsConsent() {
+  const isProductPage = useLocation().pathname.startsWith("/products/");
   const [choice, setChoice] = useState<Choice>(readChoice);
   const [open, setOpen] = useState(() => !readChoice());
 
@@ -29,6 +31,6 @@ export function AnalyticsConsent() {
 
   return <>
     {choice === "accepted" && <Analytics beforeSend={(event) => ({ ...event, url: event.url.split("?")[0] ?? event.url })} />}
-    {open && <aside className="analytics-consent" aria-label="Analytics preference"><p>Anonymous analytics helps Fieldio improve the edit. No checkout or account data is tracked.</p><div><button type="button" className="text-link" onClick={() => choose("declined")}>Decline</button><button type="button" className="primary-button" onClick={() => choose("accepted")}>Allow</button></div></aside>}
+    {open && <aside className={`analytics-consent${isProductPage ? " analytics-consent--product" : ""}`} aria-label="Analytics preference"><p>Anonymous analytics helps Fieldio improve the edit. No checkout or account data is tracked.</p><div><button type="button" className="text-link" onClick={() => choose("declined")}>Decline</button><button type="button" className="primary-button" onClick={() => choose("accepted")}>Allow</button></div></aside>}
   </>;
 }

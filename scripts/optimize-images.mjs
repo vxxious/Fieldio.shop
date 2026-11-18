@@ -17,3 +17,13 @@ for (const filename of await readdir(directory)) {
   }
 }
 console.log(`Largest responsive images: ${optimizedBytes} bytes; original PNGs: ${sourceBytes} bytes.`);
+
+const zaraDirectory = path.join(directory, "brand-catalog", "zara");
+for (const filename of await readdir(zaraDirectory)) {
+  if (!/^zara-.+\.webp$/.test(filename) || /-(480|960)\.webp$/.test(filename)) continue;
+  const source = path.join(zaraDirectory, filename);
+  const base = filename.slice(0, -5);
+  for (const width of [480, 960]) {
+    await sharp(source).resize({ width, withoutEnlargement: true }).webp({ quality: 85, effort: 5 }).toFile(path.join(zaraDirectory, `${base}-${width}.webp`));
+  }
+}

@@ -37,6 +37,8 @@ export function ProductCard({ product, quickAdd = false }: { product: Product; q
           {product.images.length ? <motion.img
             {...responsiveImage(product.images[0]?.url)}
             sizes="(max-width: 700px) 50vw, 25vw"
+            width={400}
+            height={525}
             alt={product.images[0]?.alt ?? product.name}
             {...(product.images[0]?.cardCrop ? { style: {
               objectPosition: product.images[0].cardCrop.objectPosition,
@@ -67,17 +69,18 @@ export function ProductCard({ product, quickAdd = false }: { product: Product; q
             <p className="product-price">{formatMoney(product.price, product.currency)}{product.isSale && product.originalPrice != null && <><s>{formatMoney(product.originalPrice, product.currency)}</s><span className="product-saving">{product.savingPercent}% off</span></>}</p>
           </Link>
           <p className="product-card-options">{productSizeSummary(product)}{product.condition ? ` · ${productCondition(product)}` : ""}</p>
+          {(quickAdd || singleVariant) && <p id={`account-requirement-${product.id}`} className="account-requirement">Account required to add to bag.</p>}
           {product.sellerVerified && product.sellerStoreSlug && <Link className="product-card-seller" to={`/stores/${product.sellerStoreSlug}`}>Verified seller{product.sellerCountryCode ? ` · ${product.sellerCountryCode}` : ""}</Link>}
         </div>
         {quickAdd ? (
           <div className="related-quick-add">
-            {singleVariant ? <button type="button" className="quick-action" disabled={singleVariant.inventory === 0} onClick={(event) => void addVariant(singleVariant, event.currentTarget)}>{singleVariant.inventory === 0 ? t("product.unavailable") : quickLabel}</button> : <>
+            {singleVariant ? <button type="button" className="quick-action" aria-describedby={`account-requirement-${product.id}`} disabled={singleVariant.inventory === 0} onClick={(event) => void addVariant(singleVariant, event.currentTarget)}>{singleVariant.inventory === 0 ? t("product.unavailable") : quickLabel}</button> : <>
               <button type="button" className="quick-action" aria-expanded={showSizes} onClick={() => setShowSizes((value) => !value)}>{showSizes ? t("product.closeSizes") : quickLabel}</button>
-              {showSizes && <div className="quick-size-options" role="group" aria-label={`${quickLabel} ${product.name} by option`}>{product.variants.map((variant) => <button key={variant.id} type="button" disabled={variant.inventory === 0} aria-label={`${quickLabel} ${product.name}, ${variantOptionLabel(variant)}`} onClick={(event) => void addVariant(variant, event.currentTarget)}>{variantOptionLabel(variant)}</button>)}</div>}
+              {showSizes && <div className="quick-size-options" role="group" aria-label={`${quickLabel} ${product.name} by option`}>{product.variants.map((variant) => <button key={variant.id} type="button" disabled={variant.inventory === 0} aria-describedby={`account-requirement-${product.id}`} aria-label={`${quickLabel} ${product.name}, ${variantOptionLabel(variant)}`} onClick={(event) => void addVariant(variant, event.currentTarget)}>{variantOptionLabel(variant)}</button>)}</div>}
             </>}
           </div>
         ) : singleVariant ? (
-          <button type="button" className="quick-action" disabled={singleVariant.inventory === 0} onClick={async (event) => { if (!await requireAccount()) return; addItem(product, singleVariant); useCartStore.getState().openCart(event.currentTarget); trackEvent("add_to_cart", { product_id: product.id }); }}>
+          <button type="button" className="quick-action" aria-describedby={`account-requirement-${product.id}`} disabled={singleVariant.inventory === 0} onClick={async (event) => { if (!await requireAccount()) return; addItem(product, singleVariant); useCartStore.getState().openCart(event.currentTarget); trackEvent("add_to_cart", { product_id: product.id }); }}>
             {singleVariant.inventory === 0 ? t("product.outOfStock") : t("product.addRequest")}
           </button>
         ) : (
