@@ -15,6 +15,13 @@ function displayCell(row: Row, key: string): string {
   catch { return display(row.price); }
 }
 
+function productSlug(name: string, suffix: string): string {
+  const readable = name.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/&/g, "-and-").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+    .slice(0, 80).replace(/-$/g, "");
+  return `${readable || "product"}-${suffix}`;
+}
+
 const referenceSources: Record<string, { table: string; label: string }> = {
   brand_id: { table: "brands", label: "name" }, category_id: { table: "categories", label: "name" },
   collection_id: { table: "collections", label: "name" }, parent_id: { table: "categories", label: "name" },
@@ -44,6 +51,8 @@ export function AdminWorkspace({ resource, canDelete = false, onDirtyChange }: {
   const [search, setSearch] = useState("");
   const [submittedSearch, setSubmittedSearch] = useState("");
   const editorHeading = useRef<HTMLHeadingElement>(null);
+  const productSuffix = useRef("");
+  const autoSlug = useRef("");
   const { register, handleSubmit, reset, setValue, getValues, setError, setFocus, formState: { errors, isDirty, isSubmitting } } = useForm<Row>();
   const query = useQuery({ queryKey: ["admin", resource.table, page, submittedSearch], queryFn: async () => {
     let request = supabase!.from(resource.table).select("*", { count: "exact" }).order(resource.columns[0]!);
@@ -91,7 +100,16 @@ export function AdminWorkspace({ resource, canDelete = false, onDirtyChange }: {
       const value = row[field.key];
       values[field.key] = field.type === "boolean" ? value ?? ["is_active", "is_catalogued"].includes(field.key) : field.type === "json" ? JSON.stringify(value ?? {}, null, 2) : field.type === "tags" ? (Array.isArray(value) ? value.join(", ") : "") : field.type === "datetime-local" ? (value ? String(value).slice(0, 16) : "") : field.type === "money" && typeof value === "number" ? value / 100 : value ?? field.options?.[0] ?? (field.type === "number" && field.required ? 0 : "");
     }
+    productSuffix.current = resource.table === "products" && !row.id ? crypto.randomUUID().replaceAll("-", "").slice(0, 12) : "";
+    autoSlug.current = "";
+    if (productSuffix.current) values.sku = `FIELDIO-${productSuffix.current.toUpperCase()}`;
     reset(values);
+  }
+
+  function updateProductSlug(name: string) {
+    if (resource.table !== "products" || editing?.id || getValues("slug") !== autoSlug.current) return;
+    autoSlug.current = productSlug(name, productSuffix.current);
+    setValue("slug", autoSlug.current, { shouldDirty: true, shouldValidate: true });
   }
 
   async function save(values: Row) {
@@ -187,7 +205,7 @@ export function AdminWorkspace({ resource, canDelete = false, onDirtyChange }: {
           const errorId = `admin-${resource.table}-${field.key}-error`;
           const fieldProps = register(field.key);
           const accessibility = { "aria-invalid": Boolean(errors[field.key]), "aria-describedby": errors[field.key] ? errorId : undefined };
-          return <label key={field.key}><span>{field.label}</span>{field.options ? <select {...fieldProps} {...accessibility}>{field.options.map((option) => <option key={option || "empty"} value={option}>{option ? option.replaceAll("_", " ") : "Select when resolving"}</option>)}</select> : field.type === "uuid" && referenceSources[field.key] ? <select {...fieldProps} {...accessibility} disabled={references.isPending || Boolean(references.error)}><option value="">{references.isPending ? "Loading choices…" : references.error ? "Choices unavailable" : field.required ? "Select one" : "None"}</option>{referenceOptions?.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select> : ["textarea", "json"].includes(field.type ?? "") ? <textarea rows={field.type === "json" ? 8 : 3} {...fieldProps} {...accessibility} /> : <input type={field.type === "boolean" ? "checkbox" : field.type === "number" || field.type === "money" ? "number" : field.type === "datetime-local" ? "datetime-local" : "text"} step={field.type === "money" ? "0.01" : undefined} min={field.type === "number" || field.type === "money" ? "0" : undefined} {...fieldProps} {...accessibility} />}{errors[field.key] && <small id={errorId} role="alert">{String(errors[field.key]?.message)}</small>}</label>;
+          return <label key={field.key}><span>{field.label}</span>{field.options ? <select {...fieldProps} {...accessibility}>{field.options.map((option) => <option key={option || "empty"} value={option}>{option ? option.replaceAll("_", " ") : "Select when resolving"}</option>)}</select> : field.type === "uuid" && referenceSources[field.key] ? <select {...fieldProps} {...accessibility} disabled={references.isPending || Boolean(references.error)}><option value="">{references.isPending ? "Loading choices…" : references.error ? "Choices unavailable" : field.required ? "Select one" : "None"}</option>{referenceOptions?.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select> : ["textarea", "json"].includes(field.type ?? "") ? <textarea rows={field.type === "json" ? 8 : 3} {...fieldProps} {...accessibility} /> : <input type={field.type === "boolean" ? "checkbox" : field.type === "number" || field.type === "money" ? "number" : field.type === "datetime-local" ? "datetime-local" : "text"} step={field.type === "money" ? "0.01" : undefined} min={field.type === "number" || field.type === "money" ? "0" : undefined} {...fieldProps} onChange={field.key === "name" && resource.table === "products" ? (event) => { void fieldProps.onChange(event); updateProductSlug(event.target.value); } : fieldProps.onChange} {...accessibility} />}{errors[field.key] && <small id={errorId} role="alert">{String(errors[field.key]?.message)}</small>}</label>;
         })}
         <button className="primary-button" disabled={isSubmitting || uploading}>{isSubmitting ? "Saving…" : "Save record"}</button>
       </form>}
