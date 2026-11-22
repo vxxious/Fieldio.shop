@@ -1,7 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { requireStaff } from "./_lib/admin.js";
 import { sendTrackedEmail } from "./_lib/email.js";
-import { checkRateLimit, getAdminSupabase, handleApiError, json, readValidatedJson } from "./_lib/server.js";
+import { checkRateLimit, handleApiError, json, readValidatedJson } from "./_lib/server.js";
 import { POST as handleCampaigns } from "./_lib/campaigns-handler.js";
 import { POST as handleAdminInvites } from "./_lib/admin-invites-handler.js";
 import { POST as handlePayouts } from "./_lib/payouts-handler.js";
@@ -34,20 +34,16 @@ export async function POST(request: Request): Promise<Response> {
   if (!await checkRateLimit(request, 10, 60_000)) return json({ error: "Review requests are temporarily limited. Wait a minute and try again." }, 429);
   try {
     const input = await readValidatedJson(request, schema);
-    const admin = getAdminSupabase();
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!admin || !url || !key) return json({ error: "Listing review is temporarily unavailable." }, 503);
-
-    const token = request.headers.get("authorization")?.replace(/^Bearer /i, "");
-    if (!token) return json({ error: "Sign in again to review this listing." }, 401);
-    const { data: auth, error: authError } = await admin.auth.getUser(token);
-    if (authError || !auth.user) return json({ error: "Your session has expired. Sign in again." }, 401);
-    const { data: administrator } = await admin.from("admin_users").select("role").eq("user_id", auth.user.id).maybeSingle();
-    if (!administrator || !["owner", "admin"].includes(administrator.role)) return json({ error: "You are not authorised to review listings." }, 403);
+    const { admin, client } = await requireStaff(request, ["owner", "admin"]);
 
     const published: Array<{ storage_path: string; public_url: string; alt_text: string; position: number }> = [];
     if (input.decision === "approved") {
+      const { data: listing, error: listingError } = await admin.from("seller_listings").select("store_id,status").eq("id", input.listingId).maybeSingle();
+      if (listingError) throw listingError;
+      if (listing?.status !== "pending") return json({ error: "This listing has already been reviewed. Refresh the queue." }, 409);
+      const { data: store, error: storeError } = await admin.from("seller_stores").select("status").eq("id", listing.store_id).maybeSingle();
+      if (storeError) throw storeError;
+      if (store?.status !== "active") return json({ error: "This seller store is no longer active. Refresh the queue." }, 409);
       const { data: images, error: imageQueryError } = await admin.from("seller_listing_images").select("storage_path,alt_text,position").eq("listing_id", input.listingId).order("position");
       if (imageQueryError) throw imageQueryError;
       if (!images?.length) return json({ error: "This listing needs at least one image before approval." }, 409);
@@ -65,10 +61,9 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
-    const userClient = createClient(url, key, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false, autoRefreshToken: false } });
     const { data, error } = input.decision === "suspended"
-      ? await userClient.rpc("suspend_seller_listing", { p_listing_id: input.listingId, p_reason: input.reason })
-      : await userClient.rpc("review_seller_listing", { p_listing_id: input.listingId, p_decision: input.decision, p_reason: input.reason || null, p_public_images: published });
+      ? await client.rpc("suspend_seller_listing", { p_listing_id: input.listingId, p_reason: input.reason })
+      : await client.rpc("review_seller_listing", { p_listing_id: input.listingId, p_decision: input.decision, p_reason: input.reason || null, p_public_images: published });
     if (error) {
       if (error.message.includes("not pending")) return json({ error: "This listing has already been reviewed. Refresh the queue." }, 409);
       if (error.message.includes("not approved")) return json({ error: "This listing is no longer live. Refresh the queue." }, 409);
